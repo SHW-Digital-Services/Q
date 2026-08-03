@@ -1,0 +1,6 @@
+{
+  "name": "Q-AI",
+  "description": "An AI-powered mental health and wellness companion app with life guides, lived experiences, mood tracking, and trusted memory.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
