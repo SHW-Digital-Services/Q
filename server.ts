@@ -9,12 +9,33 @@ import { adminRouter } from './server/routes/admin';
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
-app.use(express.json({
-  limit: '32kb',
-  verify: (request, _response, buffer) => {
-    (request as express.Request & { rawBody?: string }).rawBody = buffer.toString('utf8');
+// Normalize incoming URL path for Vercel/serverless rewrites
+app.use((req, _res, next) => {
+  if (req.originalUrl && req.originalUrl !== req.url && (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/legal'))) {
+    req.url = req.originalUrl;
   }
-}));
+  next();
+});
+
+// Safe body parsing middleware that handles both standalone Express and pre-parsed Serverless environments
+app.use((req, res, next) => {
+  if (req.body !== undefined && req.body !== null) {
+    if (typeof req.body === 'string') {
+      try {
+        req.body = JSON.parse(req.body);
+      } catch {
+        // Keep as string if not valid JSON
+      }
+    }
+    return next();
+  }
+  express.json({
+    limit: '32kb',
+    verify: (request, _response, buffer) => {
+      (request as express.Request & { rawBody?: string }).rawBody = buffer.toString('utf8');
+    }
+  })(req, res, next);
+});
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -31,6 +52,14 @@ if (process.env.VERCEL !== '1' && process.env.NODE_ENV === 'production') {
   app.get(['/app', '/app/*'], (_req, res) => res.sendFile(path.join(clientDirectory, 'index.html')));
   app.get('*', (_req, res) => res.sendFile(path.join(clientDirectory, 'index.html')));
 }
+
+// Global Express error handler to guarantee valid JSON responses
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('[Server Uncaught Error]:', err);
+  if (!res.headersSent) {
+    res.status(500).json({ error: err?.message || 'An unexpected server error occurred.' });
+  }
+});
 
 export async function startServer() {
   if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
