@@ -2,8 +2,8 @@
 title: Processor Register
 description: Sub-processor and Processor Register for Q Intelligence
 version: 1.0.0
-effective_date: [TO BE COMPLETED]
-last_updated: [TO BE COMPLETED]
+effective_date: 02/08/2026
+last_updated: 02/08/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 jurisdiction: Worldwide
