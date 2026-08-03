@@ -92,7 +92,11 @@ export function buildAnalyticsExport(interactions: Interaction[], feedback: Sent
 }
 
 export function validateAggregateExport(payload: unknown): asserts payload is AnalyticsExport {
-  const serialized = JSON.stringify(payload);
+  const clone = JSON.parse(JSON.stringify(payload));
+  if (clone && typeof clone === 'object' && 'generatedAt' in clone) {
+    delete (clone as any).generatedAt;
+  }
+  const serialized = JSON.stringify(clone);
   const piiPatterns = [
     // emails
     /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,

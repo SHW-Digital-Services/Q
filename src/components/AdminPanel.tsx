@@ -29,14 +29,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     };
   };
 
+  const parseJsonResponse = async (response: Response) => {
+    const text = await response.text();
+    let payload: any;
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      if (!response.ok) {
+        throw new Error(`Server response error (${response.status}): ${text.slice(0, 120)}`);
+      }
+      throw new Error('Received non-JSON response from server.');
+    }
+    if (!response.ok) {
+      throw new Error(payload.error || payload.message || `Server error (${response.status})`);
+    }
+    return payload;
+  };
+
   const loadRequests = async () => {
     setLoadingRequests(true);
     setRequestMessage(null);
     try {
       const headers = await getAuthHeaders();
       const response = await fetch('/api/v1/admin/password-reset-requests', { headers });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Unable to load password reset requests.');
+      const payload = await parseJsonResponse(response);
       setRequests(payload);
     } catch (error: any) {
       setRequestMessage(error.message || 'Unable to load password reset requests.');
@@ -54,8 +70,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         method: 'POST',
         headers
       });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Unable to issue a temporary password.');
+      const payload = await parseJsonResponse(response);
       setRequests((current) => current.map((item) => item.id === request.id ? payload.request : item));
       setRequestMessage(`Temporary password created for ${request.email}: ${payload.tempPassword}`);
     } catch (error: any) {
@@ -79,8 +94,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         headers,
         body: JSON.stringify({ email: directEmail.trim() })
       });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Unable to reset password for user.');
+      const payload = await parseJsonResponse(response);
       setDirectResult({
         email: payload.email,
         tempPassword: payload.tempPassword,

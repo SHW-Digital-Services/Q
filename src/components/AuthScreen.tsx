@@ -62,8 +62,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail.trim(), message: forgotMessage.trim() })
       });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Unable to submit the password reset request.');
+      const resText = await response.text();
+      let payload: any = {};
+      try {
+        payload = JSON.parse(resText);
+      } catch {
+        if (!response.ok) {
+          throw new Error(`Server error (${response.status}): ${resText.slice(0, 100)}`);
+        }
+      }
+      if (!response.ok) throw new Error(payload.error || payload.message || 'Unable to submit the password reset request.');
       setForgotFeedback('Your request has been sent to the admin team. They will review it shortly.');
       setForgotEmail('');
       setForgotMessage('');

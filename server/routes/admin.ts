@@ -5,9 +5,18 @@ import { getAuthenticatedUser } from '../middleware';
 import { buildAnalyticsExport } from '../analyticsEngine';
 
 export const adminRouter = express.Router();
-const serviceSupabase = process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-  : null;
+
+function getServiceSupabase() {
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+}
 
 interface PasswordResetRequest {
   id: string;
@@ -37,11 +46,12 @@ async function requireAdmin(req: express.Request, res: express.Response) {
       res.status(401).json({ error: 'Access denied: Authentication required. Please sign in.' });
       return null;
     }
+    const serviceSupabase = getServiceSupabase();
     if (!serviceSupabase) {
-      res.status(503).json({ error: 'Supabase admin access is not configured. Please set SUPABASE_SERVICE_ROLE_KEY environment variable.' });
+      res.status(503).json({ error: 'Supabase admin access is not configured. Please set SUPABASE_SERVICE_ROLE_KEY in environment variables.' });
       return null;
     }
-    return identity;
+    return { identity, serviceSupabase };
   } catch (err: any) {
     console.error('[Admin] Auth verification failed:', err);
     res.status(401).json({ error: 'Authentication check failed.' });
@@ -86,10 +96,9 @@ adminRouter.get('/password-reset-requests', async (req, res) => {
 
 adminRouter.post('/password-reset-requests/:id/reset', async (req, res) => {
   try {
-    if (!await requireAdmin(req, res)) return;
-    if (!serviceSupabase) {
-      return res.status(503).json({ error: 'Supabase admin access is not configured. Please set SUPABASE_SERVICE_ROLE_KEY environment variable.' });
-    }
+    const adminCtx = await requireAdmin(req, res);
+    if (!adminCtx) return;
+    const { serviceSupabase } = adminCtx;
 
     const request = passwordResetRequests.find((entry) => entry.id === req.params.id);
     if (!request) {
@@ -144,10 +153,9 @@ adminRouter.post('/password-reset-requests/:id/reset', async (req, res) => {
 
 adminRouter.post('/direct-password-reset', async (req, res) => {
   try {
-    if (!await requireAdmin(req, res)) return;
-    if (!serviceSupabase) {
-      return res.status(503).json({ error: 'Supabase admin access is not configured. Please set SUPABASE_SERVICE_ROLE_KEY environment variable.' });
-    }
+    const adminCtx = await requireAdmin(req, res);
+    if (!adminCtx) return;
+    const { serviceSupabase } = adminCtx;
 
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     if (!email) {
@@ -198,10 +206,10 @@ adminRouter.post('/direct-password-reset', async (req, res) => {
 
 adminRouter.get('/provider-insights', async (req, res) => {
   try {
-    if (!await requireAdmin(req, res)) return;
-    if (!serviceSupabase) {
-      return res.status(503).json({ error: 'Supabase admin access is not configured.' });
-    }
+    const adminCtx = await requireAdmin(req, res);
+    if (!adminCtx) return;
+    const { serviceSupabase } = adminCtx;
+
     const { data, error } = await serviceSupabase.from('providers').select('id, org_type, verification_status');
     if (error) throw error;
     return res.json({
@@ -218,10 +226,10 @@ adminRouter.get('/provider-insights', async (req, res) => {
 
 adminRouter.get('/data-moat-export', async (req, res) => {
   try {
-    if (!await requireAdmin(req, res)) return;
-    if (!serviceSupabase) {
-      return res.status(503).json({ error: 'Supabase admin access is not configured.' });
-    }
+    const adminCtx = await requireAdmin(req, res);
+    if (!adminCtx) return;
+    const { serviceSupabase } = adminCtx;
+
     const [{ data: messages, error: messagesError }, { data: feedback, error: feedbackError }] = await Promise.all([
       serviceSupabase.from('chat_messages').select('user_id, content, created_at').order('created_at'),
       serviceSupabase.from('sentiment_feedback').select('flagged_unsafe, score')
