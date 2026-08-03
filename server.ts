@@ -11,8 +11,11 @@ const port = Number(process.env.PORT ?? 3000);
 
 // Normalize incoming URL path for Vercel/serverless rewrites
 app.use((req, _res, next) => {
-  if (req.originalUrl && req.originalUrl !== req.url && (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/legal'))) {
-    req.url = req.originalUrl;
+  if (req.url === '/api' || req.url === '/api/' || req.url.startsWith('/api/index') || req.url === '/') {
+    const original = req.originalUrl || (req.headers['x-forwarded-uri'] as string);
+    if (original && (original.startsWith('/api') || original.startsWith('/legal'))) {
+      req.url = original.split('?')[0];
+    }
   }
   next();
 });
@@ -73,7 +76,12 @@ export async function startServer() {
   }
 }
 
-if (process.env.VERCEL !== '1' && process.env.NODE_ENV !== 'test') {
+const isMainModule = Boolean(
+  process.argv[1] &&
+  (process.argv[1].endsWith('server.ts') || process.argv[1].endsWith('server.cjs') || process.argv[1].endsWith('server.js'))
+);
+
+if (isMainModule && process.env.VERCEL !== '1' && process.env.NODE_ENV !== 'test') {
   startServer().catch((error) => {
     console.error('[Server] Failed to start:', error);
     process.exitCode = 1;
