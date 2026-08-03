@@ -8,10 +8,15 @@ export async function getAuthenticatedUser(request: Request) {
 
   if (!supabaseUrl || !supabaseAnonKey || !authorization) return null;
 
-  const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authorization } }
-  });
-  const { data, error } = await authClient.auth.getUser();
-  if (error || !data.user) return null;
-  return { authClient, user: data.user };
+  try {
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authorization } }
+    });
+    const { data, error } = await authClient.auth.getUser();
+    if (error || !data.user) return null;
+    return { authClient, user: data.user };
+  } catch (err) {
+    console.warn('[Middleware] getAuthenticatedUser error:', err);
+    return null;
+  }
 }
