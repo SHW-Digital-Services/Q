@@ -11,10 +11,25 @@ const port = Number(process.env.PORT ?? 3000);
 
 // Normalize incoming URL path for Vercel/serverless rewrites
 app.use((req, _res, next) => {
-  if (req.url === '/api' || req.url === '/api/' || req.url.startsWith('/api/index') || req.url === '/') {
-    const original = req.originalUrl || (req.headers['x-forwarded-uri'] as string);
-    if (original && (original.startsWith('/api') || original.startsWith('/legal'))) {
-      req.url = original.split('?')[0];
+  const candidates = [
+    req.headers['x-invoke-path'],
+    req.headers['x-forwarded-uri'],
+    req.headers['x-original-url'],
+    req.originalUrl,
+    req.url
+  ];
+
+  for (const raw of candidates) {
+    if (typeof raw === 'string' && raw) {
+      const clean = raw.split('?')[0];
+      if ((clean.startsWith('/api') || clean.startsWith('/legal')) &&
+          !clean.endsWith('/api/index.ts') &&
+          !clean.endsWith('/api/index') &&
+          clean !== '/api' &&
+          clean !== '/api/') {
+        req.url = clean;
+        break;
+      }
     }
   }
   next();
@@ -48,6 +63,10 @@ app.use('/api/billing', billingRouter);
 app.use('/api/q-ai', aiRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/legal', legalRouter);
+
+app.use(['/api', '/api/*', '/legal', '/legal/*'], (req, res) => {
+  res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.originalUrl || req.url}` });
+});
 
 if (process.env.VERCEL !== '1' && process.env.NODE_ENV === 'production') {
   const clientDirectory = path.resolve(process.cwd(), 'dist');
