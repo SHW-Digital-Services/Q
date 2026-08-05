@@ -1,6 +1,6 @@
 import express from 'express';
 import 'dotenv/config';
-import path from 'node:path';
+import path from 'path';
 import { billingRouter } from './server/routes/billing';
 import { aiRouter } from './server/routes/ai';
 import { legalRouter } from './server/routes/legal';
@@ -59,9 +59,9 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.use('/api/billing', billingRouter);
-app.use('/api/q-ai', aiRouter);
-app.use('/api/v1/admin', adminRouter);
+app.use(['/api/billing'], billingRouter);
+app.use(['/api/q-ai', '/api/ai'], aiRouter);
+app.use(['/api/v1/admin', '/api/admin'], adminRouter);
 app.use('/legal', legalRouter);
 
 app.use(['/api', '/api/*', '/legal', '/legal/*'], (req, res) => {
