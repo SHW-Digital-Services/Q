@@ -1,5 +1,11 @@
-import type { Request } from 'express';
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { createClient } from '@supabase/supabase-js';
+
+export const asyncHandler = (fn: RequestHandler): RequestHandler => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+};
 
 export async function getAuthenticatedUser(request: Request) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;

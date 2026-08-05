@@ -1,7 +1,7 @@
 import express from 'express';
-import { randomBytes } from 'node:crypto';
+import { randomBytes } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { getAuthenticatedUser } from '../middleware';
+import { getAuthenticatedUser, asyncHandler } from '../middleware';
 import { buildAnalyticsExport } from '../analyticsEngine';
 
 export const adminRouter = express.Router();
@@ -59,7 +59,7 @@ async function requireAdmin(req: express.Request, res: express.Response) {
   }
 }
 
-adminRouter.post('/password-reset-requests', async (req, res) => {
+adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
   try {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
@@ -82,9 +82,9 @@ adminRouter.post('/password-reset-requests', async (req, res) => {
     console.error('[Admin] Failed to submit password reset request:', error);
     return res.status(500).json({ error: error.message || 'Failed to submit request.' });
   }
-});
+}));
 
-adminRouter.get('/password-reset-requests', async (req, res) => {
+adminRouter.get('/password-reset-requests', asyncHandler(async (req, res) => {
   try {
     if (!await requireAdmin(req, res)) return;
     return res.json(passwordResetRequests);
@@ -92,9 +92,9 @@ adminRouter.get('/password-reset-requests', async (req, res) => {
     console.error('[Admin] GET password-reset-requests failed:', error);
     return res.status(500).json({ error: error.message || 'Failed to retrieve reset requests.' });
   }
-});
+}));
 
-adminRouter.post('/password-reset-requests/:id/reset', async (req, res) => {
+adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, res) => {
   try {
     const adminCtx = await requireAdmin(req, res);
     if (!adminCtx) return;
@@ -149,9 +149,9 @@ adminRouter.post('/password-reset-requests/:id/reset', async (req, res) => {
     console.error('[Admin] Password reset failed:', error);
     return res.status(500).json({ error: error.message || 'Unable to reset the password.' });
   }
-});
+}));
 
-adminRouter.post('/direct-password-reset', async (req, res) => {
+adminRouter.post('/direct-password-reset', asyncHandler(async (req, res) => {
   try {
     const adminCtx = await requireAdmin(req, res);
     if (!adminCtx) return;
@@ -202,9 +202,9 @@ adminRouter.post('/direct-password-reset', async (req, res) => {
     console.error('[Admin] Direct password reset failed:', error);
     return res.status(500).json({ error: error.message || 'Failed to reset password.' });
   }
-});
+}));
 
-adminRouter.get('/provider-insights', async (req, res) => {
+adminRouter.get('/provider-insights', asyncHandler(async (req, res) => {
   try {
     const adminCtx = await requireAdmin(req, res);
     if (!adminCtx) return;
@@ -222,9 +222,9 @@ adminRouter.get('/provider-insights', async (req, res) => {
     console.error('[Admin] Provider insights error:', error);
     return res.status(500).json({ error: error.message || 'Could not fetch provider metrics.' });
   }
-});
+}));
 
-adminRouter.get('/data-moat-export', async (req, res) => {
+adminRouter.get('/data-moat-export', asyncHandler(async (req, res) => {
   try {
     const adminCtx = await requireAdmin(req, res);
     if (!adminCtx) return;
@@ -240,4 +240,4 @@ adminRouter.get('/data-moat-export', async (req, res) => {
     console.error('[Admin] Data export error:', error);
     return res.status(500).json({ error: error.message || 'Aggregate export failed privacy validation.' });
   }
-});
+}));

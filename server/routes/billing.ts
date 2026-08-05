@@ -1,12 +1,22 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { getAuthenticatedUser } from '../middleware';
+import { getAuthenticatedUser, asyncHandler } from '../middleware';
 
 export const billingRouter = express.Router();
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const serviceSupabase = supabaseUrl && serviceKey ? createClient(supabaseUrl, serviceKey) : null;
+function getServiceSupabase() {
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) return null;
+  try {
+    return createClient(url, key, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+  } catch (err) {
+    console.warn('[Billing] Supabase client init warning:', err);
+    return null;
+  }
+}
 
 function getPaypalBaseUrl(): string {
   return process.env.PAYPAL_ENV === 'live'
@@ -28,7 +38,8 @@ async function getPayPalAccessToken(): Promise<string> {
       Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: 'grant_type=client_credentials'
+    body: 'grant_type=client_credentials',
+    signal: AbortSignal.timeout(10000)
   });
 
   if (!response.ok) {
@@ -60,6 +71,7 @@ function getAppUrl(req: express.Request): string {
 }
 
 async function savePayPalSubscription(subscription: any, fallbackUserId?: string) {
+  const serviceSupabase = getServiceSupabase();
   if (!serviceSupabase) return;
   const userId = subscription.custom_id || fallbackUserId;
   if (!userId || !subscription.id || !subscription.plan_id) return;
@@ -78,7 +90,7 @@ async function savePayPalSubscription(subscription: any, fallbackUserId?: string
 }
 
 // POST /api/billing/paypal/create-subscription
-billingRouter.post('/paypal/create-subscription', async (req, res) => {
+billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) => {
   const identity = await getAuthenticatedUser(req);
   if (!identity) return res.status(401).json({ error: 'Authentication required. Please sign in.' });
 
@@ -114,7 +126,8 @@ billingRouter.post('/paypal/create-subscription', async (req, res) => {
           return_url: `${appUrl}/app?paypal=success`,
           cancel_url: `${appUrl}/app?paypal=cancel`
         }
-      })
+      }),
+      signal: AbortSignal.timeout(10000)
     });
 
     const data = await paypalResponse.json() as { links?: Array<{ rel?: string; href?: string }>; message?: string; details?: any[] };
@@ -141,10 +154,10 @@ billingRouter.post('/paypal/create-subscription', async (req, res) => {
     console.error('[Billing] Create subscription failed:', error);
     return res.status(503).json({ error: error.message || 'PayPal is currently unavailable.' });
   }
-});
+}));
 
 // POST /api/billing/paypal/complete
-billingRouter.post('/paypal/complete', async (req, res) => {
+billingRouter.post('/paypal/complete', asyncHandler(async (req, res) => {
   const identity = await getAuthenticatedUser(req);
   if (!identity) return res.status(401).json({ error: 'Authentication required.' });
 
@@ -164,7 +177,8 @@ billingRouter.post('/paypal/complete', async (req, res) => {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
-      }
+      },
+      signal: AbortSignal.timeout(10000)
     });
 
     const data = await paypalResponse.json();
@@ -181,12 +195,13 @@ billingRouter.post('/paypal/complete', async (req, res) => {
     console.error('[Billing] Complete subscription failed:', error);
     return res.status(503).json({ error: error.message || 'PayPal subscription verification failed.' });
   }
-});
+}));
 
 // GET /api/billing/paypal/status
-billingRouter.get('/paypal/status', async (req, res) => {
+billingRouter.get('/paypal/status', asyncHandler(async (req, res) => {
   const identity = await getAuthenticatedUser(req);
   if (!identity) return res.status(401).json({ error: 'Authentication required.' });
+  const serviceSupabase = getServiceSupabase();
   if (!serviceSupabase) {
     return res.json({ status: 'Not subscribed', message: 'Subscription database service role key not configured.' });
   }
@@ -206,4 +221,4 @@ billingRouter.get('/paypal/status', async (req, res) => {
     console.error('[Billing] Subscription status failed:', error);
     return res.status(503).json({ error: 'Unable to retrieve subscription status.' });
   }
-});
+}));

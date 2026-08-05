@@ -2,12 +2,31 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import { redactPii } from '../../src/services/pii';
+import { asyncHandler } from '../middleware';
 
 export const aiRouter = express.Router();
-const gemini = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
-const supabase = process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY
-  ? createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY)
-  : null;
+
+function getGeminiClient() {
+  if (!process.env.GEMINI_API_KEY) return null;
+  try {
+    return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  } catch (err) {
+    console.warn('[AI] Gemini init warning:', err);
+    return null;
+  }
+}
+
+function getAiSupabaseClient() {
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  try {
+    return createClient(url, key);
+  } catch (err) {
+    console.warn('[AI] Supabase client init warning:', err);
+    return null;
+  }
+}
 
 aiRouter.use((req, _res, next) => {
   if (typeof req.body?.message === 'string') req.body.message = redactPii(req.body.message);
@@ -15,12 +34,14 @@ aiRouter.use((req, _res, next) => {
 });
 
 aiRouter.get('/health', (_req, res) => {
-  res.json({ status: 'operational', aiEnabled: !!gemini, knowledgeBaseEnabled: !!supabase });
+  res.json({ status: 'operational', aiEnabled: !!getGeminiClient(), knowledgeBaseEnabled: !!getAiSupabaseClient() });
 });
 
-aiRouter.post('/query', async (req, res) => {
+aiRouter.post('/query', asyncHandler(async (req, res) => {
   const query = typeof req.body?.query === 'string' ? redactPii(req.body.query).trim() : '';
   if (!query) return res.status(400).json({ error: 'Valid query string required.' });
+  const gemini = getGeminiClient();
+  const supabase = getAiSupabaseClient();
   if (!gemini || !supabase) return res.status(503).json({ error: 'AI infrastructure not initialized.' });
 
   try {
@@ -50,4 +71,4 @@ aiRouter.post('/query', async (req, res) => {
     console.error('[Q-AI Query Error]:', error);
     return res.status(500).json({ error: 'An error occurred while processing the request.' });
   }
-});
+}));

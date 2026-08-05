@@ -1,6 +1,7 @@
 import express from 'express';
-import path from 'node:path';
-import fs from 'node:fs/promises';
+import path from 'path';
+import fs from 'fs/promises';
+import { asyncHandler } from '../middleware';
 
 export const legalRouter = express.Router();
 
@@ -21,7 +22,7 @@ function renderMarkdown(markdown: string) {
   }).join('\n');
 }
 
-legalRouter.get('/:page', async (req, res) => {
+legalRouter.get('/:page', asyncHandler(async (req, res) => {
   const page = String(req.params.page || '').replace(/[^a-z0-9_-]/gi, '');
   if (!page) return res.status(400).json({ error: 'Invalid document request' });
 
@@ -38,4 +39,4 @@ legalRouter.get('/:page', async (req, res) => {
     console.error(`[Legal] Error rendering ${page}:`, error);
     return res.status(404).send('Document not found');
   }
-});
+}));
