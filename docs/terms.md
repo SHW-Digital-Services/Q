@@ -1,9 +1,9 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.0.0
+version: 1.0.1
 effective_date: 02/08/2026
-last_updated: 02/08/2026
+last_updated: 17/08/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -414,6 +414,7 @@ The Service integrates with third-party providers including, but not limited to:
 - Supabase;
 - Google Gemini;
 - PayPal;
+- Zoho CRM;
 - email delivery providers;
 - cloud hosting providers;
 - analytics providers.
@@ -583,6 +584,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.0.1 | 17/08/2026 | Added Zoho CRM to third-party service disclosures. |
 | 1.0.0 | **[TO BE COMPLETED]** | Initial public release. |
 
 ---

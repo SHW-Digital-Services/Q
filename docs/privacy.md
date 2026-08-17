@@ -1,9 +1,9 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.0.0
+version: 1.0.1
 effective_date: 02/08/2026
-last_updated: 02/08/2026
+last_updated: 17/08/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -487,6 +487,7 @@ Current providers include:
 | Supabase | Authentication, database, storage |
 | Google Gemini | AI processing |
 | PayPal | Payment processing |
+| Zoho CRM | Customer relationship management, enquiry handling, lead and account administration |
 | Email providers | Transactional email delivery |
 | Cloud hosting providers | Infrastructure and security |
 | Analytics providers | Performance and usage monitoring |
@@ -508,6 +509,7 @@ Examples include:
 - payment providers
 - infrastructure providers
 - hosting services
+- customer relationship management providers
 - customer support platforms
 - legal advisers
 - auditors
@@ -922,6 +924,8 @@ This Privacy Policy should be read together with the Terms of Service,Cookie Pol
 32. Version History
 
 Version   Date                  Summary
+
+1.0.1     17/08/2026           Added Zoho CRM to third-party provider disclosures.
 
 1.0.0     [TO BE COMPLETED]   Initial release.
 

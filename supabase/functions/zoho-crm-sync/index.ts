@@ -1,6 +1,84 @@
 // supabase/functions/zoho-crm-sync/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
+function toText(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function toList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map((item) => toText(item)).filter(Boolean)
+    : [];
+}
+
+function splitDisplayName(meta: Record<string, unknown>): { firstName: string; lastName: string } {
+  const explicitFirstName = toText(meta.first_name);
+  const explicitLastName = toText(meta.last_name);
+  if (explicitFirstName || explicitLastName) {
+    return {
+      firstName: explicitFirstName,
+      lastName: explicitLastName || "Unknown"
+    };
+  }
+
+  const nameParts = toText(meta.name).split(/\s+/).filter(Boolean);
+  if (nameParts.length === 0) return { firstName: "", lastName: "Unknown" };
+  if (nameParts.length === 1) return { firstName: "", lastName: nameParts[0] };
+
+  return {
+    firstName: nameParts.slice(0, -1).join(" "),
+    lastName: nameParts[nameParts.length - 1]
+  };
+}
+
+function buildProfileDescription(meta: Record<string, unknown>): string {
+  const lines = [
+    ["Preferred name", toText(meta.name)],
+    ["Pronouns", toText(meta.q_pronouns)],
+    ["Location/region", toText(meta.q_location_region)],
+    ["Life stage", toText(meta.q_life_stage)],
+    ["Privacy level", toText(meta.q_privacy_level)],
+    ["AI memory enabled", typeof meta.q_opt_in_memory === "boolean" ? String(meta.q_opt_in_memory) : ""],
+    ["Identity notes", toList(meta.q_identity_tags).join(", ")],
+    ["Saved goals", toList(meta.q_saved_goals).join(", ")],
+    ["Profile updated", toText(meta.q_profile_updated_at)]
+  ];
+
+  return lines
+    .filter(([, value]) => value)
+    .map(([label, value]) => `${label}: ${value}`)
+    .join("\n")
+    .slice(0, 32000);
+}
+
+async function findWritableLeadNameField(accessToken: string): Promise<string | null> {
+  const fieldsResponse = await fetch("https://www.zohoapis.eu/crm/v6/settings/fields?module=Leads", {
+    method: "GET",
+    headers: { "Authorization": `Zoho-oauthtoken ${accessToken}` }
+  });
+
+  if (!fieldsResponse.ok) return null;
+
+  const fieldsResult = await fieldsResponse.json();
+  const fields = Array.isArray(fieldsResult.fields) ? fieldsResult.fields : [];
+  const candidate = fields.find((field: Record<string, unknown>) => {
+    const apiName = toText(field.api_name);
+    const fieldLabel = toText(field.field_label);
+    const displayLabel = toText(field.display_label);
+    const readOnly = field.read_only === true || field.field_read_only === true;
+
+    return (
+      !readOnly &&
+      apiName !== "Full_Name" &&
+      apiName !== "First_Name" &&
+      apiName !== "Last_Name" &&
+      (apiName === "Lead_Name" || fieldLabel === "Lead Name" || displayLabel === "Lead Name")
+    );
+  });
+
+  return candidate ? toText(candidate.api_name) : null;
+}
+
 serve(async (req) => {
   try {
     const payload = await req.json();
@@ -100,17 +178,25 @@ serve(async (req) => {
     }
 
     const meta = record.raw_user_meta_data || {};
+    const { firstName, lastName } = splitDisplayName(meta);
+    const preferredName = toText(meta.name);
+    const profileDescription = buildProfileDescription(meta);
+    const leadNameField = preferredName ? await findWritableLeadNameField(accessToken) : null;
+    const leadRecord: Record<string, unknown> = {
+      Last_Name: lastName,
+      First_Name: firstName,
+      Email: record.email || "",
+      Phone: meta.phone || record.phone || "",
+      Lead_Source: "From Q website",
+      Description: profileDescription
+    };
+
+    if (leadNameField) {
+      leadRecord[leadNameField] = preferredName;
+    }
 
     const zohoLeadData = {
-      data: [
-        {
-          Last_Name: meta.last_name || "Unknown",
-          First_Name: meta.first_name || "",
-          Email: record.email || "",
-          Phone: meta.phone || record.phone || "",
-          Lead_Source: "From Q website"
-        }
-      ],
+      data: [leadRecord],
       duplicate_check_fields: ["Email"]
     };
 

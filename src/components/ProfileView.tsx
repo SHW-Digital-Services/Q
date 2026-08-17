@@ -38,6 +38,33 @@ function arrayToLines(value: string[]): string {
   return value.join('\n');
 }
 
+function splitDisplayName(name: string): { firstName: string; lastName: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: '', lastName: 'Unknown' };
+  if (parts.length === 1) return { firstName: '', lastName: parts[0] };
+  return {
+    firstName: parts.slice(0, -1).join(' '),
+    lastName: parts[parts.length - 1]
+  };
+}
+
+function buildAuthMetadata(profile: UserMemoryProfile) {
+  const { firstName, lastName } = splitDisplayName(profile.name);
+  return {
+    name: profile.name,
+    first_name: firstName,
+    last_name: lastName,
+    q_pronouns: profile.pronouns,
+    q_location_region: profile.locationRegion,
+    q_life_stage: profile.lifeStage,
+    q_identity_tags: profile.identityTags,
+    q_saved_goals: profile.savedGoals,
+    q_opt_in_memory: profile.optInMemory,
+    q_privacy_level: profile.privacyLevel,
+    q_profile_updated_at: new Date().toISOString()
+  };
+}
+
 export const ProfileView: React.FC<ProfileViewProps> = ({
   currentUser,
   onUserChanged,
@@ -61,6 +88,37 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setIdentityTagsText(arrayToLines(profile.identityTags));
     setSavedGoalsText(arrayToLines(profile.savedGoals));
   }, [profile.identityTags, profile.savedGoals]);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    let cancelled = false;
+
+    supabase
+      .from('profiles')
+      .select('preferred_name, pronouns, identity_tags, location_region, life_stage, opt_in_memory, privacy_level')
+      .eq('id', currentUser.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled || error || !data) return;
+
+        setProfile((storedProfile) => ({
+          ...storedProfile,
+          name: data.preferred_name ?? storedProfile.name,
+          pronouns: data.pronouns ?? storedProfile.pronouns,
+          identityTags: Array.isArray(data.identity_tags) ? data.identity_tags : storedProfile.identityTags,
+          locationRegion: data.location_region ?? storedProfile.locationRegion,
+          lifeStage: data.life_stage ?? storedProfile.lifeStage,
+          optInMemory: typeof data.opt_in_memory === 'boolean' ? data.opt_in_memory : storedProfile.optInMemory,
+          privacyLevel: data.privacy_level === 'standard' ? 'standard' : storedProfile.privacyLevel
+        }));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser.id]);
 
   const profileCompleteness = useMemo(() => {
     const checks = [
@@ -88,29 +146,48 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       savedGoals: linesToArray(savedGoalsText)
     };
 
-    saveMemoryProfile(updatedProfile);
-    setProfile(updatedProfile);
-
     const supabase = getSupabaseClient();
-    if (supabase && updatedProfile.name && updatedProfile.name !== currentUser.name) {
-      const { data, error } = await supabase.auth.updateUser({
-        data: { name: updatedProfile.name }
+    let remoteSaveFailed = false;
+
+    if (supabase) {
+      const profileRow = {
+        id: currentUser.id,
+        preferred_name: updatedProfile.name || null,
+        pronouns: updatedProfile.pronouns || null,
+        identity_tags: updatedProfile.identityTags,
+        location_region: updatedProfile.locationRegion || null,
+        life_stage: updatedProfile.lifeStage || null,
+        opt_in_memory: updatedProfile.optInMemory,
+        privacy_level: updatedProfile.privacyLevel,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert(profileRow, { onConflict: 'id' });
+
+      const { data, error: authError } = await supabase.auth.updateUser({
+        data: buildAuthMetadata(updatedProfile)
       });
 
-      if (error) {
+      if (profileError || authError) {
+        remoteSaveFailed = true;
         setStatus({
           tone: 'error',
-          message: 'Profile saved locally. Account display name could not be updated.'
+          message: 'Profile saved locally. Supabase or Zoho sync metadata could not be updated.'
         });
-        setIsSaving(false);
-        return;
       }
 
       const mappedUser = mapSupabaseUser(data.user);
       if (mappedUser) onUserChanged(mappedUser);
     }
 
-    setStatus({ tone: 'success', message: 'Profile saved.' });
+    saveMemoryProfile(updatedProfile);
+    setProfile(updatedProfile);
+
+    if (!remoteSaveFailed) {
+      setStatus({ tone: 'success', message: supabase ? 'Profile saved to Supabase and queued for Zoho sync.' : 'Profile saved locally.' });
+    }
     setIsSaving(false);
   };
 
