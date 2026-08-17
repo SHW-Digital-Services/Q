@@ -5,6 +5,7 @@ import { QAssistantView } from './components/QAssistantView';
 import { LifeGuidesView } from './components/LifeGuidesView';
 import { LivedExperiencesView } from './components/LivedExperiencesView';
 import { JournalView } from './components/JournalView';
+import { ProfileView } from './components/ProfileView';
 import { CrisisModal } from './components/CrisisModel';
 import { BackupModal } from './components/BackupModel';
 import { SecurityLockOverlay } from './components/SecurityLockOverlay';
@@ -250,6 +251,20 @@ export default function App() {
               onAskQSupport={() => {
                 setActiveTab('chat');
               }}
+            />
+          )}
+          {activeTab === 'profile' && (
+            <ProfileView
+              currentUser={currentUser}
+              onUserChanged={(user) => setCurrentUser(user)}
+              onOpenAccount={() => {
+                setAuthInitialMode('login');
+                setIsAuthOpen(true);
+              }}
+              onOpenBackup={() => setIsBackupOpen(true)}
+              onOpenSecurity={() => setIsSecurityOpen(true)}
+              onOpenSubscription={() => setIsSubscriptionOpen(true)}
+              onSignOut={handleSignOut}
             />
           )}
         </main>

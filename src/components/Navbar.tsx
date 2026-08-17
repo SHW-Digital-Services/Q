@@ -1,9 +1,9 @@
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sun, Moon, MessageCircle, BookOpen, Users, Notebook, CreditCard, LogOut } from 'lucide-react';
+import { Sun, Moon, MessageCircle, BookOpen, Users, Notebook, CreditCard, LogOut, UserCircle } from 'lucide-react';
 import { QLogo } from './QLogo';
 
-export type ActiveTab = 'chat' | 'guides' | 'stories' | 'journal';
+export type ActiveTab = 'chat' | 'guides' | 'stories' | 'journal' | 'profile';
 
 interface Props {
   activeTab: ActiveTab;
@@ -38,7 +38,8 @@ export const Navbar: React.FC<Props> = ({
     { id: 'chat' as const, label: 'Q Intelligence', icon: MessageCircle },
     { id: 'guides' as const, label: 'Life Guides', icon: BookOpen },
     { id: 'stories' as const, label: 'Peer Knowledge', icon: Users },
-    { id: 'journal' as const, label: 'Private Journal', icon: Notebook }
+    { id: 'journal' as const, label: 'Private Journal', icon: Notebook },
+    { id: 'profile' as const, label: 'Profile', icon: UserCircle }
   ];
 
   const { theme, toggleTheme } = useTheme();
@@ -55,6 +56,28 @@ export const Navbar: React.FC<Props> = ({
                 <p className="text-[11px] text-slate-500">Safe support</p>
               </div>
             </div>
+
+            <nav className="hidden lg:flex items-center gap-1 rounded-2xl border border-slate-200 bg-slate-100 p-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-bold transition ${
+                      active
+                        ? 'bg-white text-purple-800 shadow-sm'
+                        : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
 
             <div className="hidden sm:flex items-center gap-2">
               <button
@@ -82,6 +105,14 @@ export const Navbar: React.FC<Props> = ({
               </button>
 
               <button
+                onClick={() => setActiveTab('profile')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-all shadow-sm"
+              >
+                <UserCircle className="w-4 h-4" />
+                <span>Profile</span>
+              </button>
+
+              <button
                 onClick={onSignOut}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-all shadow-sm shrink-0"
               >
@@ -96,7 +127,7 @@ export const Navbar: React.FC<Props> = ({
 
       <nav className="sticky bottom-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-inner sm:hidden">
         <div className="max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto px-3 sm:px-5 py-2">
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-5 gap-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = activeTab === item.id;
@@ -104,7 +135,7 @@ export const Navbar: React.FC<Props> = ({
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex flex-col items-center justify-center rounded-3xl px-2 py-3 text-center text-[11px] font-semibold transition ${
+                  className={`flex min-h-16 flex-col items-center justify-center rounded-2xl px-1.5 py-2 text-center text-[10px] font-semibold transition ${
                     active
                       ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
