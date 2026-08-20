@@ -1,6 +1,6 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { getAuthenticatedUser, asyncHandler } from '../middleware';
+import { getAuthenticatedUser, asyncHandler } from '../middleware.js';
 
 export const billingRouter = express.Router();
 

@@ -1,8 +1,8 @@
 import express from 'express';
 import { randomBytes } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { getAuthenticatedUser, asyncHandler } from '../middleware';
-import { buildAnalyticsExport } from '../analyticsEngine';
+import { getAuthenticatedUser, asyncHandler } from '../middleware.js';
+import { buildAnalyticsExport } from '../analyticsEngine.js';
 
 export const adminRouter = express.Router();
 

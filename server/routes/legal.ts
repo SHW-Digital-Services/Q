@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs/promises';
-import { asyncHandler } from '../middleware';
+import { asyncHandler } from '../middleware.js';
 
 export const legalRouter = express.Router();
 

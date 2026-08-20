@@ -1,10 +1,10 @@
 import express from 'express';
 import 'dotenv/config';
 import path from 'path';
-import { billingRouter } from './routes/billing';
-import { aiRouter } from './routes/ai';
-import { legalRouter } from './routes/legal';
-import { adminRouter } from './routes/admin';
+import { billingRouter } from './routes/billing.js';
+import { aiRouter } from './routes/ai.js';
+import { legalRouter } from './routes/legal.js';
+import { adminRouter } from './routes/admin.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);

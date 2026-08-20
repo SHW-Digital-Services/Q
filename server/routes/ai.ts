@@ -1,8 +1,8 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
-import { redactPii } from '../../src/services/pii';
-import { asyncHandler } from '../middleware';
+import { redactPii } from '../../src/services/pii.js';
+import { asyncHandler } from '../middleware.js';
 
 export const aiRouter = express.Router();
 
