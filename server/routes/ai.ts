@@ -48,6 +48,20 @@ function getChatModel(tier: unknown) {
   return process.env.AI_FREE_MODEL || DEFAULT_FREE_MODEL;
 }
 
+function getProviderError(error: any) {
+  const status = typeof error?.status === 'number' ? error.status : 500;
+  const code = typeof error?.code === 'string' ? error.code : undefined;
+  const type = typeof error?.type === 'string' ? error.type : undefined;
+  const message = typeof error?.message === 'string'
+    ? error.message
+    : 'The AI provider rejected the request.';
+
+  return {
+    status,
+    detail: [code, type, message].filter(Boolean).join(': ')
+  };
+}
+
 function buildChatPrompt(body: any) {
   const message = typeof body?.message === 'string' ? redactPii(body.message).trim() : '';
   const history = Array.isArray(body?.history) ? body.history.slice(-6) : [];
@@ -119,8 +133,17 @@ aiRouter.post('/chat', asyncHandler(async (req, res) => {
 
     return res.json({ reply, actionItems: [], model });
   } catch (error) {
-    console.error('[Q-AI Chat Error]:', error);
-    return res.status(500).json({ error: 'An error occurred while generating the response.' });
+    const providerError = getProviderError(error);
+    console.error('[Q-AI Chat Error]:', {
+      status: providerError.status,
+      model,
+      detail: providerError.detail
+    });
+    return res.status(providerError.status >= 400 && providerError.status < 500 ? 502 : 500).json({
+      error: 'An error occurred while generating the response.',
+      detail: providerError.detail,
+      model
+    });
   }
 }));
 
