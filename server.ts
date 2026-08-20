@@ -1,4 +1,4 @@
-import app, { startServer } from './server/app';
+import app, { startServer } from './server/app.js';
 
 const isMainModule = Boolean(
   process.argv[1] &&
