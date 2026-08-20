@@ -414,7 +414,7 @@ The Service integrates with third-party providers including, but not limited to:
 - Supabase;
 - Google Gemini;
 - PayPal;
-- Zoho CRM;
+- Zoho Bigin;
 - email delivery providers;
 - cloud hosting providers;
 - analytics providers.
@@ -584,7 +584,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 
 | Version | Date | Summary |
 |---------|------|---------|
-| 1.0.1 | 17/08/2026 | Added Zoho CRM to third-party service disclosures. |
+| 1.0.1 | 17/08/2026 | Added Zoho Bigin to third-party service disclosures. |
 | 1.0.0 | **[TO BE COMPLETED]** | Initial public release. |
 
 ---

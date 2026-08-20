@@ -21,13 +21,20 @@ function getServiceSupabase() {
 interface PasswordResetRequest {
   id: string;
   email: string;
-  message: string;
+  message: string | null;
   createdAt: string;
   status: 'pending' | 'reset' | 'failed';
-  tempPassword?: string;
 }
 
-const passwordResetRequests: PasswordResetRequest[] = [];
+function mapPasswordResetRequest(row: any): PasswordResetRequest {
+  return {
+    id: row.id,
+    email: row.email,
+    message: row.message ?? null,
+    createdAt: row.created_at,
+    status: row.status
+  };
+}
 
 function generateTemporaryPassword() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
@@ -51,6 +58,24 @@ async function requireAdmin(req: express.Request, res: express.Response) {
       res.status(503).json({ error: 'Supabase admin access is not configured. Please set SUPABASE_SERVICE_ROLE_KEY in environment variables.' });
       return null;
     }
+
+    const { data: profile, error: profileError } = await serviceSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', identity.user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('[Admin] Profile role lookup failed:', profileError);
+      res.status(500).json({ error: 'Admin role check failed.' });
+      return null;
+    }
+
+    if (profile?.role !== 'partner_admin') {
+      res.status(403).json({ error: 'Access denied: Admin role required.' });
+      return null;
+    }
+
     return { identity, serviceSupabase };
   } catch (err: any) {
     console.error('[Admin] Auth verification failed:', err);
@@ -58,6 +83,20 @@ async function requireAdmin(req: express.Request, res: express.Response) {
     return null;
   }
 }
+
+adminRouter.get('/me', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res);
+  if (!adminCtx) return;
+
+  return res.json({
+    success: true,
+    user: {
+      id: adminCtx.identity.user.id,
+      email: adminCtx.identity.user.email
+    },
+    role: 'partner_admin'
+  });
+}));
 
 adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
   try {
@@ -68,15 +107,34 @@ adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
       return res.status(400).json({ error: 'An email address is required.' });
     }
 
-    const request: PasswordResetRequest = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    const serviceSupabase = getServiceSupabase();
+    if (!serviceSupabase) {
+      return res.status(503).json({ error: 'Password reset requests are not configured. Please set SUPABASE_SERVICE_ROLE_KEY in environment variables.' });
+    }
+
+    const { data, error } = await serviceSupabase
+      .from('password_reset_requests')
+      .insert({
+        email,
+        message: message || null,
+        status: 'pending'
+      })
+      .select('id, email, message, created_at, status')
+      .single();
+
+    if (error) {
+      console.error('[Admin] password_reset_requests insert failed:', error);
+      return res.status(500).json({ error: error.message || 'Failed to save the password reset request.' });
+    }
+
+    const request: PasswordResetRequest = data ? mapPasswordResetRequest(data) : {
+      id: '',
       email,
-      message,
+      message: message || null,
       createdAt: new Date().toISOString(),
       status: 'pending'
     };
 
-    passwordResetRequests.unshift(request);
     return res.json({ success: true, request });
   } catch (error: any) {
     console.error('[Admin] Failed to submit password reset request:', error);
@@ -86,8 +144,20 @@ adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
 
 adminRouter.get('/password-reset-requests', asyncHandler(async (req, res) => {
   try {
-    if (!await requireAdmin(req, res)) return;
-    return res.json(passwordResetRequests);
+    const adminCtx = await requireAdmin(req, res);
+    if (!adminCtx) return;
+
+    const { data, error } = await adminCtx.serviceSupabase
+      .from('password_reset_requests')
+      .select('id, email, message, created_at, status')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[Admin] password_reset_requests select failed:', error);
+      return res.status(500).json({ error: error.message || 'Failed to retrieve reset requests.' });
+    }
+
+    return res.json((data ?? []).map(mapPasswordResetRequest));
   } catch (error: any) {
     console.error('[Admin] GET password-reset-requests failed:', error);
     return res.status(500).json({ error: error.message || 'Failed to retrieve reset requests.' });
@@ -100,11 +170,22 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
     if (!adminCtx) return;
     const { serviceSupabase } = adminCtx;
 
-    const request = passwordResetRequests.find((entry) => entry.id === req.params.id);
-    if (!request) {
+    const { data: requestRow, error: requestError } = await serviceSupabase
+      .from('password_reset_requests')
+      .select('id, email, message, created_at, status')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (requestError) {
+      console.error('[Admin] password_reset_requests lookup failed:', requestError);
+      return res.status(500).json({ error: requestError.message || 'Password reset request lookup failed.' });
+    }
+
+    if (!requestRow) {
       return res.status(404).json({ error: 'Password reset request not found.' });
     }
 
+    const request = mapPasswordResetRequest(requestRow);
     const tempPassword = generateTemporaryPassword();
     const { data: usersData, error: lookupError } = await serviceSupabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
     const targetUser = usersData?.users?.find((u: any) => u.email?.toLowerCase() === request.email.toLowerCase());
@@ -114,7 +195,10 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
     }
 
     if (!targetUser?.id) {
-      request.status = 'failed';
+      await serviceSupabase
+        .from('password_reset_requests')
+        .update({ status: 'failed' })
+        .eq('id', request.id);
       return res.status(404).json({ error: `No registered user found for email: ${request.email}` });
     }
 
@@ -125,7 +209,10 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
 
     if (updateError) {
       console.error('[Admin] updateUserById error:', updateError);
-      request.status = 'failed';
+      await serviceSupabase
+        .from('password_reset_requests')
+        .update({ status: 'failed' })
+        .eq('id', request.id);
       return res.status(400).json({ error: updateError.message || 'Supabase user password update failed.' });
     }
 
@@ -142,9 +229,23 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
       console.warn('[Admin] Recovery link generation error:', linkErr);
     }
 
-    request.status = 'reset';
-    request.tempPassword = tempPassword;
-    return res.json({ success: true, tempPassword, recoveryLink, request });
+    const { data: updatedRequest, error: updateRequestError } = await serviceSupabase
+      .from('password_reset_requests')
+      .update({ status: 'reset', handled_at: new Date().toISOString(), handled_by: adminCtx.identity.user.id })
+      .eq('id', request.id)
+      .select('id, email, message, created_at, status')
+      .single();
+
+    if (updateRequestError) {
+      console.error('[Admin] password_reset_requests status update failed:', updateRequestError);
+    }
+
+    return res.json({
+      success: true,
+      tempPassword,
+      recoveryLink,
+      request: updatedRequest ? mapPasswordResetRequest(updatedRequest) : { ...request, status: 'reset' }
+    });
   } catch (error: any) {
     console.error('[Admin] Password reset failed:', error);
     return res.status(500).json({ error: error.message || 'Unable to reset the password.' });

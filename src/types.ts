@@ -5,6 +5,7 @@ export interface UserMemoryProfile {
   locationRegion: string;
   lifeStage: string;
   optInMemory: boolean;
+  crmSyncConsent: boolean;
   savedGoals: string[];
   privacyLevel: 'high' | 'standard';
 }

@@ -8,6 +8,9 @@ Q-AI is a full-stack AI-powered mental wellness, life guidance, and personal ref
 - 📊 **Mood Tracking & Journaling**: Private, local/cloud persisted journaling with encryption and security controls.
 - 🛡️ **Crisis & Security Shield**: Instant crisis support modal, security lock overlay, and admin access management.
 - 💳 **Subscription Engine**: Integrated PayPal billing engine for monthly and annual tiers.
+- 👥 **B2C CRM Sync**: Optional Supabase Auth to Zoho Bigin Contact sync for consenting users. See [docs/zoho-ciam-setup.md](docs/zoho-ciam-setup.md).
+- 🔐 **Staff User Management**: Password resets and user support can be handled from the Q admin panel without giving staff Supabase access. See [docs/staff-user-management.md](docs/staff-user-management.md).
+- 📘 **Operations Guide**: Full site user, staff, and admin operating procedures are in [docs/q-user-staff-admin-guide.md](docs/q-user-staff-admin-guide.md).
 
 ### Technical Stack
 - **Frontend**: React 19, TypeScript, Tailwind CSS, Motion

@@ -133,7 +133,7 @@ Examples include:
 
 - **Supabase** (authentication and session management);
 - **PayPal** (payment processing);
-- **Zoho CRM** (customer relationship management, enquiry forms and account administration where enabled);
+- **Zoho Bigin** (customer relationship management, enquiry forms and account administration where enabled);
 - approved analytics providers (where enabled).
 
 Each third-party provider operates under its own privacy and cookie policies.
@@ -218,7 +218,7 @@ Support: office@q-ai.online
 
 | Version | Date | Summary |
 |---------|------|---------|
-| 1.0.1 | 17/08/2026 | Added Zoho CRM to third-party cookie/provider disclosures. |
+| 1.0.1 | 17/08/2026 | Added Zoho Bigin to third-party cookie/provider disclosures. |
 | 1.0.0 | 02/08/2026 | Initial release. |
 
 ---

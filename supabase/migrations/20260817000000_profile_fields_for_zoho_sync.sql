@@ -5,6 +5,7 @@ alter table public.profiles
   add column if not exists location_region text,
   add column if not exists life_stage text,
   add column if not exists opt_in_memory boolean not null default true,
+  add column if not exists crm_sync_consent boolean not null default true,
   add column if not exists privacy_level text not null default 'high',
   add column if not exists zoho_last_synced_at timestamptz,
   add column if not exists zoho_sync_status text;

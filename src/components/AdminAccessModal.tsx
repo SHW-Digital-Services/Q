@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ShieldCheck, XCircle } from 'lucide-react';
-import { getSupabaseClient, isAdminUser } from '../services/supabase';
+import { getSupabaseClient } from '../services/supabase';
 
 interface AdminAccessModalProps {
   isOpen: boolean;
@@ -31,8 +31,20 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onCl
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      if (!data.user || !isAdminUser(data.user)) {
-        throw new Error('This account is not marked as an admin.');
+      if (!data.session?.access_token) {
+        throw new Error('Admin session was not created.');
+      }
+
+      const response = await fetch('/api/v1/admin/me', {
+        headers: {
+          Authorization: `Bearer ${data.session.access_token}`
+        }
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        await supabase.auth.signOut();
+        throw new Error(payload.error || 'This account is not authorised for admin access.');
       }
 
       onAdminGranted();
@@ -54,7 +66,7 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onCl
               Admin Access
             </div>
             <h2 className="mt-2 text-xl font-bold text-white">Secure admin sign-in</h2>
-            <p className="mt-1 text-sm text-slate-300">Use your authorised admin account to manage the launch experience.</p>
+            <p className="mt-1 text-sm text-slate-300">Use your authorised staff account to manage users without opening Supabase.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-2 text-slate-400 transition hover:bg-white/10 hover:text-white">
             <XCircle className="h-5 w-5" />

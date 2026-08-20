@@ -60,6 +60,7 @@ function buildAuthMetadata(profile: UserMemoryProfile) {
     q_identity_tags: profile.identityTags,
     q_saved_goals: profile.savedGoals,
     q_opt_in_memory: profile.optInMemory,
+    q_crm_sync_consent: profile.crmSyncConsent,
     q_privacy_level: profile.privacyLevel,
     q_profile_updated_at: new Date().toISOString()
   };
@@ -97,7 +98,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
     supabase
       .from('profiles')
-      .select('preferred_name, pronouns, identity_tags, location_region, life_stage, opt_in_memory, privacy_level')
+      .select('preferred_name, pronouns, identity_tags, location_region, life_stage, opt_in_memory, crm_sync_consent, privacy_level')
       .eq('id', currentUser.id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -111,6 +112,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           locationRegion: data.location_region ?? storedProfile.locationRegion,
           lifeStage: data.life_stage ?? storedProfile.lifeStage,
           optInMemory: typeof data.opt_in_memory === 'boolean' ? data.opt_in_memory : storedProfile.optInMemory,
+          crmSyncConsent: typeof data.crm_sync_consent === 'boolean' ? data.crm_sync_consent : storedProfile.crmSyncConsent,
           privacyLevel: data.privacy_level === 'standard' ? 'standard' : storedProfile.privacyLevel
         }));
       });
@@ -158,6 +160,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         location_region: updatedProfile.locationRegion || null,
         life_stage: updatedProfile.lifeStage || null,
         opt_in_memory: updatedProfile.optInMemory,
+        crm_sync_consent: updatedProfile.crmSyncConsent,
         privacy_level: updatedProfile.privacyLevel,
         updated_at: new Date().toISOString()
       };
@@ -174,7 +177,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         remoteSaveFailed = true;
         setStatus({
           tone: 'error',
-          message: 'Profile saved locally. Supabase or Zoho sync metadata could not be updated.'
+          message: 'Profile saved locally. Supabase or Zoho Bigin sync metadata could not be updated.'
         });
       }
 
@@ -186,7 +189,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setProfile(updatedProfile);
 
     if (!remoteSaveFailed) {
-      setStatus({ tone: 'success', message: supabase ? 'Profile saved to Supabase and queued for Zoho sync.' : 'Profile saved locally.' });
+      setStatus({ tone: 'success', message: supabase ? 'Profile saved to Supabase and queued for Zoho Bigin sync.' : 'Profile saved locally.' });
     }
     setIsSaving(false);
   };
@@ -389,6 +392,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 type="checkbox"
                 checked={profile.optInMemory}
                 onChange={(event) => setProfile({ ...profile, optInMemory: event.target.checked })}
+                className="h-4 w-4 accent-purple-600"
+              />
+            </label>
+
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700 sm:min-w-72">
+              <span>Sync basic contact to Zoho Bigin</span>
+              <input
+                type="checkbox"
+                checked={profile.crmSyncConsent}
+                onChange={(event) => setProfile({ ...profile, crmSyncConsent: event.target.checked })}
                 className="h-4 w-4 accent-purple-600"
               />
             </label>

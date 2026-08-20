@@ -7,6 +7,7 @@ export const DEFAULT_USER_PROFILE: UserMemoryProfile = {
   locationRegion: '',
   lifeStage: '',
   optInMemory: true,
+  crmSyncConsent: true,
   savedGoals: [],
   privacyLevel: 'high'
 };
@@ -473,4 +474,3 @@ export const CRISIS_RESOURCES: CrisisResource[] = [
 ];
 
 export const INITIAL_JOURNAL_ENTRIES: JournalEntry[] = [];
-

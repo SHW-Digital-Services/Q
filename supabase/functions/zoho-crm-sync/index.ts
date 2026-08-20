@@ -5,10 +5,8 @@ function toText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function toList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.map((item) => toText(item)).filter(Boolean)
-    : [];
+function getEnvUrl(name: string, fallback: string): string {
+  return (Deno.env.get(name) || fallback).replace(/\/+$/, "");
 }
 
 function splitDisplayName(meta: Record<string, unknown>): { firstName: string; lastName: string } {
@@ -33,14 +31,9 @@ function splitDisplayName(meta: Record<string, unknown>): { firstName: string; l
 
 function buildProfileDescription(meta: Record<string, unknown>): string {
   const lines = [
-    ["Preferred name", toText(meta.name)],
-    ["Pronouns", toText(meta.q_pronouns)],
-    ["Location/region", toText(meta.q_location_region)],
-    ["Life stage", toText(meta.q_life_stage)],
+    ["Source", "Q Intelligence account"],
     ["Privacy level", toText(meta.q_privacy_level)],
-    ["AI memory enabled", typeof meta.q_opt_in_memory === "boolean" ? String(meta.q_opt_in_memory) : ""],
-    ["Identity notes", toList(meta.q_identity_tags).join(", ")],
-    ["Saved goals", toList(meta.q_saved_goals).join(", ")],
+    ["CRM sync consent", typeof meta.q_crm_sync_consent === "boolean" ? String(meta.q_crm_sync_consent) : ""],
     ["Profile updated", toText(meta.q_profile_updated_at)]
   ];
 
@@ -51,32 +44,30 @@ function buildProfileDescription(meta: Record<string, unknown>): string {
     .slice(0, 32000);
 }
 
-async function findWritableLeadNameField(accessToken: string): Promise<string | null> {
-  const fieldsResponse = await fetch("https://www.zohoapis.eu/crm/v6/settings/fields?module=Leads", {
+async function deleteBiginContactByEmail(baseApiUrl: string, accessToken: string, email: string) {
+  const searchResponse = await fetch(`${baseApiUrl}/search?email=${encodeURIComponent(email)}`, {
     method: "GET",
     headers: { "Authorization": `Zoho-oauthtoken ${accessToken}` }
   });
 
-  if (!fieldsResponse.ok) return null;
+  if (searchResponse.status === 204) {
+    return { deleted: false, message: "Contact not found in Zoho Bigin." };
+  }
 
-  const fieldsResult = await fieldsResponse.json();
-  const fields = Array.isArray(fieldsResult.fields) ? fieldsResult.fields : [];
-  const candidate = fields.find((field: Record<string, unknown>) => {
-    const apiName = toText(field.api_name);
-    const fieldLabel = toText(field.field_label);
-    const displayLabel = toText(field.display_label);
-    const readOnly = field.read_only === true || field.field_read_only === true;
+  const searchResult = await searchResponse.json();
+  const contactId = searchResult.data?.[0]?.id;
 
-    return (
-      !readOnly &&
-      apiName !== "Full_Name" &&
-      apiName !== "First_Name" &&
-      apiName !== "Last_Name" &&
-      (apiName === "Lead_Name" || fieldLabel === "Lead Name" || displayLabel === "Lead Name")
-    );
+  if (!contactId) {
+    return { deleted: false, message: "Contact ID was not available in Zoho Bigin search result.", result: searchResult };
+  }
+
+  const deleteResponse = await fetch(`${baseApiUrl}?ids=${contactId}`, {
+    method: "DELETE",
+    headers: { "Authorization": `Zoho-oauthtoken ${accessToken}` }
   });
 
-  return candidate ? toText(candidate.api_name) : null;
+  const deleteResult = await deleteResponse.json();
+  return { deleted: deleteResponse.ok, result: deleteResult };
 }
 
 serve(async (req) => {
@@ -84,6 +75,14 @@ serve(async (req) => {
     const payload = await req.json();
     const record = payload.type === 'DELETE' ? payload.old_record : payload.record; 
     const oldRecord = payload.old_record;
+    const webhookSecret = Deno.env.get("ZOHO_WEBHOOK_SECRET");
+
+    if (webhookSecret && req.headers.get("x-q-zoho-secret") !== webhookSecret) {
+      return new Response(JSON.stringify({ error: "Unauthorized webhook request." }), {
+        headers: { "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
 
     if (!record || !record.email) {
       return new Response(JSON.stringify({ success: true, message: "Ignored: No valid email." }), {
@@ -121,8 +120,9 @@ serve(async (req) => {
     const clientSecret = Deno.env.get("ZOHO_CLIENT_SECRET");
     const refreshToken = Deno.env.get("ZOHO_REFRESH_TOKEN");
 
-    const accountsUrl = "https://accounts.zoho.eu"; 
-    const baseApiUrl = "https://www.zohoapis.eu/crm/v6/Leads";
+    const accountsUrl = getEnvUrl("ZOHO_ACCOUNTS_URL", "https://accounts.zoho.eu");
+    const apiBaseUrl = getEnvUrl("ZOHO_API_BASE_URL", "https://www.zohoapis.eu/bigin/v2");
+    const baseApiUrl = `${apiBaseUrl}/Contacts`;
 
     if (!clientId || !clientSecret || !refreshToken) {
       throw new Error("Missing Zoho credentials in environment variables.");
@@ -135,41 +135,14 @@ serve(async (req) => {
     
     const tokenData = await tokenResponse.json();
     
-    if (tokenData.error) {
+    if (!tokenResponse.ok || tokenData.error) {
       throw new Error(`Zoho Token Error: ${tokenData.error}`);
     }
 
     const accessToken = tokenData.access_token;
 
     if (payload.type === 'DELETE') {
-      const searchResponse = await fetch(`${baseApiUrl}/search?email=${record.email}`, {
-        method: "GET",
-        headers: { "Authorization": `Zoho-oauthtoken ${accessToken}` }
-      });
-      
-      if (searchResponse.status === 204) {
-        return new Response(JSON.stringify({ success: true, message: "Delete ignored: Lead not found in Zoho." }), {
-          headers: { "Content-Type": "application/json" },
-          status: 200,
-        });
-      }
-
-      const searchResult = await searchResponse.json();
-      const leadId = searchResult.data?.[0]?.id;
-
-      if (!leadId) {
-         return new Response(JSON.stringify({ success: true, message: "Delete failed: ID extraction error." }), {
-          headers: { "Content-Type": "application/json" },
-          status: 200,
-        });
-      }
-
-      const deleteResponse = await fetch(`${baseApiUrl}?ids=${leadId}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Zoho-oauthtoken ${accessToken}` }
-      });
-
-      const deleteResult = await deleteResponse.json();
+      const deleteResult = await deleteBiginContactByEmail(baseApiUrl, accessToken, record.email);
       
       return new Response(JSON.stringify({ success: true, result: deleteResult }), {
         headers: { "Content-Type": "application/json" },
@@ -178,25 +151,28 @@ serve(async (req) => {
     }
 
     const meta = record.raw_user_meta_data || {};
+
+    if (meta.q_crm_sync_consent === false) {
+      const deleteResult = await deleteBiginContactByEmail(baseApiUrl, accessToken, record.email);
+      return new Response(JSON.stringify({ success: true, message: "CRM sync consent is disabled. Matching Zoho Bigin Contact delete attempted.", result: deleteResult }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const { firstName, lastName } = splitDisplayName(meta);
-    const preferredName = toText(meta.name);
     const profileDescription = buildProfileDescription(meta);
-    const leadNameField = preferredName ? await findWritableLeadNameField(accessToken) : null;
-    const leadRecord: Record<string, unknown> = {
+    const contactRecord: Record<string, unknown> = {
       Last_Name: lastName,
       First_Name: firstName,
       Email: record.email || "",
-      Phone: meta.phone || record.phone || "",
-      Lead_Source: "From Q website",
-      Description: profileDescription
+      Mobile: meta.phone || record.phone || "",
+      Description: profileDescription,
+      Tag: [{ name: "Q website" }]
     };
 
-    if (leadNameField) {
-      leadRecord[leadNameField] = preferredName;
-    }
-
-    const zohoLeadData = {
-      data: [leadRecord],
+    const zohoContactData = {
+      data: [contactRecord],
       duplicate_check_fields: ["Email"]
     };
 
@@ -206,10 +182,17 @@ serve(async (req) => {
         "Authorization": `Zoho-oauthtoken ${accessToken}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(zohoLeadData)
+      body: JSON.stringify(zohoContactData)
     });
 
     const zohoResult = await zohoResponse.json();
+
+    if (!zohoResponse.ok || zohoResult.data?.[0]?.status === "error") {
+      return new Response(JSON.stringify({ error: "Zoho Bigin Contact upsert failed.", result: zohoResult }), {
+        headers: { "Content-Type": "application/json" },
+        status: 502,
+      });
+    }
 
     return new Response(JSON.stringify({ success: true, result: zohoResult }), {
       headers: { "Content-Type": "application/json" },
@@ -217,7 +200,8 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : "Unknown Zoho Bigin sync error.";
+    return new Response(JSON.stringify({ error: message }), {
       headers: { "Content-Type": "application/json" },
       status: 400,
     });

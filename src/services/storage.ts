@@ -51,7 +51,10 @@ function setItem<T>(key: string, value: T): void {
 
 // User Profile Memory
 export function getMemoryProfile(): UserMemoryProfile {
-  return getItem<UserMemoryProfile>(KEYS.PROFILE, DEFAULT_USER_PROFILE);
+  return {
+    ...DEFAULT_USER_PROFILE,
+    ...getItem<Partial<UserMemoryProfile>>(KEYS.PROFILE, DEFAULT_USER_PROFILE)
+  };
 }
 
 export function saveMemoryProfile(profile: UserMemoryProfile): UserMemoryProfile {
