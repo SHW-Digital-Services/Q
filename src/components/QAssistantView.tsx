@@ -86,9 +86,14 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         }
       }
       const needsVettedKnowledge = /\b(legal|law|rights|health|healthcare|medical|doctor|therapy|prescription|insurance)\b/i.test(query);
-      const trustedKnowledge = needsVettedKnowledge
-        ? await queryVettedKnowledge(safeInput)
-        : undefined;
+      let trustedKnowledge;
+      if (needsVettedKnowledge) {
+        try {
+          trustedKnowledge = await queryVettedKnowledge(safeInput);
+        } catch (knowledgeError) {
+          console.warn('[Q Knowledge] Vetted repository unavailable:', knowledgeError);
+        }
+      }
       const groundedPrompt = trustedKnowledge
         ? `User asked: ${safeInput}\n\nHere is the vetted community context:\n${trustedKnowledge.items
             .map((item) => `- ${item.title}: ${item.summary} (Source: ${item.source})`)

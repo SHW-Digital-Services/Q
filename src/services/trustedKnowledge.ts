@@ -11,11 +11,6 @@ export interface TrustedKnowledgeResult {
   items: TrustedKnowledgeItem[];
 }
 
-/**
- * Legal and healthcare prompts must pass through this repository before an
- * assistant request is made. A failed lookup is intentionally an error so the
- * caller can avoid sending the prompt to a generic model without vetted context.
- */
 export async function fetchTrustedKnowledge(query: string): Promise<TrustedKnowledgeResult> {
   const response = await fetch(`/api/trusted-knowledge/search?q=${encodeURIComponent(query)}`);
   if (!response.ok) throw new Error('Trusted Knowledge Repository unavailable.');
@@ -29,7 +24,7 @@ export async function queryVettedKnowledge(query: string): Promise<TrustedKnowle
   const supabase = getSupabaseClient();
   const { data: sessionData } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
   const accessToken = sessionData.session?.access_token;
-  const response = await fetch('/api/trusted-knowledge/query', {
+  const response = await fetch('/api/q-ai/query', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
