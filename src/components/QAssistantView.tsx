@@ -114,7 +114,12 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Q chat service unavailable.');
+      if (!response.ok) {
+        const detail = [data.error, data.detail, data.model ? `Model: ${data.model}` : '']
+          .filter(Boolean)
+          .join('\n');
+        throw new Error(detail || 'Q chat service unavailable.');
+      }
 
       const aiMsg: ChatMessage = {
         id: `q-${Date.now()}`,
