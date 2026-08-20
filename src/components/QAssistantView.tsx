@@ -130,12 +130,13 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       if (/\b(stress|stressed|anxious|anxiety|overwhelmed|panic|dysphoria|depressed|depression|burnout|unsafe|coming out|health concern|workplace conflict|grief|trauma)\b/i.test(query)) {
         setReflectionPrompt(true);
       }
-    } catch (err) {
-      console.warn('[Q Client] Server call failed, using offline fallback response');
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Q chat service unavailable.';
+      console.warn('[Q Client] Server call failed:', errorMessage);
       const fallbackMsg: ChatMessage = {
         id: `q-off-${Date.now()}`,
         sender: 'q_ai',
-        text: `Here is guidance for your request: "${query}".\n\n1. Search verified LGBTQ+ healthcare or legal directories in Q Life Guides.\n2. Review peer experiences for boundary setting.\n3. Keep your private notes synced locally in your Q Journal.`,
+        text: `Q could not generate a live AI response right now.\n\nReason: ${errorMessage}\n\nPlease try again in a moment. If this keeps happening, the server AI provider or API key needs checking.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, fallbackMsg]);
