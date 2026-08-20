@@ -24,6 +24,14 @@ function getPaypalBaseUrl(): string {
     : 'https://api-m.sandbox.paypal.com';
 }
 
+function getPaypalEnvironment(): 'live' | 'sandbox' {
+  return process.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox';
+}
+
+function hasInvalidPayPalResource(details: any[]): boolean {
+  return details.some((detail) => detail?.issue === 'INVALID_RESOURCE_ID');
+}
+
 async function getPayPalAccessToken(): Promise<string> {
   const clientId = process.env.PAYPAL_CLIENT_ID;
   const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
@@ -137,10 +145,21 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
         .map((detail: any) => `${detail.field ?? 'unknown_field'}: ${detail.issue ?? 'PAYPAL_ERROR'} (${detail.description ?? ''})`)
         .join('; ');
 
-      console.error('[Billing] PayPal rejected subscription:', { status: paypalResponse.status, message: data.message, reason: paypalReason });
+      const environment = getPaypalEnvironment();
+      const invalidPlanMessage = hasInvalidPayPalResource(details)
+        ? `PayPal could not find the ${planName} plan ID in the ${environment} environment. Check PAYPAL_PLAN_ID_${planName.toUpperCase()} belongs to the same ${environment} PayPal app/account and that the plan is active.`
+        : null;
+
+      console.error('[Billing] PayPal rejected subscription:', {
+        status: paypalResponse.status,
+        message: data.message,
+        plan: planName,
+        environment,
+        reason: invalidPlanMessage || paypalReason
+      });
       return res.status(502).json({
         error: 'PayPal could not create subscription.',
-        detail: paypalReason || data.message || `PayPal status code ${paypalResponse.status}`
+        detail: invalidPlanMessage || paypalReason || data.message || `PayPal status code ${paypalResponse.status}`
       });
     }
 
