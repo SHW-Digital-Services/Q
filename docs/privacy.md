@@ -1,9 +1,9 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.0.1
+version: 1.0.2
 effective_date: 02/08/2026
-last_updated: 17/08/2026
+last_updated: 26/08/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -320,7 +320,26 @@ These records help us improve our products and maintain customer support history
 
 ---
 
-## 5.12 Information We Do Not Intentionally Collect
+## 5.12 Native CRM and Customer Operations Data
+
+Authorised Staff and Admin users may process limited customer-operation records in Q Intelligence's native CRM, including:
+
+- account and profile contact details;
+- customer lifecycle status and assigned staff owner;
+- signup, verification, and last-login timestamps;
+- subscription product, status, renewal date, and provider identifiers;
+- payment amount, currency, status, date, and PayPal transaction reference;
+- support notes, follow-up tasks, and operational correspondence;
+- manually assigned, promotional, or PayPal-backed access entitlements;
+- staff actions, role changes, and administrative audit events.
+
+CRM records must not contain complete card numbers, card security codes, passwords, recovery links, or private journal, chat, mood, and identity content unless strictly necessary for an authorised support or legal purpose.
+
+PayPal may send verified webhook notifications to Q Intelligence so that product, subscription, payment, refund, failure, and cancellation records remain synchronised. Q Intelligence may also send product, plan, and subscription-management instructions to PayPal at the request of authorised Staff or Admin users. A customer must approve a new chargeable recurring subscription through PayPal.
+
+---
+
+## 5.13 Information We Do Not Intentionally Collect
 
 We do not intentionally collect:
 

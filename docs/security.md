@@ -1,7 +1,7 @@
 ---
 title: Security Policy
 description: Security Policy for Q Intelligence
-version: 1.0.0
+version: 1.0.1
 effective_date: 26/08/2026
 last_updated: 26/08/2026
 applies_to: https://q-ai.online
@@ -130,6 +130,10 @@ Credentials should be rotated when compromise is suspected and periodically wher
 Subscription payments are processed by PayPal. Q Intelligence stores only the operational information needed to identify and manage a subscription, such as provider subscription identifiers, plan identifiers, status, and renewal information.
 
 Payment-provider webhooks and server-to-server responses should be authenticated or verified before they are used to change subscription access. Payment secrets must be restricted to trusted server environments.
+
+PayPal webhook events are verified before Q uses them to update products, subscriptions, payments, refunds, or access status. Duplicate event identifiers are recorded to prevent the same notification from being processed more than once.
+
+Staff-assisted card payments use PayPal-hosted payment tools. Raw card numbers and card security codes must never be entered into Q CRM fields, notes, logs, or APIs.
 
 Users should report unrecognised payments directly to PayPal and to Q Intelligence support.
 
@@ -289,5 +293,6 @@ Privacy enquiries: privacy@q-ai.online
 | Version | Date | Summary |
 | --- | --- | --- |
 | 1.0.0 | 26/08/2026 | Initial Security Policy. |
+| 1.0.1 | 26/08/2026 | Added native CRM roles, PayPal synchronisation, webhook verification, and staff-assisted payment safeguards. |
 
 © Scott Harvey-Whittle trading as SHW Digital Services. All rights reserved.

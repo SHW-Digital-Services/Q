@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser, asyncHandler } from '../middleware.js';
 import { buildAnalyticsExport } from '../analyticsEngine.js';
+import { getPayPalAccessToken, getPaypalBaseUrl } from './billing.js';
 
 export const adminRouter = express.Router();
 
@@ -31,6 +32,43 @@ interface PasswordResetRequest {
   message: string | null;
   createdAt: string;
   status: 'pending' | 'reset' | 'failed';
+}
+
+async function paypalRequest(path: string, init: RequestInit = {}) {
+  const token = await getPayPalAccessToken();
+  const response = await fetch(`${getPaypalBaseUrl()}${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(15000) });
+  const data = response.status === 204 ? null : await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.message || data?.details?.[0]?.description || `PayPal request failed (${response.status}).`);
+  return data;
+}
+
+async function syncProductToPayPal(serviceSupabase: any, product: any) {
+  try {
+    let paypalProductId = product.paypal_product_id;
+    if (!paypalProductId) {
+      const remoteProduct = await paypalRequest('/v1/catalogs/products', { method: 'POST', body: JSON.stringify({ name: product.name, description: product.description || product.name, type: 'SERVICE', category: 'SOFTWARE' }) });
+      paypalProductId = remoteProduct.id;
+    } else {
+      await paypalRequest(`/v1/catalogs/products/${encodeURIComponent(paypalProductId)}`, { method: 'PATCH', body: JSON.stringify([{ op: 'replace', path: '/name', value: product.name }, { op: 'replace', path: '/description', value: product.description || product.name }]) });
+    }
+    let paypalPlanId = product.paypal_plan_id;
+    if (product.billing_interval !== 'one_time') {
+      const price = (product.price_minor / 100).toFixed(2);
+      if (!paypalPlanId) {
+        const remotePlan = await paypalRequest('/v1/billing/plans', { method: 'POST', body: JSON.stringify({ product_id: paypalProductId, name: product.name, description: product.description || product.name, status: product.active ? 'ACTIVE' : 'INACTIVE', billing_cycles: [{ frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'REGULAR', sequence: 1, total_cycles: 0, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }], payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 3 } }) });
+        paypalPlanId = remotePlan.id;
+      } else {
+        await paypalRequest(`/v1/billing/plans/${encodeURIComponent(paypalPlanId)}`, { method: 'PATCH', body: JSON.stringify([{ op: 'replace', path: '/name', value: product.name }, { op: 'replace', path: '/description', value: product.description || product.name }]) });
+        await paypalRequest(`/v1/billing/plans/${encodeURIComponent(paypalPlanId)}/update-pricing-schemes`, { method: 'POST', body: JSON.stringify({ pricing_schemes: [{ billing_cycle_sequence: 1, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }] }) });
+      }
+    }
+    const { data, error } = await serviceSupabase.from('crm_products').update({ paypal_product_id: paypalProductId, paypal_plan_id: paypalPlanId, paypal_sync_status: 'synced', paypal_last_synced_at: new Date().toISOString() }).eq('id', product.id).select().single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    await serviceSupabase.from('crm_products').update({ paypal_sync_status: 'error' }).eq('id', product.id);
+    throw error;
+  }
 }
 
 function mapPasswordResetRequest(row: any): PasswordResetRequest {
@@ -289,6 +327,20 @@ adminRouter.post('/crm/users/:id/entitlements', asyncHandler(async (req, res) =>
   return res.status(201).json(data);
 }));
 
+adminRouter.post('/crm/users/:id/paypal-subscriptions', asyncHandler(async (req, res) => {
+  const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
+  const { data: product, error } = await adminCtx.serviceSupabase.from('crm_products').select('id, name, paypal_plan_id, billing_interval, active').eq('id', req.body?.productId).maybeSingle();
+  if (error || !product) return res.status(404).json({ error: 'Subscription product not found.' });
+  if (!product.active || product.billing_interval === 'one_time' || !product.paypal_plan_id) return res.status(400).json({ error: 'This product is not an active PayPal subscription plan.' });
+  const appUrl = (process.env.APP_URL || 'https://q-ai.online').replace(/\/+$/, '');
+  const subscription = await paypalRequest('/v1/billing/subscriptions', { method: 'POST', headers: { 'PayPal-Request-Id': `q-crm-${req.params.id}-${product.id}-${Date.now()}` }, body: JSON.stringify({ plan_id: product.paypal_plan_id, custom_id: req.params.id, application_context: { brand_name: 'Q Intelligence', user_action: 'SUBSCRIBE_NOW', return_url: `${appUrl}/app?paypal=success`, cancel_url: `${appUrl}/app?paypal=cancel` } }) });
+  const approvalUrl = subscription.links?.find((link: any) => link.rel === 'approve')?.href;
+  if (!approvalUrl) return res.status(502).json({ error: 'PayPal returned no customer approval link.' });
+  await adminCtx.serviceSupabase.from('subscriptions').upsert({ user_id: req.params.id, paypal_subscription_id: subscription.id, paypal_plan_id: product.paypal_plan_id, status: subscription.status || 'APPROVAL_PENDING', current_period_end: null, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'paypal_subscription_created', `PayPal approval requested for ${product.name}`, { productId: product.id, subscriptionId: subscription.id });
+  return res.status(201).json({ approvalUrl, subscriptionId: subscription.id, status: subscription.status || 'APPROVAL_PENDING' });
+}));
+
 adminRouter.post('/crm/users/:id/payments', asyncHandler(async (req, res) => {
   const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
   const amountMinor = Number(req.body?.amountMinor);
@@ -304,7 +356,7 @@ adminRouter.get('/crm/products', asyncHandler(async (req, res) => {
   if (!adminCtx) return;
   const { data, error } = await adminCtx.serviceSupabase
     .from('crm_products')
-    .select('id, name, description, price_minor, currency, billing_interval, paypal_plan_id, active, created_at, updated_at')
+    .select('id, name, description, price_minor, currency, billing_interval, paypal_product_id, paypal_plan_id, paypal_sync_status, paypal_last_synced_at, active, created_at, updated_at')
     .order('created_at', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
   return res.json(data ?? []);
@@ -329,7 +381,8 @@ adminRouter.post('/crm/products', asyncHandler(async (req, res) => {
     active: req.body?.active !== false
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
-  return res.status(201).json(data);
+  try { return res.status(201).json(await syncProductToPayPal(adminCtx.serviceSupabase, data)); }
+  catch (syncError: any) { return res.status(502).json({ error: `Product saved in Q but PayPal sync failed: ${syncError.message}` }); }
 }));
 
 adminRouter.patch('/crm/products/:id', asyncHandler(async (req, res) => {
@@ -346,7 +399,8 @@ adminRouter.patch('/crm/products/:id', asyncHandler(async (req, res) => {
   if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No valid product changes supplied.' });
   const { data, error } = await adminCtx.serviceSupabase.from('crm_products').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data);
+  try { return res.json(await syncProductToPayPal(adminCtx.serviceSupabase, data)); }
+  catch (syncError: any) { return res.status(502).json({ error: `Product updated in Q but PayPal sync failed: ${syncError.message}` }); }
 }));
 
 adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {

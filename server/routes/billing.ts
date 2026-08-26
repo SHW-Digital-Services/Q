@@ -18,7 +18,7 @@ function getServiceSupabase() {
   }
 }
 
-function getPaypalBaseUrl(): string {
+export function getPaypalBaseUrl(): string {
   return process.env.PAYPAL_ENV === 'live'
     ? 'https://api-m.paypal.com'
     : 'https://api-m.sandbox.paypal.com';
@@ -32,7 +32,7 @@ function hasInvalidPayPalResource(details: any[]): boolean {
   return details.some((detail) => detail?.issue === 'INVALID_RESOURCE_ID');
 }
 
-async function getPayPalAccessToken(): Promise<string> {
+export async function getPayPalAccessToken(): Promise<string> {
   const clientId = process.env.PAYPAL_CLIENT_ID;
   const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
@@ -96,6 +96,71 @@ async function savePayPalSubscription(subscription: any, fallbackUserId?: string
     updated_at: new Date().toISOString()
   }, { onConflict: 'user_id' });
 }
+
+async function paypalApi(path: string) {
+  const response = await fetch(`${getPaypalBaseUrl()}${path}`, { headers: { Authorization: `Bearer ${await getPayPalAccessToken()}`, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(15000) });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.message || `PayPal request failed (${response.status}).`);
+  return data;
+}
+
+async function verifyPayPalWebhook(req: express.Request) {
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+  if (!webhookId) throw new Error('PAYPAL_WEBHOOK_ID is not configured.');
+  const fields = {
+    transmission_id: req.header('paypal-transmission-id'), transmission_time: req.header('paypal-transmission-time'),
+    cert_url: req.header('paypal-cert-url'), auth_algo: req.header('paypal-auth-algo'), transmission_sig: req.header('paypal-transmission-sig')
+  };
+  if (Object.values(fields).some((value) => !value)) return false;
+  const response = await fetch(`${getPaypalBaseUrl()}/v1/notifications/verify-webhook-signature`, { method: 'POST', headers: { Authorization: `Bearer ${await getPayPalAccessToken()}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ ...fields, webhook_id: webhookId, webhook_event: req.body }), signal: AbortSignal.timeout(15000) });
+  const data = await response.json().catch(() => ({}));
+  return response.ok && data.verification_status === 'SUCCESS';
+}
+
+// POST /api/billing/paypal/webhook - PayPal is authoritative for billing state.
+billingRouter.post('/paypal/webhook', asyncHandler(async (req, res) => {
+  if (!(await verifyPayPalWebhook(req))) return res.status(400).json({ error: 'Invalid PayPal webhook signature.' });
+  const serviceSupabase = getServiceSupabase();
+  if (!serviceSupabase) return res.status(503).json({ error: 'Billing database is unavailable.' });
+  const event = req.body;
+  if (!event?.id || !event?.event_type) return res.status(400).json({ error: 'Invalid webhook event.' });
+  const { data: existing } = await serviceSupabase.from('paypal_webhook_events').select('id').eq('id', event.id).maybeSingle();
+  if (existing) return res.json({ received: true, duplicate: true });
+
+  const type = String(event.event_type);
+  const resource = event.resource ?? {};
+  if (type.startsWith('BILLING.SUBSCRIPTION.')) {
+    const subscription = resource.custom_id ? resource : await paypalApi(`/v1/billing/subscriptions/${encodeURIComponent(resource.id)}`);
+    await savePayPalSubscription(subscription);
+  }
+  if (['PAYMENT.SALE.COMPLETED', 'PAYMENT.SALE.REFUNDED', 'PAYMENT.SALE.REVERSED'].includes(type)) {
+    const subscriptionId = resource.billing_agreement_id;
+    if (subscriptionId) {
+      const subscription = await paypalApi(`/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}`);
+      await savePayPalSubscription(subscription);
+      if (subscription.custom_id) {
+        const amount = resource.amount ?? resource.total ?? {};
+        await serviceSupabase.from('crm_payments').upsert({ user_id: subscription.custom_id, provider: 'paypal', provider_transaction_id: resource.id, amount_minor: Math.round(Number(amount.total ?? amount.value ?? 0) * 100), currency: amount.currency ?? amount.currency_code ?? 'GBP', status: type === 'PAYMENT.SALE.COMPLETED' ? 'completed' : 'refunded', payment_type: type === 'PAYMENT.SALE.COMPLETED' ? 'subscription' : 'refund', description: event.summary ?? type, occurred_at: resource.create_time ?? event.create_time ?? new Date().toISOString() }, { onConflict: 'provider,provider_transaction_id' });
+      }
+    }
+  }
+  if (type.startsWith('CATALOG.PRODUCT.')) {
+    const remote = resource.name ? resource : await paypalApi(`/v1/catalogs/products/${encodeURIComponent(resource.id)}`);
+    await serviceSupabase.from('crm_products').update({ name: remote.name, description: remote.description ?? null, paypal_sync_status: 'synced', paypal_last_synced_at: new Date().toISOString() }).eq('paypal_product_id', remote.id);
+  }
+  if (type.startsWith('BILLING.PLAN.')) {
+    const plan = resource.billing_cycles ? resource : await paypalApi(`/v1/billing/plans/${encodeURIComponent(resource.id)}`);
+    const regular = plan.billing_cycles?.find((cycle: any) => cycle.tenure_type === 'REGULAR') ?? plan.billing_cycles?.[0];
+    const price = regular?.pricing_scheme?.fixed_price;
+    const interval = regular?.frequency?.interval_unit === 'YEAR' ? 'year' : 'month';
+    const updates = { name: plan.name, description: plan.description ?? null, paypal_product_id: plan.product_id, paypal_plan_id: plan.id, price_minor: Math.round(Number(price?.value ?? 0) * 100), currency: price?.currency_code ?? 'GBP', billing_interval: interval, active: plan.status === 'ACTIVE', paypal_sync_status: 'synced', paypal_last_synced_at: new Date().toISOString() };
+    const { data: found } = await serviceSupabase.from('crm_products').select('id').eq('paypal_plan_id', plan.id).maybeSingle();
+    if (found) await serviceSupabase.from('crm_products').update(updates).eq('id', found.id);
+    else await serviceSupabase.from('crm_products').insert(updates);
+  }
+  await serviceSupabase.from('paypal_webhook_events').insert({ id: event.id, event_type: type, resource_id: resource.id ?? null });
+  return res.json({ received: true });
+}));
 
 // POST /api/billing/paypal/create-subscription
 billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) => {

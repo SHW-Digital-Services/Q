@@ -28,7 +28,8 @@ interface CrmUser {
 
 interface CrmProduct {
   id: string; name: string; description: string | null; price_minor: number; currency: string;
-  billing_interval: 'one_time' | 'month' | 'year'; paypal_plan_id: string | null; active: boolean;
+  billing_interval: 'one_time' | 'month' | 'year'; paypal_product_id: string | null; paypal_plan_id: string | null;
+  paypal_sync_status: 'not_synced' | 'synced' | 'error'; paypal_last_synced_at: string | null; active: boolean;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose }) => {
@@ -55,6 +56,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [staffRole, setStaffRole] = useState<'staff' | 'partner_admin' | null>(null);
   const [staffAccounts, setStaffAccounts] = useState<any[]>([]);
   const [staffMessage, setStaffMessage] = useState<string | null>(null);
+  const [paypalApprovalUrl, setPaypalApprovalUrl] = useState<string | null>(null);
 
   // Direct password reset state
   const [directEmail, setDirectEmail] = useState('');
@@ -205,6 +207,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       if (customer?.identity?.id === userId) await openCustomer(userId);
       setStaffMessage('Account role updated.');
     } catch (error: any) { setStaffMessage(error.message || 'Unable to change account role.'); }
+  };
+
+  const createPayPalSubscription = async () => {
+    if (!customer?.identity?.id || !entitlementProduct) return;
+    setCustomerMessage(null); setPaypalApprovalUrl(null);
+    try {
+      const response = await fetch(`/api/v1/admin/crm/users/${customer.identity.id}/paypal-subscriptions`, { method: 'POST', headers: await getAuthHeaders(), body: JSON.stringify({ productId: entitlementProduct }) });
+      const data = await parseJsonResponse(response);
+      setPaypalApprovalUrl(data.approvalUrl);
+      await openCustomer(customer.identity.id);
+      setCustomerMessage('PayPal subscription created. Send the approval link to the customer.');
+    } catch (error: any) { setCustomerMessage(error.message || 'Unable to create PayPal subscription.'); }
   };
 
   const resetPassword = async (request: any) => {
@@ -396,7 +410,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               <div key={product.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
                 <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-white">{product.name}</p><p className="mt-1 text-xs text-slate-400">{product.description || 'No description'}</p></div><button type="button" onClick={() => void toggleProduct(product)} className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${product.active ? 'bg-emerald-500/10 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>{product.active ? 'ACTIVE' : 'INACTIVE'}</button></div>
                 <p className="mt-3 text-xl font-black text-white">{new Intl.NumberFormat('en-GB', { style: 'currency', currency: product.currency }).format(product.price_minor / 100)} <span className="text-xs font-medium text-slate-400">/{product.billing_interval}</span></p>
-                <p className="mt-2 truncate text-[10px] text-slate-500">PayPal: {product.paypal_plan_id || 'Not linked'}</p>
+                <p className="mt-2 truncate text-[10px] text-slate-500">PayPal: {product.paypal_plan_id || 'Not linked'} · Sync: {product.paypal_sync_status}</p>
               </div>
             ))}
           </div>
@@ -545,7 +559,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                 </div>
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Assign access or subscription</h3><div className="mt-3 flex gap-2"><select value={entitlementProduct} onChange={(e) => setEntitlementProduct(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white"><option value="">Choose product</option>{products.filter(p=>p.active).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><button onClick={() => void customerAction('entitlements',{productId: entitlementProduct},'Access assigned.')} disabled={!entitlementProduct} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Assign</button></div><div className="mt-3 space-y-2">{customer.entitlements.map((item:any)=><div key={item.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><b className="text-white">{item.crm_products?.name}</b> · {item.status} · {item.source}{item.ends_at ? ` · ends ${new Date(item.ends_at).toLocaleDateString()}` : ''}</div>)}</div></section>
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Assign access or subscription</h3><select value={entitlementProduct} onChange={(e) => { setEntitlementProduct(e.target.value); setPaypalApprovalUrl(null); }} className="mt-3 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white"><option value="">Choose product</option>{products.filter(p=>p.active).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><div className="mt-2 flex gap-2"><button onClick={() => void customerAction('entitlements',{productId: entitlementProduct},'Access assigned.')} disabled={!entitlementProduct} className="flex-1 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Assign manual access</button><button onClick={() => void createPayPalSubscription()} disabled={!entitlementProduct} className="flex-1 rounded-xl bg-[#0070ba] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Create PayPal subscription</button></div>{paypalApprovalUrl && <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-xs text-emerald-100"><p className="font-bold">Customer approval required</p><div className="mt-2 flex gap-2"><input readOnly value={paypalApprovalUrl} className="min-w-0 flex-1 rounded-lg bg-slate-950 px-2 py-1 text-[10px]"/><button onClick={() => navigator.clipboard.writeText(paypalApprovalUrl)} className="font-bold">Copy</button></div></div>}<div className="mt-3 space-y-2">{customer.entitlements.map((item:any)=><div key={item.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><b className="text-white">{item.crm_products?.name}</b> · {item.status} · {item.source}{item.ends_at ? ` · ends ${new Date(item.ends_at).toLocaleDateString()}` : ''}</div>)}</div></section>
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center justify-between"><h3 className="font-bold text-white">Take a card payment</h3><a href="https://www.paypal.com/mep/dashboard" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl bg-[#0070ba] px-3 py-2 text-xs font-bold text-white">Open PayPal Virtual Terminal <ExternalLink className="h-3 w-3" /></a></div><p className="mt-2 text-xs text-slate-400">Enter card details only in PayPal. After approval, record the PayPal transaction below.</p><div className="mt-3 grid grid-cols-2 gap-2"><input value={payment.amount} onChange={e=>setPayment({...payment,amount:e.target.value})} type="number" step="0.01" placeholder="Amount" className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><select value={payment.currency} onChange={e=>setPayment({...payment,currency:e.target.value})} className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"><option>GBP</option><option>USD</option><option>EUR</option></select><input value={payment.transactionId} onChange={e=>setPayment({...payment,transactionId:e.target.value})} placeholder="PayPal transaction ID" className="col-span-2 rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><input value={payment.description} onChange={e=>setPayment({...payment,description:e.target.value})} placeholder="Description" className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><button onClick={() => void customerAction('payments',{amountMinor:Math.round(Number(payment.amount)*100),currency:payment.currency,providerTransactionId:payment.transactionId,description:payment.description},'Payment recorded.')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Record payment</button></div></section>
                 </div>
 

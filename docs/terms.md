@@ -1,9 +1,9 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.0.1
+version: 1.0.2
 effective_date: 02/08/2026
-last_updated: 17/08/2026
+last_updated: 26/08/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -196,6 +196,12 @@ You are responsible for ensuring:
 - applicable taxes are paid where required.
 
 Failure to complete payment may result in suspension or termination of premium access.
+
+Authorised staff may assist with payments using PayPal's payment tools. Card details must be entered only into a PayPal-hosted interface and are not intentionally received or stored by Q Intelligence.
+
+Subscription products, plans, status changes, renewals, failed payments, cancellations, refunds, and related transaction references may be synchronised automatically between Q Intelligence and PayPal. Creating a chargeable recurring subscription requires the customer to approve PayPal's billing agreement.
+
+For customer support and account administration, authorised Staff and Admin users may use Q Intelligence's native CRM to review account, subscription, payment, task, note, and audit information. Access is role-restricted, and administrative actions may be logged.
 
 ---
 
