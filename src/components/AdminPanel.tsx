@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList, UserCog } from 'lucide-react';
+import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 
 interface AdminPanelProps {
@@ -57,6 +57,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [staffAccounts, setStaffAccounts] = useState<any[]>([]);
   const [staffMessage, setStaffMessage] = useState<string | null>(null);
   const [paypalApprovalUrl, setPaypalApprovalUrl] = useState<string | null>(null);
+  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'user', sendInvite: true });
+  const [addingUser, setAddingUser] = useState(false);
+  const [createdUserPassword, setCreatedUserPassword] = useState<string | null>(null);
 
   // Direct password reset state
   const [directEmail, setDirectEmail] = useState('');
@@ -221,6 +224,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     } catch (error: any) { setCustomerMessage(error.message || 'Unable to create PayPal subscription.'); }
   };
 
+  const addUser = async (event: React.FormEvent) => {
+    event.preventDefault(); setAddingUser(true); setCrmMessage(null);
+    try {
+      const response = await fetch('/api/v1/admin/crm/users', { method: 'POST', headers: await getAuthHeaders(), body: JSON.stringify(newUser) });
+      const data = await parseJsonResponse(response);
+      setNewUser({ name: '', email: '', role: 'user', sendInvite: true });
+      setCreatedUserPassword(data.temporaryPassword ?? null);
+      await Promise.all([loadCrm(), staffRole === 'partner_admin' ? loadStaff() : Promise.resolve()]);
+      setCrmMessage(data.invited ? `Invitation sent to ${data.email}.` : `Account created for ${data.email}. Copy the temporary password now.`);
+    } catch (error: any) { setCrmMessage(error.message || 'Unable to invite user.'); }
+    finally { setAddingUser(false); }
+  };
+
   const resetPassword = async (request: any) => {
     setResettingId(request.id);
     setRequestMessage(null);
@@ -344,6 +360,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               <RefreshCw className={`h-3.5 w-3.5 ${crmLoading ? 'animate-spin' : ''}`} /> Refresh
             </button>
           </div>
+
+          <form onSubmit={addUser} className="mt-4 grid gap-2 rounded-2xl border border-white/10 bg-slate-900/60 p-4 md:grid-cols-5">
+            <div className="flex items-center gap-2 text-xs font-bold text-white md:col-span-5"><UserPlus className="h-4 w-4 text-purple-300"/>Add user</div>
+            <input value={newUser.name} onChange={(event) => setNewUser({ ...newUser, name: event.target.value })} placeholder="Name" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2"/>
+            <input required type="email" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} placeholder="Email address" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2"/>
+            {staffRole === 'partner_admin' ? <select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="user">User</option><option value="staff">Staff</option><option value="partner_admin">Admin</option></select> : <input readOnly value="User" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-slate-400"/>}
+            {staffRole === 'partner_admin' && <label className="flex items-center gap-2 text-xs text-slate-300 md:col-span-4"><input type="checkbox" checked={!newUser.sendInvite} onChange={(event) => setNewUser({ ...newUser, sendInvite: !event.target.checked })} className="accent-purple-600"/>Create directly with a temporary password instead of sending an invitation</label>}
+            <button disabled={addingUser} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50 md:col-start-5">{addingUser ? 'Creating…' : newUser.sendInvite ? 'Send invitation' : 'Create account'}</button>
+            {createdUserPassword && <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-100 md:col-span-5"><span>Temporary password: <b className="font-mono">{createdUserPassword}</b></span><button type="button" onClick={() => navigator.clipboard.writeText(createdUserPassword)} className="font-bold">Copy</button></div>}
+          </form>
 
           <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[

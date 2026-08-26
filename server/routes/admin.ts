@@ -252,6 +252,27 @@ adminRouter.get('/crm/users', asyncHandler(async (req, res) => {
   });
 }));
 
+adminRouter.post('/crm/users', asyncHandler(async (req, res) => {
+  const staffCtx = await requireStaff(req, res); if (!staffCtx) return;
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  const requestedRole = req.body?.role;
+  const role = staffCtx.role === 'partner_admin' && ['user', 'staff', 'partner_admin'].includes(requestedRole) ? requestedRole : 'user';
+  const directCreate = req.body?.sendInvite === false;
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'A valid email address is required.' });
+  if (directCreate && staffCtx.role !== 'partner_admin') return res.status(403).json({ error: 'Only Admins can create accounts without an invitation.' });
+  const redirectTo = `${(process.env.APP_URL || 'https://www.q-ai.online').replace(/\/+$/, '')}/app`;
+  const temporaryPassword = directCreate ? generateTemporaryPassword() : undefined;
+  const authResult = directCreate
+    ? await staffCtx.serviceSupabase.auth.admin.createUser({ email, password: temporaryPassword, email_confirm: true, user_metadata: { name: name || email.split('@')[0], created_by_q_crm: true, must_change_password: true } })
+    : await staffCtx.serviceSupabase.auth.admin.inviteUserByEmail(email, { redirectTo, data: { name: name || email.split('@')[0], invited_by_q_crm: true } });
+  if (authResult.error || !authResult.data?.user) return res.status(400).json({ error: authResult.error?.message || 'Unable to create the user account.' });
+  const { error: profileError } = await staffCtx.serviceSupabase.from('profiles').upsert({ id: authResult.data.user.id, preferred_name: name || null, role, crm_status: 'customer' }, { onConflict: 'id' });
+  if (profileError) return res.status(500).json({ error: `Invitation sent, but the CRM profile could not be prepared: ${profileError.message}` });
+  await recordCrmActivity(staffCtx.serviceSupabase, authResult.data.user.id, staffCtx.identity.user.id, directCreate ? 'user_created' : 'user_invited', directCreate ? `Account created directly as ${role}` : `User invited as ${role}`, { email, role });
+  return res.status(201).json({ id: authResult.data.user.id, email, name, role, invited: !directCreate, temporaryPassword });
+}));
+
 async function recordCrmActivity(serviceSupabase: any, userId: string, actorId: string, activityType: string, summary: string, metadata: Record<string, unknown> = {}) {
   await serviceSupabase.from('crm_activities').insert({ user_id: userId, actor_id: actorId, activity_type: activityType, summary, metadata });
 }
