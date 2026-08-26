@@ -6,6 +6,13 @@ import { buildAnalyticsExport } from '../analyticsEngine.js';
 
 export const adminRouter = express.Router();
 
+adminRouter.get('/site-settings/launch', asyncHandler(async (_req, res) => {
+  const serviceSupabase = getServiceSupabase();
+  if (!serviceSupabase) return res.json({ enabled: false });
+  const { data } = await serviceSupabase.from('site_settings').select('value').eq('key', 'launch_override').maybeSingle();
+  return res.json({ enabled: data?.value === true });
+}));
+
 function getServiceSupabase() {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
@@ -84,8 +91,21 @@ async function requireAdmin(req: express.Request, res: express.Response) {
   }
 }
 
+async function requireStaff(req: express.Request, res: express.Response) {
+  try {
+    const identity = await getAuthenticatedUser(req);
+    if (!identity) { res.status(401).json({ error: 'Authentication required.' }); return null; }
+    const serviceSupabase = getServiceSupabase();
+    if (!serviceSupabase) { res.status(503).json({ error: 'Supabase staff access is not configured.' }); return null; }
+    const { data: profile, error } = await serviceSupabase.from('profiles').select('role').eq('id', identity.user.id).maybeSingle();
+    if (error) { res.status(500).json({ error: 'Staff role check failed.' }); return null; }
+    if (!['staff', 'partner_admin'].includes(profile?.role)) { res.status(403).json({ error: 'Staff access required.' }); return null; }
+    return { identity, serviceSupabase, role: profile.role as 'staff' | 'partner_admin' };
+  } catch { res.status(401).json({ error: 'Authentication check failed.' }); return null; }
+}
+
 adminRouter.get('/me', asyncHandler(async (req, res) => {
-  const adminCtx = await requireAdmin(req, res);
+  const adminCtx = await requireStaff(req, res);
   if (!adminCtx) return;
 
   return res.json({
@@ -94,12 +114,20 @@ adminRouter.get('/me', asyncHandler(async (req, res) => {
       id: adminCtx.identity.user.id,
       email: adminCtx.identity.user.email
     },
-    role: 'partner_admin'
+    role: adminCtx.role
   });
 }));
 
+adminRouter.patch('/site-settings/launch', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  if (typeof req.body?.enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be a boolean.' });
+  const { error } = await adminCtx.serviceSupabase.from('site_settings').upsert({ key: 'launch_override', value: req.body.enabled, updated_by: adminCtx.identity.user.id, updated_at: new Date().toISOString() });
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ enabled: req.body.enabled });
+}));
+
 adminRouter.get('/crm/users', asyncHandler(async (req, res) => {
-  const adminCtx = await requireAdmin(req, res);
+  const adminCtx = await requireStaff(req, res);
   if (!adminCtx) return;
 
   const { serviceSupabase } = adminCtx;
@@ -156,8 +184,93 @@ adminRouter.get('/crm/users', asyncHandler(async (req, res) => {
   });
 }));
 
+async function recordCrmActivity(serviceSupabase: any, userId: string, actorId: string, activityType: string, summary: string, metadata: Record<string, unknown> = {}) {
+  await serviceSupabase.from('crm_activities').insert({ user_id: userId, actor_id: actorId, activity_type: activityType, summary, metadata });
+}
+
+adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
+  const adminCtx = await requireStaff(req, res);
+  if (!adminCtx) return;
+  const { serviceSupabase } = adminCtx;
+  const userId = req.params.id;
+  const [{ data: authData, error: authError }, profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult] = await Promise.all([
+    serviceSupabase.auth.admin.getUserById(userId),
+    serviceSupabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    serviceSupabase.from('subscriptions').select('*').eq('user_id', userId).maybeSingle(),
+    serviceSupabase.from('crm_notes').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+    serviceSupabase.from('crm_tasks').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+    serviceSupabase.from('crm_payments').select('*').eq('user_id', userId).order('occurred_at', { ascending: false }),
+    serviceSupabase.from('crm_entitlements').select('*, crm_products(name, price_minor, currency, billing_interval)').eq('user_id', userId).order('created_at', { ascending: false }),
+    adminCtx.role === 'partner_admin'
+      ? serviceSupabase.from('crm_activities').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100)
+      : Promise.resolve({ data: [], error: null })
+  ]);
+  if (authError || !authData?.user) return res.status(404).json({ error: 'Customer not found.' });
+  const databaseError = [profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult].find((result: any) => result.error)?.error;
+  if (databaseError) return res.status(500).json({ error: databaseError.message });
+  const user = authData.user;
+  return res.json({
+    identity: { id: user.id, email: user.email, phone: user.phone, signupAt: user.created_at, lastLoginAt: user.last_sign_in_at, emailConfirmedAt: user.email_confirmed_at, metadata: user.user_metadata },
+    profile: profileResult.data,
+    subscription: subscriptionResult.data,
+    notes: notesResult.data ?? [], tasks: tasksResult.data ?? [], payments: paymentsResult.data ?? [],
+    entitlements: entitlementsResult.data ?? [], activities: activitiesResult.data ?? []
+  });
+}));
+
+adminRouter.patch('/crm/users/:id', asyncHandler(async (req, res) => {
+  const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
+  const allowed = ['preferred_name', 'pronouns', 'location_region', 'life_stage', 'phone', 'company', 'address', 'crm_status', 'crm_owner_id'];
+  const updates = Object.fromEntries(allowed.filter((key) => req.body?.[key] !== undefined).map((key) => [key, req.body[key]]));
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'No supported profile changes supplied.' });
+  const { data, error } = await adminCtx.serviceSupabase.from('profiles').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'profile_updated', 'Customer details updated', { fields: Object.keys(updates) });
+  return res.json(data);
+}));
+
+adminRouter.post('/crm/users/:id/notes', asyncHandler(async (req, res) => {
+  const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
+  const body = typeof req.body?.body === 'string' ? req.body.body.trim() : '';
+  if (!body) return res.status(400).json({ error: 'Note text is required.' });
+  const { data, error } = await adminCtx.serviceSupabase.from('crm_notes').insert({ user_id: req.params.id, body, created_by: adminCtx.identity.user.id }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'note_added', 'CRM note added');
+  return res.status(201).json(data);
+}));
+
+adminRouter.post('/crm/users/:id/tasks', asyncHandler(async (req, res) => {
+  const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
+  const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
+  if (!title) return res.status(400).json({ error: 'Task title is required.' });
+  const { data, error } = await adminCtx.serviceSupabase.from('crm_tasks').insert({ user_id: req.params.id, title, description: req.body?.description || null, priority: req.body?.priority || 'normal', due_at: req.body?.dueAt || null, assigned_to: adminCtx.identity.user.id, created_by: adminCtx.identity.user.id }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'task_created', `Task created: ${title}`);
+  return res.status(201).json(data);
+}));
+
+adminRouter.post('/crm/users/:id/entitlements', asyncHandler(async (req, res) => {
+  const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
+  const productId = typeof req.body?.productId === 'string' ? req.body.productId : '';
+  if (!productId) return res.status(400).json({ error: 'Select a product.' });
+  const { data, error } = await adminCtx.serviceSupabase.from('crm_entitlements').insert({ user_id: req.params.id, product_id: productId, source: req.body?.source === 'promotion' ? 'promotion' : 'manual', ends_at: req.body?.endsAt || null, reason: req.body?.reason || null, assigned_by: adminCtx.identity.user.id }).select('*, crm_products(name, price_minor, currency, billing_interval)').single();
+  if (error) return res.status(500).json({ error: error.message });
+  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'subscription_assigned', `Access assigned: ${data.crm_products?.name ?? 'product'}`, { productId });
+  return res.status(201).json(data);
+}));
+
+adminRouter.post('/crm/users/:id/payments', asyncHandler(async (req, res) => {
+  const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
+  const amountMinor = Number(req.body?.amountMinor);
+  if (!Number.isInteger(amountMinor) || amountMinor < 0 || !req.body?.providerTransactionId) return res.status(400).json({ error: 'A valid amount and PayPal transaction ID are required.' });
+  const { data, error } = await adminCtx.serviceSupabase.from('crm_payments').insert({ user_id: req.params.id, provider: 'paypal', provider_transaction_id: String(req.body.providerTransactionId).trim(), amount_minor: amountMinor, currency: String(req.body?.currency || 'GBP').toUpperCase(), status: req.body?.status || 'completed', payment_type: req.body?.paymentType || 'one_time', description: req.body?.description || null, recorded_by: adminCtx.identity.user.id }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'payment_recorded', `PayPal payment recorded: ${data.currency} ${(data.amount_minor / 100).toFixed(2)}`, { transactionId: data.provider_transaction_id });
+  return res.status(201).json(data);
+}));
+
 adminRouter.get('/crm/products', asyncHandler(async (req, res) => {
-  const adminCtx = await requireAdmin(req, res);
+  const adminCtx = await requireStaff(req, res);
   if (!adminCtx) return;
   const { data, error } = await adminCtx.serviceSupabase
     .from('crm_products')

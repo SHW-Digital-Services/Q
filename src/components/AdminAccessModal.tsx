@@ -63,9 +63,9 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onCl
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-purple-200">
               <ShieldCheck className="h-4 w-4" />
-              Admin Access
+              Staff Access
             </div>
-            <h2 className="mt-2 text-xl font-bold text-white">Secure admin sign-in</h2>
+            <h2 className="mt-2 text-xl font-bold text-white">Secure CRM sign-in</h2>
             <p className="mt-1 text-sm text-slate-300">Use your authorised staff account to manage users without opening Supabase.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-2 text-slate-400 transition hover:bg-white/10 hover:text-white">
@@ -115,7 +115,7 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onCl
             disabled={loading}
             className="w-full rounded-2xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:opacity-60"
           >
-            {loading ? 'Checking access…' : 'Enter admin panel'}
+            {loading ? 'Checking access…' : 'Enter CRM'}
           </button>
         </form>
       </div>

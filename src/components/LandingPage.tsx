@@ -10,20 +10,8 @@ import { AdminPanel } from './AdminPanel';
 // 1 November is outside British Summer Time, so 09:00 UK time is 09:00 UTC.
 export const Q_LAUNCH_DATE = new Date('2026-11-01T09:00:00Z');
 
-function getStoredLaunchSetting() {
-  if (typeof window === 'undefined') return false;
-  const stored = window.localStorage.getItem('q-launch-landing-enabled');
-  if (stored === null) return false;
-  return stored === 'true';
-}
-
-function setStoredLaunchSetting(value: boolean) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem('q-launch-landing-enabled', value ? 'true' : 'false');
-}
-
 function isLaunchLandingEnabled() {
-  return Date.now() >= Q_LAUNCH_DATE.getTime() || getStoredLaunchSetting();
+  return Date.now() >= Q_LAUNCH_DATE.getTime();
 }
 
 const LaunchLandingPage: React.FC = () => {
@@ -246,6 +234,13 @@ export const LandingPage: React.FC = () => {
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
   useEffect(() => {
+    fetch('/api/v1/admin/site-settings/launch')
+      .then((response) => response.json())
+      .then((data) => { if (data.enabled === true) setLaunchEnabled(true); })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     if (launchEnabled) return;
     const timer = window.setInterval(() => {
       if (Date.now() >= Q_LAUNCH_DATE.getTime()) {
@@ -262,7 +257,6 @@ export const LandingPage: React.FC = () => {
   const handleToggleLaunch = (value: boolean) => {
     const effectiveValue = Date.now() >= Q_LAUNCH_DATE.getTime() || value;
     setLaunchEnabled(effectiveValue);
-    setStoredLaunchSetting(effectiveValue);
   };
 
   return (

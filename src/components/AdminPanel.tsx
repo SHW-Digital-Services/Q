@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus } from 'lucide-react';
+import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 
 interface AdminPanelProps {
@@ -45,6 +45,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [productMessage, setProductMessage] = useState<string | null>(null);
   const [productSaving, setProductSaving] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', price: '', currency: 'GBP', billingInterval: 'month', paypalPlanId: '', description: '' });
+  const [customer, setCustomer] = useState<any | null>(null);
+  const [customerLoading, setCustomerLoading] = useState(false);
+  const [customerMessage, setCustomerMessage] = useState<string | null>(null);
+  const [noteBody, setNoteBody] = useState('');
+  const [taskTitle, setTaskTitle] = useState('');
+  const [entitlementProduct, setEntitlementProduct] = useState('');
+  const [payment, setPayment] = useState({ amount: '', currency: 'GBP', transactionId: '', description: '' });
+  const [staffRole, setStaffRole] = useState<'staff' | 'partner_admin' | null>(null);
 
   // Direct password reset state
   const [directEmail, setDirectEmail] = useState('');
@@ -159,6 +167,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     }
   };
 
+  const openCustomer = async (userId: string) => {
+    setCustomerLoading(true); setCustomerMessage(null);
+    try {
+      const response = await fetch(`/api/v1/admin/crm/users/${userId}`, { headers: await getAuthHeaders() });
+      setCustomer(await parseJsonResponse(response));
+    } catch (error: any) { setCrmMessage(error.message || 'Unable to load customer.'); }
+    finally { setCustomerLoading(false); }
+  };
+
+  const customerAction = async (path: string, body: any, success: string) => {
+    if (!customer?.identity?.id) return;
+    setCustomerMessage(null);
+    try {
+      const response = await fetch(`/api/v1/admin/crm/users/${customer.identity.id}/${path}`, { method: 'POST', headers: await getAuthHeaders(), body: JSON.stringify(body) });
+      await parseJsonResponse(response);
+      await openCustomer(customer.identity.id);
+      setCustomerMessage(success);
+    } catch (error: any) { setCustomerMessage(error.message || 'CRM action failed.'); }
+  };
+
   const resetPassword = async (request: any) => {
     setResettingId(request.id);
     setRequestMessage(null);
@@ -207,6 +235,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   };
 
   useEffect(() => {
+    getAuthHeaders().then((headers) => fetch('/api/v1/admin/me', { headers })).then(parseJsonResponse).then((data) => setStaffRole(data.role)).catch((error) => setCrmMessage(error.message));
     void loadRequests();
     void loadCrm();
     void loadProducts();
@@ -217,6 +246,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     return !query || user.email.toLowerCase().includes(query) || user.name.toLowerCase().includes(query);
   });
 
+  const updateLaunch = async (value: boolean) => {
+    try {
+      const response = await fetch('/api/v1/admin/site-settings/launch', { method: 'PATCH', headers: await getAuthHeaders(), body: JSON.stringify({ enabled: value }) });
+      const data = await parseJsonResponse(response);
+      onToggle(data.enabled);
+    } catch (error: any) { setCrmMessage(error.message || 'Unable to update launch status.'); }
+  };
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
       <div className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-white/15 bg-slate-950/95 p-6 shadow-2xl">
@@ -224,17 +261,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-purple-200">
               <ShieldCheck className="h-4 w-4" />
-              Admin Controls
+              {staffRole === 'partner_admin' ? 'Admin Controls' : 'Staff CRM'}
             </div>
-            <h2 className="mt-2 text-xl font-bold text-white">Launch experience toggle</h2>
-            <p className="mt-1 text-sm text-slate-300">Switch the public landing experience between the waitlist page and the new launch page.</p>
+            <h2 className="mt-2 text-xl font-bold text-white">Q Customer Operations</h2>
+            <p className="mt-1 text-sm text-slate-300">Manage customers, subscriptions, payments, tasks, and support activity.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-2 text-slate-400 transition hover:bg-white/10 hover:text-white">
             <Settings className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {staffRole === 'partner_admin' && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-white">Enable new launch landing page</p>
@@ -242,17 +279,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             </div>
             <button
               type="button"
-              onClick={() => onToggle(!enabled)}
+              onClick={() => void updateLaunch(!enabled)}
               className={`relative inline-flex h-7 w-14 items-center rounded-full transition ${enabled ? 'bg-purple-600' : 'bg-slate-700'}`}
             >
               <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${enabled ? 'translate-x-7' : 'translate-x-1'}`} />
             </button>
           </div>
-        </div>
+        </div>}
 
-        <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+        {staffRole === 'partner_admin' && <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
           Current status: {enabled ? 'New launch landing page enabled' : 'Waitlist landing page enabled'}
-        </div>
+        </div>}
 
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -297,7 +334,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                 ) : visibleCrmUsers.length === 0 ? (
                   <tr><td colSpan={6} className="p-5 text-center text-slate-400">No matching customers.</td></tr>
                 ) : visibleCrmUsers.map((user) => (
-                  <tr key={user.id} className="bg-slate-950/30 text-slate-300">
+                  <tr key={user.id} onClick={() => void openCustomer(user.id)} className="cursor-pointer bg-slate-950/30 text-slate-300 transition hover:bg-purple-500/10">
                     <td className="p-3"><p className="font-semibold text-white">{user.name}</p><p className="mt-0.5 text-slate-500">{user.email}</p></td>
                     <td className="p-3">{new Date(user.signupAt).toLocaleDateString()}</td>
                     <td className="p-3">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'}</td>
@@ -311,7 +348,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           </div>
         </section>
 
-        <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {staffRole === 'partner_admin' && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center gap-2 text-white"><Package className="h-4 w-4 text-purple-300" /><p className="text-sm font-semibold">Product management</p></div>
           <p className="mt-1 text-sm text-slate-400">Manage Q products and connect recurring products to their PayPal plan IDs.</p>
 
@@ -334,9 +371,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               </div>
             ))}
           </div>
-        </section>
+        </section>}
 
-        <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {staffRole === 'partner_admin' && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-white">Direct password reset</p>
@@ -392,9 +429,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               )}
             </div>
           )}
-        </div>
+        </div>}
 
-        <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {staffRole === 'partner_admin' && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-white">Password reset requests</p>
@@ -458,7 +495,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               ))}
             </div>
           )}
-        </div>
+        </div>}
+
+        {(customer || customerLoading) && (
+          <div className="fixed inset-0 z-[80] overflow-y-auto bg-slate-950/90 p-4 backdrop-blur-sm">
+            <div className="mx-auto my-4 max-w-6xl rounded-3xl border border-white/15 bg-slate-950 p-6 shadow-2xl">
+              {customerLoading && !customer ? <p className="text-slate-300">Loading customer record…</p> : customer && <>
+                <div className="flex items-start justify-between gap-4">
+                  <div><p className="text-xs font-bold uppercase tracking-widest text-purple-300">360° customer record</p><h2 className="mt-2 text-2xl font-black text-white">{customer.profile?.preferred_name || customer.identity.email}</h2><p className="text-sm text-slate-400">{customer.identity.email} · {customer.identity.id}</p></div>
+                  <button onClick={() => setCustomer(null)} className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-5 w-5" /></button>
+                </div>
+                {customerMessage && <div className="mt-4 rounded-xl border border-purple-400/20 bg-purple-500/10 p-3 text-xs text-purple-100">{customerMessage}</div>}
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Personal details</h3><dl className="mt-3 space-y-2 text-xs text-slate-300">
+                    <div><dt className="text-slate-500">Email</dt><dd>{customer.identity.email}</dd></div><div><dt className="text-slate-500">Phone</dt><dd>{customer.profile?.phone || customer.identity.phone || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Pronouns</dt><dd>{customer.profile?.pronouns || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Region</dt><dd>{customer.profile?.location_region || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Company</dt><dd>{customer.profile?.company || 'Not supplied'}</dd></div><div><dt className="text-slate-500">CRM status</dt><dd>{customer.profile?.crm_status || 'customer'}</dd></div>
+                  </dl></section>
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Account</h3><dl className="mt-3 space-y-2 text-xs text-slate-300"><div><dt className="text-slate-500">Created</dt><dd>{new Date(customer.identity.signupAt).toLocaleString()}</dd></div><div><dt className="text-slate-500">Last login</dt><dd>{customer.identity.lastLoginAt ? new Date(customer.identity.lastLoginAt).toLocaleString() : 'Never'}</dd></div><div><dt className="text-slate-500">Email</dt><dd>{customer.identity.emailConfirmedAt ? 'Verified' : 'Unverified'}</dd></div><div><dt className="text-slate-500">Role</dt><dd>{customer.profile?.role}</dd></div></dl></section>
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">PayPal subscription</h3>{customer.subscription ? <dl className="mt-3 space-y-2 text-xs text-slate-300"><div><dt className="text-slate-500">Status</dt><dd>{customer.subscription.status}</dd></div><div><dt className="text-slate-500">Plan</dt><dd>{customer.subscription.paypal_plan_id}</dd></div><div><dt className="text-slate-500">Subscription ID</dt><dd>{customer.subscription.paypal_subscription_id}</dd></div><div><dt className="text-slate-500">Next billing</dt><dd>{customer.subscription.current_period_end ? new Date(customer.subscription.current_period_end).toLocaleDateString() : 'Unknown'}</dd></div></dl> : <p className="mt-3 text-xs text-slate-400">No PayPal subscription.</p>}</section>
+                </div>
+
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Assign access or subscription</h3><div className="mt-3 flex gap-2"><select value={entitlementProduct} onChange={(e) => setEntitlementProduct(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white"><option value="">Choose product</option>{products.filter(p=>p.active).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><button onClick={() => void customerAction('entitlements',{productId: entitlementProduct},'Access assigned.')} disabled={!entitlementProduct} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Assign</button></div><div className="mt-3 space-y-2">{customer.entitlements.map((item:any)=><div key={item.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><b className="text-white">{item.crm_products?.name}</b> · {item.status} · {item.source}{item.ends_at ? ` · ends ${new Date(item.ends_at).toLocaleDateString()}` : ''}</div>)}</div></section>
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center justify-between"><h3 className="font-bold text-white">Take a card payment</h3><a href="https://www.paypal.com/mep/dashboard" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl bg-[#0070ba] px-3 py-2 text-xs font-bold text-white">Open PayPal Virtual Terminal <ExternalLink className="h-3 w-3" /></a></div><p className="mt-2 text-xs text-slate-400">Enter card details only in PayPal. After approval, record the PayPal transaction below.</p><div className="mt-3 grid grid-cols-2 gap-2"><input value={payment.amount} onChange={e=>setPayment({...payment,amount:e.target.value})} type="number" step="0.01" placeholder="Amount" className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><select value={payment.currency} onChange={e=>setPayment({...payment,currency:e.target.value})} className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"><option>GBP</option><option>USD</option><option>EUR</option></select><input value={payment.transactionId} onChange={e=>setPayment({...payment,transactionId:e.target.value})} placeholder="PayPal transaction ID" className="col-span-2 rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><input value={payment.description} onChange={e=>setPayment({...payment,description:e.target.value})} placeholder="Description" className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><button onClick={() => void customerAction('payments',{amountMinor:Math.round(Number(payment.amount)*100),currency:payment.currency,providerTransactionId:payment.transactionId,description:payment.description},'Payment recorded.')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Record payment</button></div></section>
+                </div>
+
+                <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Notes</h3><textarea value={noteBody} onChange={e=>setNoteBody(e.target.value)} placeholder="Add a non-sensitive CRM note" className="mt-3 w-full rounded-xl bg-slate-900 p-3 text-xs text-white"/><button onClick={() => { void customerAction('notes',{body:noteBody},'Note added.'); setNoteBody(''); }} className="mt-2 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add note</button><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.notes.map((n:any)=><div key={n.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300">{n.body}<p className="mt-1 text-[10px] text-slate-500">{new Date(n.created_at).toLocaleString()}</p></div>)}</div></section>
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Tasks</h3><div className="mt-3 flex gap-2"><input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="Follow-up task" className="min-w-0 flex-1 rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><button onClick={() => { void customerAction('tasks',{title:taskTitle},'Task created.'); setTaskTitle(''); }} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add</button></div><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.tasks.map((t:any)=><div key={t.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><ClipboardList className="mr-1 inline h-3 w-3"/>{t.title} · {t.status}</div>)}</div></section>
+                  {staffRole === 'partner_admin' && <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Audit and activity timeline</h3><div className="mt-3 max-h-72 space-y-3 overflow-y-auto">{customer.activities.map((a:any)=><div key={a.id} className="border-l border-purple-500/40 pl-3 text-xs text-slate-300"><b className="text-white">{a.summary}</b><p className="text-[10px] text-slate-500">{new Date(a.created_at).toLocaleString()}</p></div>)}</div></section>}
+                </div>
+
+                <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Payment history</h3><div className="mt-3 overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-slate-500"><tr><th className="p-2">Date</th><th>Reference</th><th>Description</th><th>Status</th><th className="text-right">Amount</th></tr></thead><tbody>{customer.payments.map((p:any)=><tr key={p.id} className="border-t border-white/10 text-slate-300"><td className="p-2">{new Date(p.occurred_at).toLocaleDateString()}</td><td>{p.provider_transaction_id}</td><td>{p.description || p.payment_type}</td><td>{p.status}</td><td className="text-right">{new Intl.NumberFormat('en-GB',{style:'currency',currency:p.currency}).format(p.amount_minor/100)}</td></tr>)}</tbody></table></div></section>
+              </>}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
