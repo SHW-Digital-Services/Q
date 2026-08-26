@@ -98,6 +98,114 @@ adminRouter.get('/me', asyncHandler(async (req, res) => {
   });
 }));
 
+adminRouter.get('/crm/users', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res);
+  if (!adminCtx) return;
+
+  const { serviceSupabase } = adminCtx;
+  const requestedPage = Number.parseInt(String(req.query.page ?? '1'), 10);
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const perPage = 100;
+
+  const [{ data: authData, error: authError }, { data: profiles, error: profileError }, { data: subscriptions, error: subscriptionError }] = await Promise.all([
+    serviceSupabase.auth.admin.listUsers({ page, perPage }),
+    serviceSupabase.from('profiles').select('id, role, preferred_name, created_at, updated_at'),
+    serviceSupabase.from('subscriptions').select('user_id, paypal_subscription_id, paypal_plan_id, status, current_period_end, created_at, updated_at')
+  ]);
+
+  if (authError || profileError || subscriptionError) {
+    const error = authError ?? profileError ?? subscriptionError;
+    console.error('[Admin CRM] Failed to load customers:', error);
+    return res.status(500).json({ error: error?.message || 'Unable to load CRM customers.' });
+  }
+
+  const profilesByUser = new Map((profiles ?? []).map((profile: any) => [profile.id, profile]));
+  const subscriptionsByUser = new Map((subscriptions ?? []).map((subscription: any) => [subscription.user_id, subscription]));
+  const users = (authData?.users ?? []).map((user: any) => {
+    const profile: any = profilesByUser.get(user.id);
+    const subscription: any = subscriptionsByUser.get(user.id);
+    return {
+      id: user.id,
+      email: user.email ?? '',
+      name: profile?.preferred_name ?? user.user_metadata?.name ?? user.email?.split('@')[0] ?? 'User',
+      role: profile?.role ?? 'user',
+      signupAt: user.created_at,
+      lastLoginAt: user.last_sign_in_at ?? null,
+      emailConfirmedAt: user.email_confirmed_at ?? null,
+      bannedUntil: user.banned_until ?? null,
+      subscription: subscription ? {
+        status: subscription.status,
+        planId: subscription.paypal_plan_id,
+        providerId: subscription.paypal_subscription_id,
+        currentPeriodEnd: subscription.current_period_end,
+        updatedAt: subscription.updated_at
+      } : null
+    };
+  });
+
+  return res.json({
+    users,
+    page,
+    total: users.length,
+    metrics: {
+      users: users.length,
+      confirmed: users.filter((user: any) => Boolean(user.emailConfirmedAt)).length,
+      activeSubscriptions: users.filter((user: any) => user.subscription?.status === 'ACTIVE').length,
+      signedIn: users.filter((user: any) => Boolean(user.lastLoginAt)).length
+    }
+  });
+}));
+
+adminRouter.get('/crm/products', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res);
+  if (!adminCtx) return;
+  const { data, error } = await adminCtx.serviceSupabase
+    .from('crm_products')
+    .select('id, name, description, price_minor, currency, billing_interval, paypal_plan_id, active, created_at, updated_at')
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data ?? []);
+}));
+
+adminRouter.post('/crm/products', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res);
+  if (!adminCtx) return;
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  const priceMinor = Number(req.body?.priceMinor);
+  const interval = req.body?.billingInterval;
+  if (!name || !Number.isInteger(priceMinor) || priceMinor < 0 || !['one_time', 'month', 'year'].includes(interval)) {
+    return res.status(400).json({ error: 'Name, a valid non-negative price, and billing interval are required.' });
+  }
+  const { data, error } = await adminCtx.serviceSupabase.from('crm_products').insert({
+    name,
+    description: typeof req.body?.description === 'string' ? req.body.description.trim() || null : null,
+    price_minor: priceMinor,
+    currency: typeof req.body?.currency === 'string' ? req.body.currency.trim().toUpperCase() : 'GBP',
+    billing_interval: interval,
+    paypal_plan_id: typeof req.body?.paypalPlanId === 'string' ? req.body.paypalPlanId.trim() || null : null,
+    active: req.body?.active !== false
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(201).json(data);
+}));
+
+adminRouter.patch('/crm/products/:id', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res);
+  if (!adminCtx) return;
+  const updates: Record<string, unknown> = {};
+  if (typeof req.body?.name === 'string' && req.body.name.trim()) updates.name = req.body.name.trim();
+  if (typeof req.body?.description === 'string') updates.description = req.body.description.trim() || null;
+  if (Number.isInteger(req.body?.priceMinor) && req.body.priceMinor >= 0) updates.price_minor = req.body.priceMinor;
+  if (typeof req.body?.currency === 'string' && req.body.currency.trim().length === 3) updates.currency = req.body.currency.trim().toUpperCase();
+  if (['one_time', 'month', 'year'].includes(req.body?.billingInterval)) updates.billing_interval = req.body.billingInterval;
+  if (typeof req.body?.paypalPlanId === 'string') updates.paypal_plan_id = req.body.paypalPlanId.trim() || null;
+  if (typeof req.body?.active === 'boolean') updates.active = req.body.active;
+  if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No valid product changes supplied.' });
+  const { data, error } = await adminCtx.serviceSupabase.from('crm_products').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data);
+}));
+
 adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
   try {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';

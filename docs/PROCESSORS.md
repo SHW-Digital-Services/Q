@@ -26,7 +26,6 @@ This register supports transparency under applicable data protection legislation
 | Supabase | Authentication, PostgreSQL database, object storage, user sessions | Account information, authentication data, uploaded files, application data |
 | Google Gemini | AI model processing | User prompts, uploaded content submitted for AI processing, AI responses |
 | PayPal | Subscription billing and payment processing | Billing information, payment identifiers, transaction records |
-| Zoho Bigin | Customer relationship management, enquiry handling, contact and account administration | Account contact details, profile details, communication preferences, support and enquiry records |
 
 ---
 
@@ -136,7 +135,6 @@ This Register should be read together with:
 
 | Version | Date | Summary |
 |---------|------|---------|
-| 1.0.1 | 17/08/2026 | Added Zoho Bigin as a customer relationship management processor. |
 | 1.0.0 | **[TO BE COMPLETED]** | Initial public release. |
 
 ---

@@ -177,7 +177,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         remoteSaveFailed = true;
         setStatus({
           tone: 'error',
-          message: 'Profile saved locally. Supabase or Zoho Bigin sync metadata could not be updated.'
+          message: 'Profile saved locally. Your account profile could not be updated.'
         });
       }
 
@@ -189,7 +189,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setProfile(updatedProfile);
 
     if (!remoteSaveFailed) {
-      setStatus({ tone: 'success', message: supabase ? 'Profile saved to Supabase and queued for Zoho Bigin sync.' : 'Profile saved locally.' });
+      setStatus({ tone: 'success', message: supabase ? 'Profile saved securely.' : 'Profile saved locally.' });
     }
     setIsSaving(false);
   };
@@ -397,7 +397,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </label>
 
             <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700 sm:min-w-72">
-              <span>Sync basic contact to Zoho Bigin</span>
+              <span>Allow account support contact</span>
               <input
                 type="checkbox"
                 checked={profile.crmSyncConsent}

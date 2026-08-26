@@ -487,7 +487,6 @@ Current providers include:
 | Supabase | Authentication, database, storage |
 | Google Gemini | AI processing |
 | PayPal | Payment processing |
-| Zoho Bigin | Customer relationship management, enquiry handling, contact and account administration |
 | Email providers | Transactional email delivery |
 | Cloud hosting providers | Infrastructure and security |
 | Analytics providers | Performance and usage monitoring |
@@ -925,7 +924,6 @@ This Privacy Policy should be read together with the Terms of Service,Cookie Pol
 
 Version   Date                  Summary
 
-1.0.1     17/08/2026           Added Zoho Bigin to third-party provider disclosures.
 
 1.0.0     [TO BE COMPLETED]   Initial release.
 

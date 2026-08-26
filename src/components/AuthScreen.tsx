@@ -33,7 +33,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [crmSyncConsent, setCrmSyncConsent] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -113,7 +112,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           options: {
             data: {
               name: fullName || email.split('@')[0],
-              q_crm_sync_consent: crmSyncConsent,
               q_privacy_level: 'high'
             }
           }
@@ -326,18 +324,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   </button>
                 </div>
               </div>
-            )}
-
-            {mode === 'signup' && (
-              <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={crmSyncConsent}
-                  onChange={(event) => setCrmSyncConsent(event.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-purple-600"
-                />
-                <span>Create a basic Zoho Bigin contact record for account support and service updates.</span>
-              </label>
             )}
 
             <button
