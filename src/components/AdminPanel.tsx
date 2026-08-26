@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList } from 'lucide-react';
+import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList, UserCog } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 
 interface AdminPanelProps {
@@ -53,6 +53,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [entitlementProduct, setEntitlementProduct] = useState('');
   const [payment, setPayment] = useState({ amount: '', currency: 'GBP', transactionId: '', description: '' });
   const [staffRole, setStaffRole] = useState<'staff' | 'partner_admin' | null>(null);
+  const [staffAccounts, setStaffAccounts] = useState<any[]>([]);
+  const [staffMessage, setStaffMessage] = useState<string | null>(null);
 
   // Direct password reset state
   const [directEmail, setDirectEmail] = useState('');
@@ -187,6 +189,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     } catch (error: any) { setCustomerMessage(error.message || 'CRM action failed.'); }
   };
 
+  const loadStaff = async () => {
+    try {
+      const response = await fetch('/api/v1/admin/staff', { headers: await getAuthHeaders() });
+      setStaffAccounts(await parseJsonResponse(response));
+    } catch (error: any) { setStaffMessage(error.message || 'Unable to load staff accounts.'); }
+  };
+
+  const changeRole = async (userId: string, role: 'user' | 'staff' | 'partner_admin') => {
+    setStaffMessage(null);
+    try {
+      const response = await fetch(`/api/v1/admin/users/${userId}/role`, { method: 'PATCH', headers: await getAuthHeaders(), body: JSON.stringify({ role }) });
+      await parseJsonResponse(response);
+      await Promise.all([loadStaff(), loadCrm()]);
+      if (customer?.identity?.id === userId) await openCustomer(userId);
+      setStaffMessage('Account role updated.');
+    } catch (error: any) { setStaffMessage(error.message || 'Unable to change account role.'); }
+  };
+
   const resetPassword = async (request: any) => {
     setResettingId(request.id);
     setRequestMessage(null);
@@ -241,6 +261,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     void loadProducts();
   }, []);
 
+  useEffect(() => { if (staffRole === 'partner_admin') void loadStaff(); }, [staffRole]);
+
   const visibleCrmUsers = crmUsers.filter((user) => {
     const query = crmSearch.trim().toLowerCase();
     return !query || user.email.toLowerCase().includes(query) || user.name.toLowerCase().includes(query);
@@ -290,6 +312,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         {staffRole === 'partner_admin' && <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
           Current status: {enabled ? 'New launch landing page enabled' : 'Waitlist landing page enabled'}
         </div>}
+
+        {staffRole === 'partner_admin' && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div className="flex items-center justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><UserCog className="h-4 w-4 text-purple-300"/><p className="text-sm font-semibold">Staff management</p></div><p className="mt-1 text-sm text-slate-400">Promote, demote, and review authorised CRM accounts.</p></div><button onClick={() => void loadStaff()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10"><RefreshCw className="h-4 w-4"/></button></div>
+          {staffMessage && <p className="mt-3 rounded-xl bg-purple-500/10 p-3 text-xs text-purple-100">{staffMessage}</p>}
+          <div className="mt-4 grid gap-3 md:grid-cols-2">{staffAccounts.map((account) => <div key={account.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/70 p-3"><div className="min-w-0"><p className="truncate text-sm font-semibold text-white">{account.preferred_name || account.email}</p><p className="truncate text-xs text-slate-500">{account.email}</p></div><select value={account.role} onChange={(event) => void changeRole(account.id, event.target.value as any)} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="staff">Staff</option><option value="partner_admin">Admin</option><option value="user">User</option></select></div>)}</div>
+          <p className="mt-3 text-[11px] text-slate-500">To promote a regular customer, open their customer record and change their account role.</p>
+        </section>}
 
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -511,7 +540,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Personal details</h3><dl className="mt-3 space-y-2 text-xs text-slate-300">
                     <div><dt className="text-slate-500">Email</dt><dd>{customer.identity.email}</dd></div><div><dt className="text-slate-500">Phone</dt><dd>{customer.profile?.phone || customer.identity.phone || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Pronouns</dt><dd>{customer.profile?.pronouns || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Region</dt><dd>{customer.profile?.location_region || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Company</dt><dd>{customer.profile?.company || 'Not supplied'}</dd></div><div><dt className="text-slate-500">CRM status</dt><dd>{customer.profile?.crm_status || 'customer'}</dd></div>
                   </dl></section>
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Account</h3><dl className="mt-3 space-y-2 text-xs text-slate-300"><div><dt className="text-slate-500">Created</dt><dd>{new Date(customer.identity.signupAt).toLocaleString()}</dd></div><div><dt className="text-slate-500">Last login</dt><dd>{customer.identity.lastLoginAt ? new Date(customer.identity.lastLoginAt).toLocaleString() : 'Never'}</dd></div><div><dt className="text-slate-500">Email</dt><dd>{customer.identity.emailConfirmedAt ? 'Verified' : 'Unverified'}</dd></div><div><dt className="text-slate-500">Role</dt><dd>{customer.profile?.role}</dd></div></dl></section>
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Account</h3><dl className="mt-3 space-y-2 text-xs text-slate-300"><div><dt className="text-slate-500">Created</dt><dd>{new Date(customer.identity.signupAt).toLocaleString()}</dd></div><div><dt className="text-slate-500">Last login</dt><dd>{customer.identity.lastLoginAt ? new Date(customer.identity.lastLoginAt).toLocaleString() : 'Never'}</dd></div><div><dt className="text-slate-500">Email</dt><dd>{customer.identity.emailConfirmedAt ? 'Verified' : 'Unverified'}</dd></div><div><dt className="text-slate-500">Role</dt><dd>{customer.profile?.role}</dd></div></dl>{staffRole === 'partner_admin' && <div className="mt-4"><label className="text-[10px] uppercase tracking-wider text-slate-500">Change access role</label><select value={customer.profile?.role || 'user'} onChange={(event) => void changeRole(customer.identity.id, event.target.value as any)} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white"><option value="user">User</option><option value="staff">Staff</option><option value="partner_admin">Admin</option></select></div>}</section>
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">PayPal subscription</h3>{customer.subscription ? <dl className="mt-3 space-y-2 text-xs text-slate-300"><div><dt className="text-slate-500">Status</dt><dd>{customer.subscription.status}</dd></div><div><dt className="text-slate-500">Plan</dt><dd>{customer.subscription.paypal_plan_id}</dd></div><div><dt className="text-slate-500">Subscription ID</dt><dd>{customer.subscription.paypal_subscription_id}</dd></div><div><dt className="text-slate-500">Next billing</dt><dd>{customer.subscription.current_period_end ? new Date(customer.subscription.current_period_end).toLocaleDateString() : 'Unknown'}</dd></div></dl> : <p className="mt-3 text-xs text-slate-400">No PayPal subscription.</p>}</section>
                 </div>
 

@@ -126,6 +126,36 @@ adminRouter.patch('/site-settings/launch', asyncHandler(async (req, res) => {
   return res.json({ enabled: req.body.enabled });
 }));
 
+adminRouter.get('/staff', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  const [{ data: profiles, error }, { data: usersData, error: usersError }] = await Promise.all([
+    adminCtx.serviceSupabase.from('profiles').select('id, role, preferred_name, created_at').in('role', ['staff', 'partner_admin']).order('created_at'),
+    adminCtx.serviceSupabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  ]);
+  if (error || usersError) return res.status(500).json({ error: error?.message || usersError?.message || 'Unable to load staff.' });
+  const usersById = new Map((usersData?.users ?? []).map((user: any) => [user.id, user]));
+  return res.json((profiles ?? []).map((profile: any) => ({ ...profile, email: (usersById.get(profile.id) as any)?.email ?? '' })));
+}));
+
+adminRouter.patch('/users/:id/role', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  const role = req.body?.role;
+  if (!['user', 'staff', 'partner_admin'].includes(role)) return res.status(400).json({ error: 'Role must be user, staff, or partner_admin.' });
+  const targetId = req.params.id;
+  const { data: current, error: currentError } = await adminCtx.serviceSupabase.from('profiles').select('id, role').eq('id', targetId).maybeSingle();
+  if (currentError || !current) return res.status(404).json({ error: 'User profile not found.' });
+  if (targetId === adminCtx.identity.user.id && role !== 'partner_admin') return res.status(400).json({ error: 'You cannot remove your own Admin access.' });
+  if (current.role === 'partner_admin' && role !== 'partner_admin') {
+    const { count, error: countError } = await adminCtx.serviceSupabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'partner_admin');
+    if (countError) return res.status(500).json({ error: countError.message });
+    if ((count ?? 0) <= 1) return res.status(400).json({ error: 'The final Admin account cannot be demoted.' });
+  }
+  const { data, error } = await adminCtx.serviceSupabase.from('profiles').update({ role }).eq('id', targetId).select('id, role, preferred_name').single();
+  if (error) return res.status(500).json({ error: error.message });
+  await recordCrmActivity(adminCtx.serviceSupabase, targetId, adminCtx.identity.user.id, 'role_changed', `Account role changed from ${current.role} to ${role}`, { previousRole: current.role, role });
+  return res.json(data);
+}));
+
 adminRouter.get('/crm/users', asyncHandler(async (req, res) => {
   const adminCtx = await requireStaff(req, res);
   if (!adminCtx) return;
