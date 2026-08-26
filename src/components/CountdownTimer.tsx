@@ -61,7 +61,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate }) => {
       <div className="flex flex-col gap-3 bg-white rounded-[1.25rem] p-5">
         <div className="text-xs uppercase tracking-[0.3em] text-black font-bold">Official launch</div>
         <div className="rounded-3xl bg-slate-950/40 p-4 text-center text-sm text-white/90">
-          Launch begins 1st Sept 2026 at 09:00 UK time
+          Launch begins 1 November 2026 at 09:00 UK time
         </div>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2 text-center sm:grid-cols-5 sm:gap-3">

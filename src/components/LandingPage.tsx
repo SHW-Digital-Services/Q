@@ -1,4 +1,4 @@
-import React, { FormEvent, useState } from 'react';
+import React, { FormEvent, useEffect, useState } from 'react';
 import { ArrowRight, LockKeyhole, ShieldCheck, Sparkles, HeartHandshake, Mail, UserRound, Settings } from 'lucide-react';
 import CountdownTimer from './CountdownTimer';
 import { QLogo } from './QLogo';
@@ -6,6 +6,9 @@ import { LegalFooter } from './LegalFooter';
 import { joinWaitlist } from '../services/waitlist';
 import { AdminAccessModal } from './AdminAccessModal';
 import { AdminPanel } from './AdminPanel';
+
+// 1 November is outside British Summer Time, so 09:00 UK time is 09:00 UTC.
+export const Q_LAUNCH_DATE = new Date('2026-11-01T09:00:00Z');
 
 function getStoredLaunchSetting() {
   if (typeof window === 'undefined') return false;
@@ -20,7 +23,7 @@ function setStoredLaunchSetting(value: boolean) {
 }
 
 function isLaunchLandingEnabled() {
-  return getStoredLaunchSetting();
+  return Date.now() >= Q_LAUNCH_DATE.getTime() || getStoredLaunchSetting();
 }
 
 const LaunchLandingPage: React.FC = () => {
@@ -145,7 +148,7 @@ export const WaitlistLandingPage: React.FC = () => {
       <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-28 grid grid-cols-1 gap-10 lg:grid-cols-[1.1fr_.9fr] lg:gap-16 items-start">
         <div>
           <div className="max-w-full sm:max-w-lg mx-auto">
-            <CountdownTimer targetDate={new Date('2026-09-01T09:00:00+01:00')} />
+            <CountdownTimer targetDate={Q_LAUNCH_DATE} />
           </div>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-purple-100 mt-8 mb-6">
             <Sparkles className="w-3.5 h-3.5 text-purple-300" />
@@ -242,13 +245,24 @@ export const LandingPage: React.FC = () => {
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
+  useEffect(() => {
+    if (launchEnabled) return;
+    const timer = window.setInterval(() => {
+      if (Date.now() >= Q_LAUNCH_DATE.getTime()) {
+        setLaunchEnabled(true);
+      }
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [launchEnabled]);
+
   const handleAdminGranted = () => {
     setAdminPanelOpen(true);
   };
 
   const handleToggleLaunch = (value: boolean) => {
-    setLaunchEnabled(value);
-    setStoredLaunchSetting(value);
+    const effectiveValue = Date.now() >= Q_LAUNCH_DATE.getTime() || value;
+    setLaunchEnabled(effectiveValue);
+    setStoredLaunchSetting(effectiveValue);
   };
 
   return (
