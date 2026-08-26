@@ -11,6 +11,8 @@ import {
   Save,
   Shield,
   Sparkles,
+  Gift,
+  Copy,
   UserCircle
 } from 'lucide-react';
 import { AuthUser, UserMemoryProfile } from '../types';
@@ -84,6 +86,42 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [referral, setReferral] = useState<any>(null);
+  const [referralEmail, setReferralEmail] = useState('');
+  const [referralStatus, setReferralStatus] = useState<string | null>(null);
+
+  const authHeaders = async () => {
+    const supabase = getSupabaseClient();
+    const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
+    if (!data.session?.access_token) throw new Error('Please sign in again.');
+    return { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` };
+  };
+
+  const loadReferrals = async () => {
+    try {
+      const response = await fetch('/api/referrals/me', { headers: await authHeaders() });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to load referrals.');
+      setReferral(data);
+    } catch (error:any) {
+      setReferralStatus(error.message || 'Unable to load referrals.');
+    }
+  };
+
+  useEffect(() => { void loadReferrals(); }, [currentUser.id]);
+
+  const inviteReferral = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setReferralStatus(null);
+    try {
+      const response = await fetch('/api/referrals/invite', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ email: referralEmail }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to create referral.');
+      setReferralEmail('');
+      setReferralStatus('Referral created. Copy your link and send it to this person.');
+      await loadReferrals();
+    } catch (error:any) { setReferralStatus(error.message || 'Unable to create referral.'); }
+  };
 
   useEffect(() => {
     setIdentityTagsText(arrayToLines(profile.identityTags));
@@ -270,6 +308,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-purple-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-purple-100 p-2 text-purple-700"><Gift className="h-5 w-5" /></div>
+          <div className="flex-1">
+            <h2 className="text-sm font-black text-slate-950">Refer friends and earn credit</h2>
+            <p className="mt-1 text-xs text-slate-500">Your friend receives 10% back on their first payment. You receive credit worth 20% after their payment clears the 14-day holding period.</p>
+          </div>
+          <div className="text-right"><div className="text-[10px] font-bold uppercase text-slate-400">Available credit</div><div className="text-xl font-black text-purple-700">{referral ? new Intl.NumberFormat('en-GB',{style:'currency',currency:referral.currency}).format(referral.balanceMinor / 100) : '—'}</div></div>
+        </div>
+        {referral?.referralUrl && <div className="mt-4 flex gap-2"><input readOnly value={referral.referralUrl} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700"/><button type="button" onClick={() => { void navigator.clipboard.writeText(referral.referralUrl); setReferralStatus('Referral link copied.'); }} className="inline-flex items-center gap-1 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white"><Copy className="h-3.5 w-3.5"/>Copy</button></div>}
+        <form onSubmit={inviteReferral} className="mt-3 flex gap-2"><input required type="email" value={referralEmail} onChange={event=>setReferralEmail(event.target.value)} placeholder="Friend's email address" className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"/><button className="rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-bold text-purple-700">Create referral</button></form>
+        {referralStatus && <p className="mt-2 text-xs font-semibold text-slate-600">{referralStatus}</p>}
+        {referral?.referrals?.length > 0 && <div className="mt-4 border-t border-slate-100 pt-3"><h3 className="text-xs font-black text-slate-700">Your referrals</h3><div className="mt-2 grid gap-2 sm:grid-cols-2">{referral.referrals.map((item:any)=><div key={item.id} className="rounded-xl bg-slate-50 px-3 py-2 text-xs"><div className="truncate font-bold text-slate-700">{item.prospect_email}</div><div className="capitalize text-slate-500">{item.status.replace('_',' ')}</div></div>)}</div></div>}
+        <p className="mt-3 text-[10px] text-slate-400">Credit is non-transferable, expires after 12 months, and can reduce up to 50% of an eligible invoice. Refunds, disputes, and self-referrals do not qualify.</p>
       </div>
 
       {status && (

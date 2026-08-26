@@ -97,11 +97,44 @@ async function savePayPalSubscription(subscription: any, fallbackUserId?: string
   }, { onConflict: 'user_id' });
 }
 
-async function paypalApi(path: string) {
-  const response = await fetch(`${getPaypalBaseUrl()}${path}`, { headers: { Authorization: `Bearer ${await getPayPalAccessToken()}`, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(15000) });
+async function paypalApi(path: string, init: RequestInit = {}) {
+  const response = await fetch(`${getPaypalBaseUrl()}${path}`, { ...init, headers: { Authorization: `Bearer ${await getPayPalAccessToken()}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(15000) });
   const data = await response.json().catch(() => null);
   if (!response.ok) throw new Error(data?.message || `PayPal request failed (${response.status}).`);
   return data;
+}
+
+async function qualifyReferralAndApplyCredit(db: any, event: any, subscription: any, amountMinor: number, currency: string) {
+  const userId = subscription.custom_id;
+  if (!userId || amountMinor <= 0) return;
+  const now = new Date();
+  const referralResult = await db.from('referrals').select('*').eq('prospect_user_id', userId).eq('status', 'signed_up').maybeSingle();
+  if (referralResult.data) {
+    const claimed = await db.from('referrals').update({ status: 'qualified', qualified_at: now.toISOString() }).eq('id', referralResult.data.id).eq('status', 'signed_up').select().maybeSingle();
+    if (claimed.error) throw claimed.error;
+    const referral = claimed.data;
+    if (referral) {
+    const expiresAt = new Date(now); expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    const availableAt = new Date(now); availableAt.setDate(availableAt.getDate() + 14);
+    const welcome = await db.from('referral_credits').insert({ user_id: userId, referral_id: referral.id, kind: 'referred_customer', amount_minor: Math.round(amountMinor * 0.10), currency, status: 'available', available_at: now.toISOString(), expires_at: expiresAt.toISOString(), note: '10% referred-customer first-payment credit' });
+    if (welcome.error && welcome.error.code !== '23505') throw welcome.error;
+    const earned = await db.from('referral_credits').insert({ user_id: referral.referrer_user_id, referral_id: referral.id, kind: 'referrer', amount_minor: Math.round(amountMinor * 0.20), currency, status: 'pending', available_at: availableAt.toISOString(), expires_at: expiresAt.toISOString(), note: '20% successful-referral reward; available after 14 days' });
+    if (earned.error && earned.error.code !== '23505') throw earned.error;
+    }
+  }
+
+  await db.from('referral_credits').update({ status: 'available' }).eq('user_id', userId).eq('status', 'pending').lte('available_at', now.toISOString());
+  await db.from('referral_credits').update({ status: 'expired' }).eq('user_id', userId).in('status', ['pending','available']).lt('expires_at', now.toISOString());
+  const creditResult = await db.from('referral_credits').select('kind,amount_minor,status').eq('user_id', userId).eq('currency', currency).in('status', ['available','used']);
+  if (creditResult.error) throw creditResult.error;
+  const balance = (creditResult.data ?? []).reduce((sum:number, row:any) => sum + (row.status === 'available' || row.kind === 'redemption' ? row.amount_minor : 0), 0);
+  const creditToApply = Math.max(0, Math.min(balance, Math.floor(amountMinor * 0.50)));
+  if (!creditToApply || !event.resource?.id) return;
+  const existing = await db.from('referral_credits').select('id').eq('paypal_sale_id', event.resource.id).eq('kind', 'redemption').maybeSingle();
+  if (existing.data) return;
+  await paypalApi(`/v1/payments/sale/${encodeURIComponent(event.resource.id)}/refund`, { method: 'POST', headers: { 'PayPal-Request-Id': `q-credit-${event.id}` }, body: JSON.stringify({ amount: { total: (creditToApply / 100).toFixed(2), currency }, description: 'Q referral credit' }) });
+  const redemption = await db.from('referral_credits').insert({ user_id: userId, kind: 'redemption', amount_minor: -creditToApply, currency, status: 'used', available_at: now.toISOString(), paypal_sale_id: event.resource.id, note: 'Automatically applied to subscription payment' });
+  if (redemption.error && redemption.error.code !== '23505') throw redemption.error;
 }
 
 async function verifyPayPalWebhook(req: express.Request) {
@@ -140,7 +173,10 @@ billingRouter.post('/paypal/webhook', asyncHandler(async (req, res) => {
       await savePayPalSubscription(subscription);
       if (subscription.custom_id) {
         const amount = resource.amount ?? resource.total ?? {};
-        await serviceSupabase.from('crm_payments').upsert({ user_id: subscription.custom_id, provider: 'paypal', provider_transaction_id: resource.id, amount_minor: Math.round(Number(amount.total ?? amount.value ?? 0) * 100), currency: amount.currency ?? amount.currency_code ?? 'GBP', status: type === 'PAYMENT.SALE.COMPLETED' ? 'completed' : 'refunded', payment_type: type === 'PAYMENT.SALE.COMPLETED' ? 'subscription' : 'refund', description: event.summary ?? type, occurred_at: resource.create_time ?? event.create_time ?? new Date().toISOString() }, { onConflict: 'provider,provider_transaction_id' });
+        const amountMinor = Math.round(Number(amount.total ?? amount.value ?? 0) * 100);
+        const currency = String(amount.currency ?? amount.currency_code ?? 'GBP').toUpperCase();
+        await serviceSupabase.from('crm_payments').upsert({ user_id: subscription.custom_id, provider: 'paypal', provider_transaction_id: resource.id, amount_minor: amountMinor, currency, status: type === 'PAYMENT.SALE.COMPLETED' ? 'completed' : 'refunded', payment_type: type === 'PAYMENT.SALE.COMPLETED' ? 'subscription' : 'refund', description: event.summary ?? type, occurred_at: resource.create_time ?? event.create_time ?? new Date().toISOString() }, { onConflict: 'provider,provider_transaction_id' });
+        if (type === 'PAYMENT.SALE.COMPLETED') await qualifyReferralAndApplyCredit(serviceSupabase, event, subscription, amountMinor, currency);
       }
     }
   }
@@ -175,6 +211,20 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
   if (!planId) {
     const missingVar = planName === 'yearly' ? 'PAYPAL_PLAN_ID_YEARLY' : 'PAYPAL_PLAN_ID_MONTHLY';
     return res.status(503).json({ error: `PayPal subscription plan is not configured. Missing environment variable: ${missingVar}` });
+  }
+
+  try {
+    const remotePlan = await paypalApi(`/v1/billing/plans/${encodeURIComponent(planId)}`);
+    if (remotePlan.status !== 'ACTIVE') return res.status(409).json({ error: 'This subscription plan is currently unavailable.' });
+  } catch {
+    return res.status(409).json({ error: 'This subscription plan is currently unavailable.' });
+  }
+
+  const serviceSupabase = getServiceSupabase();
+  if (serviceSupabase) {
+    const linkedProduct = await serviceSupabase.from('crm_products').select('active,paypal_sync_status').eq('paypal_plan_id', planId).maybeSingle();
+    if (linkedProduct.error) return res.status(503).json({ error: 'Unable to verify subscription plan availability.' });
+    if (linkedProduct.data && (!linkedProduct.data.active || linkedProduct.data.paypal_sync_status !== 'synced')) return res.status(409).json({ error: 'This subscription plan is currently unavailable.' });
   }
 
   try {
@@ -238,6 +288,26 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
     console.error('[Billing] Create subscription failed:', error);
     return res.status(503).json({ error: error.message || 'PayPal is currently unavailable.' });
   }
+}));
+
+// GET /api/billing/paypal/plans - public plan availability, synchronized by PayPal webhooks.
+billingRouter.get('/paypal/plans', asyncHandler(async (_req, res) => {
+  const serviceSupabase = getServiceSupabase();
+  const configured = [
+    { key: 'monthly', planId: process.env.PAYPAL_PLAN_ID_MONTHLY },
+    { key: 'yearly', planId: process.env.PAYPAL_PLAN_ID_YEARLY }
+  ];
+  const plans = await Promise.all(configured.filter(plan => plan.planId).map(async plan => {
+    try {
+      const remote = await paypalApi(`/v1/billing/plans/${encodeURIComponent(plan.planId!)}`);
+      const available = remote.status === 'ACTIVE';
+      if (serviceSupabase) await serviceSupabase.from('crm_products').update({ active: available, paypal_sync_status: 'synced', paypal_last_synced_at: new Date().toISOString() }).eq('paypal_plan_id', plan.planId!);
+      return { key: plan.key, available };
+    } catch {
+      return { key: plan.key, available: false };
+    }
+  }));
+  return res.json({ plans });
 }));
 
 // POST /api/billing/paypal/complete

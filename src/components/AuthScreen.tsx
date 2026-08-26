@@ -45,6 +45,21 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   const [forgotFeedback, setForgotFeedback] = useState<string | null>(null);
 
   const envConfig = getSupabaseEnvConfig();
+  const referralCode = new URLSearchParams(window.location.search).get('ref');
+
+  const claimReferral = async (accessToken: string, savedCode?: string) => {
+    const code = referralCode || savedCode;
+    if (!code) return;
+    const response = await fetch('/api/referrals/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ code })
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'The referral could not be claimed.');
+    }
+  };
 
   const handleForgotPasswordRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +127,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           options: {
             data: {
               name: fullName || email.split('@')[0],
-              q_privacy_level: 'high'
+              q_privacy_level: 'high',
+              ...(referralCode ? { q_referral_code: referralCode.toUpperCase() } : {})
             }
           }
         });
@@ -128,6 +144,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 : 'Sign-up successful! Please check your email to verify.'
             );
             if (data.session) {
+              await claimReferral(data.session.access_token);
               setTimeout(() => onUserSignedIn(authUser), 800);
             }
           }
@@ -141,6 +158,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         if (error) throw error;
 
         if (data.user) {
+          if (data.session) await claimReferral(data.session.access_token, data.user.user_metadata?.q_referral_code);
           const authUser = mapSupabaseUser(data.user);
           if (authUser) {
             setSuccessMessage('Welcome back! Loading your secure session...');

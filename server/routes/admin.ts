@@ -282,7 +282,7 @@ adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
   if (!adminCtx) return;
   const { serviceSupabase } = adminCtx;
   const userId = req.params.id;
-  const [{ data: authData, error: authError }, profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult] = await Promise.all([
+  const [{ data: authData, error: authError }, profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult, referralCreditsResult] = await Promise.all([
     serviceSupabase.auth.admin.getUserById(userId),
     serviceSupabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     serviceSupabase.from('subscriptions').select('*').eq('user_id', userId).maybeSingle(),
@@ -292,10 +292,11 @@ adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
     serviceSupabase.from('crm_entitlements').select('*, crm_products(name, price_minor, currency, billing_interval)').eq('user_id', userId).order('created_at', { ascending: false }),
     adminCtx.role === 'partner_admin'
       ? serviceSupabase.from('crm_activities').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100)
-      : Promise.resolve({ data: [], error: null })
+      : Promise.resolve({ data: [], error: null }),
+    serviceSupabase.from('referral_credits').select('*').eq('user_id', userId).order('created_at', { ascending: false })
   ]);
   if (authError || !authData?.user) return res.status(404).json({ error: 'Customer not found.' });
-  const databaseError = [profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult].find((result: any) => result.error)?.error;
+  const databaseError = [profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult, referralCreditsResult].find((result: any) => result.error)?.error;
   if (databaseError) return res.status(500).json({ error: databaseError.message });
   const user = authData.user;
   return res.json({
@@ -303,8 +304,21 @@ adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
     profile: profileResult.data,
     subscription: subscriptionResult.data,
     notes: notesResult.data ?? [], tasks: tasksResult.data ?? [], payments: paymentsResult.data ?? [],
-    entitlements: entitlementsResult.data ?? [], activities: activitiesResult.data ?? []
+    entitlements: entitlementsResult.data ?? [], activities: activitiesResult.data ?? [], referralCredits: referralCreditsResult.data ?? []
   });
+}));
+
+adminRouter.post('/crm/users/:id/referral-credits', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  const amountMinor = Number(req.body?.amountMinor);
+  const note = String(req.body?.note || '').trim();
+  if (!Number.isInteger(amountMinor) || amountMinor === 0) return res.status(400).json({ error: 'A non-zero credit amount in minor units is required.' });
+  if (!note) return res.status(400).json({ error: 'An adjustment reason is required.' });
+  const expiresAt = new Date(); expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+  const result = await adminCtx.serviceSupabase.from('referral_credits').insert({ user_id: req.params.id, kind: 'admin_adjustment', amount_minor: amountMinor, currency: String(req.body?.currency || 'GBP').toUpperCase(), status: 'available', available_at: new Date().toISOString(), expires_at: amountMinor > 0 ? expiresAt.toISOString() : null, note, created_by: adminCtx.identity.user.id }).select().single();
+  if (result.error) return res.status(500).json({ error: result.error.message });
+  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'referral_credit_adjusted', `Referral credit adjusted by ${amountMinor} minor units`, { creditId: result.data.id, amountMinor, note });
+  return res.status(201).json(result.data);
 }));
 
 adminRouter.patch('/crm/users/:id', asyncHandler(async (req, res) => {

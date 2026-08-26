@@ -608,3 +608,8 @@ Where there is any conflict between these Terms and a mandatory provision of app
 ---
 
 © Scott Harvey-Whittle trading as **SHW Digital Services**. All rights reserved.
+# Referral credit programme
+
+Eligible account holders may refer more than one new customer using the unique link in their Q account. A referral is valid only when the invited email address creates a new account through that link and completes its first eligible subscription payment. The referred customer receives credit equal to 10% of that first payment. The referrer receives credit equal to 20% of that payment after a 14-day holding period.
+
+Credits are not cash, cannot be transferred, expire 12 months after issue, and can reduce no more than 50% of an eligible subscription payment. Unused credit carries forward until expiry. Q may reject or reverse credit connected with self-referrals, duplicate or existing accounts, cancellations, refunds, disputes, abuse, or fraud. PayPal may initially collect the full invoice amount; applied referral credit is then returned through PayPal as a partial refund. Referral activity and adjustments are retained in the CRM audit trail.

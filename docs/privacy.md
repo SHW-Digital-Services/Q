@@ -947,3 +947,6 @@ Version   Date                  Summary
 1.0.0     [TO BE COMPLETED]   Initial release.
 
 © Scott Harvey-Whittle trading as SHW Digital Services. All rightsreserved.
+# Referral information
+
+When you use the referral programme, Q processes your referral code, the invited person's email address, signup and subscription status, qualifying payment amount, credit balance, and credit history. We use this information to attribute referrals, prevent fraud, calculate and apply benefits, provide customer support, and maintain financial and security audit records. Do not submit an email address unless you are permitted to contact that person. Q does not expose one customer's payment details to another customer.

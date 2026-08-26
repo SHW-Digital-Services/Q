@@ -5,6 +5,7 @@ import { billingRouter } from './routes/billing.js';
 import { aiRouter } from './routes/ai.js';
 import { legalRouter } from './routes/legal.js';
 import { adminRouter } from './routes/admin.js';
+import { referralsRouter } from './routes/referrals.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -60,6 +61,7 @@ app.get('/api/health', (_req, res) => {
 app.use(['/api/billing'], billingRouter);
 app.use(['/api/q-ai', '/api/ai'], aiRouter);
 app.use(['/api/v1/admin', '/api/admin'], adminRouter);
+app.use('/api/referrals', referralsRouter);
 app.use('/legal', legalRouter);
 
 app.use(['/api', '/api/*', '/legal', '/legal/*'], (req, res) => {
