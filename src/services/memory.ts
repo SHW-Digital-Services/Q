@@ -29,6 +29,18 @@ export async function getRecentMemoryBlobs(userId: string, limit = 10): Promise<
   return memories.slice(0, Math.max(1, Math.min(limit, 20)));
 }
 
+export async function getRelevantMemoryBlobs(userId: string, query: string, limit = 6): Promise<MemoryBlob[]> {
+  const memories = (await getMemoryBlobs(userId)).slice(0, 100);
+  const terms = new Set(query.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []);
+  if (terms.size === 0) return memories.slice(0, limit);
+  return memories
+    .map((memory, index) => ({ memory, score: [...terms].reduce((total, term) => total + (memory.content.toLowerCase().includes(term) ? 1 : 0), 0) - index / 1000 }))
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(item => item.memory);
+}
+
 export async function saveMemoryBlob(userId: string, content: string, kind = 'assistant_memory'): Promise<MemoryBlob | null> {
   const supabase = getSupabaseClient();
   if (!supabase || !content.trim()) return null;

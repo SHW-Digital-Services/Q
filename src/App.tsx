@@ -17,6 +17,9 @@ import { LandingPage } from './components/LandingPage';
 import { getSyncStatus, getSecuritySettings, saveSecuritySettings } from './services/storage';
 import { getSupabaseClient, mapSupabaseUser } from './services/supabase';
 import { SyncStatusState, SecuritySettings, AuthUser } from './types';
+import { QuickExitButton } from './components/QuickExitButton';
+import { FakeNotesApp } from './components/FakeNotesApp';
+import { useCamouflage } from './hooks/useCamouflage';
 
 
 function isViewAppRequest() {
@@ -40,6 +43,7 @@ export default function App() {
     return s.enabled && s.lockScope === 'entire_app';
   });
   const [isCrisisOpen, setIsCrisisOpen] = useState(false);
+  const [crisisCountry, setCrisisCountry] = useState<string | undefined>();
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isSecurityOpen, setIsSecurityOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -48,6 +52,18 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
   const isAppRoute = isViewAppRequest();
+  const { isMasked, enableCamouflage, disableCamouflage } = useCamouflage();
+
+  useEffect(() => {
+    const handleCamouflageHotkey = (event: KeyboardEvent) => {
+      if (event.altKey && event.code === 'KeyM' && !isMasked) {
+        event.preventDefault();
+        enableCamouflage();
+      }
+    };
+    window.addEventListener('keydown', handleCamouflageHotkey);
+    return () => window.removeEventListener('keydown', handleCamouflageHotkey);
+  }, [isMasked, enableCamouflage]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -197,9 +213,9 @@ export default function App() {
     securitySettings.enabled &&
     (securitySettings.lockScope === 'entire_app' || activeTab === 'journal');
 
-  if (!isAppRoute) {
-    return <LandingPage />;
-  }
+  if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
+
+  if (!isAppRoute) return <><QuickExitButton /><LandingPage /><button onClick={enableCamouflage} className="fixed bottom-4 right-4 z-40 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-md">Disguise Mode (Alt+M)</button></>;
 
   if (!currentUser) {
     return (
@@ -208,7 +224,9 @@ export default function App() {
           onUserSignedIn={(user) => setCurrentUser(user)}
           onOpenCrisis={() => setIsCrisisOpen(true)}
         />
-        <CrisisModal isOpen={isCrisisOpen} onClose={() => setIsCrisisOpen(false)} />
+        <QuickExitButton />
+        <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
+        <button onClick={enableCamouflage} className="fixed bottom-4 right-4 z-40 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-md">Disguise Mode (Alt+M)</button>
       </>
     );
   }
@@ -242,7 +260,7 @@ export default function App() {
 
         {/* Main Content Viewport */}
         <main className="flex-1 p-3 sm:p-5">
-          {activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} />}
+          {activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} />}
           {activeTab === 'guides' && <LifeGuidesView />}
           {activeTab === 'stories' && <LivedExperiencesView />}
           {activeTab === 'journal' && (
@@ -286,7 +304,9 @@ export default function App() {
       )}
 
       {/* Modals */}
-      <CrisisModal isOpen={isCrisisOpen} onClose={() => setIsCrisisOpen(false)} />
+      <QuickExitButton />
+      <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
+      <button onClick={enableCamouflage} className="fixed bottom-4 right-4 z-40 px-3 py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-xs rounded-lg text-slate-200 shadow-md">Disguise Mode (Alt+M)</button>
       <BackupModal
         isOpen={isBackupOpen}
         onClose={() => setIsBackupOpen(false)}

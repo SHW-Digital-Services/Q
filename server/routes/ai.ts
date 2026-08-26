@@ -3,12 +3,20 @@ import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { redactPii } from '../../src/services/pii.js';
 import { asyncHandler } from '../middleware.js';
+import { crisisDirectory, globalFallback } from '../../src/data/crisisHelplines.js';
+import { hasCrisisIntent } from '../../src/services/crisisDetection.js';
 
 export const aiRouter = express.Router();
 
 const DEFAULT_FREE_MODEL = 'gpt-5-nano';
 const DEFAULT_PAID_MODEL = 'gpt-5-mini';
 const DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small';
+export function checkCrisisTrigger(message: string, countryCode = 'GB') {
+  if (!hasCrisisIntent(message)) return { isCrisis: false as const };
+  const normalizedCountry = countryCode.trim().toUpperCase();
+  const helplines = crisisDirectory[normalizedCountry] || globalFallback;
+  return { isCrisis: true as const, country: helplines.countryCode, message: "It sounds like you're going through a really difficult time. Support is available right now.", action: 'TRIGGER_CRISIS_MODAL' as const, helplines };
+}
 
 function getOpenAIClient() {
   if (!process.env.OPENAI_API_KEY) return null;
@@ -115,6 +123,10 @@ function buildChatPrompt(body: any) {
 aiRouter.post('/chat', asyncHandler(async (req, res) => {
   const { message, prompt } = buildChatPrompt(req.body);
   if (!message) return res.status(400).json({ error: 'Valid message required.' });
+
+  const requestedCountry = typeof req.body?.countryCode === 'string' ? req.body.countryCode : 'GLOBAL';
+  const crisis = checkCrisisTrigger(message, requestedCountry);
+  if (crisis.isCrisis) return res.json({ reply: crisis.message, actionItems: [], ...crisis });
 
   const openai = getOpenAIClient();
   if (!openai) return res.status(503).json({ error: 'AI chat model is not configured. Missing OPENAI_API_KEY.' });

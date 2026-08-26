@@ -1,128 +1,25 @@
-import React from 'react';
-import { ShieldAlert, PhoneCall, ExternalLink, X, HeartHandshake, CheckCircle2 } from 'lucide-react';
-import { CRISIS_RESOURCES } from '../data/initialData';
+import React, { useEffect, useState } from 'react';
+import { ExternalLink, MessageCircle, PhoneCall, ShieldAlert, X } from 'lucide-react';
+import { crisisDirectory, globalFallback, supportedCountryCodes } from '../data/crisisHelplines';
+import { detectUserCountry } from '../services/localeDetection';
 
-interface CrisisModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+interface Props { isOpen: boolean; onClose: () => void; userProfileCountry?: string; initialCountry?: string; }
+const dial = (value: string) => value.replace(/[^0-9+]/g, '');
 
-export const CrisisModal: React.FC<CrisisModalProps> = ({ isOpen, onClose }) => {
+export const CrisisModal: React.FC<Props> = ({ isOpen, onClose, userProfileCountry, initialCountry }) => {
+  const [country, setCountry] = useState(() => detectUserCountry(initialCountry || userProfileCountry));
+  useEffect(() => { if (isOpen) setCountry(detectUserCountry(initialCountry || userProfileCountry)); }, [isOpen, initialCountry, userProfileCountry]);
   if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-slate-900 border border-purple-500/30 shadow-2xl text-slate-100">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-gradient-to-r from-red-950/40 via-purple-950/40 to-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30">
-              <ShieldAlert className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                24/7 Crisis & Peer Support
-              </h2>
-              <p className="text-xs text-slate-400">Confidential, non-judgmental, and affirmative care</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 rounded-lg hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-          {/* Quick Grounding Banner */}
-          <div className="p-4 rounded-xl bg-purple-950/40 border border-purple-500/30 text-xs leading-relaxed space-y-2 text-purple-200">
-            <div className="flex items-center gap-2 font-semibold text-purple-300 text-sm">
-              <HeartHandshake className="w-4 h-4 text-purple-400" />
-              You are safe here. Take a deep breath.
-            </div>
-            <p>
-              If you are in acute physical danger, feeling overwhelmed, or need someone who understands LGBTQ+ lived experiences, support is available 24 hours a day.
-            </p>
-          </div>
-
-          {/* Resources List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {CRISIS_RESOURCES.map((resource) => (
-              <div
-                key={resource.id}
-                className="p-4 rounded-xl bg-slate-800/70 border border-slate-700/60 hover:border-purple-500/40 transition-all space-y-3"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-sm text-slate-100">{resource.name}</h3>
-                    <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-medium rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                      {resource.region} • {resource.availability}
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-xs text-slate-300 line-clamp-2">{resource.description}</p>
-
-                <div className="pt-2 border-t border-slate-700/50 flex flex-col gap-2">
-                  <a
-                    href={`tel:${resource.phoneOrText.replace(/[^0-9+]/g, '')}`}
-                    className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-red-600/80 hover:bg-red-600 text-white transition-colors"
-                  >
-                    <PhoneCall className="w-3.5 h-3.5" />
-                    {resource.phoneOrText}
-                  </a>
-                  {resource.website && (
-                    <a
-                      href={`https://${resource.website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 text-[11px] text-purple-400 hover:text-purple-300 hover:underline"
-                    >
-                      Visit {resource.website} <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Grounding Checklist */}
-          <div className="pt-3">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Immediate 5-Step Grounding Technique</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/40">
-                <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
-                <span>5 things you can see around you</span>
-              </div>
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/40">
-                <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
-                <span>4 things you can physically touch</span>
-              </div>
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/40">
-                <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
-                <span>3 things you can hear right now</span>
-              </div>
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/40">
-                <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
-                <span>2 things you can smell or like</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs text-slate-400">
-          <span>Q Offline Safety Vault • Always accessible offline</span>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
-          >
-            Close Window
-          </button>
-        </div>
+  const profile = crisisDirectory[country] || globalFallback;
+  return <div role="dialog" aria-modal="true" aria-labelledby="crisis-title" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-slate-900 border border-red-500/40 shadow-2xl text-white">
+      <header className="flex items-center justify-between p-5 border-b border-slate-700"><div className="flex items-center gap-3"><ShieldAlert className="w-6 h-6 text-red-400" /><div><h2 id="crisis-title" className="text-xl font-bold text-red-300">Immediate Support & Helplines</h2><p className="text-xs text-slate-400">Stored on this device and available offline</p></div></div><button onClick={onClose} aria-label="Close support window" className="p-2 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button></header>
+      <div className="p-5 space-y-4 max-h-[78vh] overflow-y-auto">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm"><label htmlFor="country-select" className="text-slate-300">Showing resources for:</label><select id="country-select" value={country} onChange={e => setCountry(e.target.value)} className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white">{supportedCountryCodes.map(code => <option key={code} value={code}>{crisisDirectory[code].countryName}</option>)}</select></div>
+        {profile.emergencyNumber && <div className="p-4 bg-red-950/50 border border-red-700/60 rounded-xl flex gap-3 justify-between items-center"><div><p className="font-semibold text-red-100">Immediate physical danger</p><p className="text-xs text-red-300">Call local emergency services</p></div><a href={`tel:${profile.emergencyNumber}`} className="px-4 py-2 bg-red-600 hover:bg-red-500 font-bold rounded-lg">Call {profile.emergencyNumber}</a></div>}
+        <p className="text-xs text-slate-400">Hours and availability can change. If one service is unavailable, try another or use an international directory.</p>
+        <div className="space-y-3">{profile.resources.map(item => <article key={item.name} className="bg-slate-800/80 p-4 rounded-xl border border-slate-700"><div className="flex flex-col sm:flex-row sm:justify-between gap-3"><div><h3 className="font-semibold">{item.name}</h3><p className="text-xs text-slate-400">{item.hours}</p></div><div className="flex flex-wrap gap-2">{item.phone && <a href={`tel:${dial(item.phone)}`} className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded-lg"><PhoneCall className="w-3.5 h-3.5" />Call</a>}{item.sms && <a href={`sms:${dial(item.sms)}${item.smsBody ? `?body=${encodeURIComponent(item.smsBody)}` : ''}`} className="inline-flex items-center gap-1.5 px-3 py-2 bg-teal-600 hover:bg-teal-500 text-xs font-semibold rounded-lg"><MessageCircle className="w-3.5 h-3.5" />Text</a>}{item.chatUrl && <a href={item.chatUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-lg">Chat</a>}{item.url && <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${item.name}`} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg"><ExternalLink className="w-4 h-4" /></a>}</div></div></article>)}</div>
       </div>
     </div>
-  );
+  </div>;
 };

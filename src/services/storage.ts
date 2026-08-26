@@ -263,6 +263,16 @@ export function clearChatHistory(): void {
   localStorage.removeItem(KEYS.CHAT);
 }
 
+/** Removes locally stored personal content while preserving device security settings. */
+export function clearSensitiveLocalData(): void {
+  const sensitivePrefixes = [KEYS.PROFILE, KEYS.JOURNAL, KEYS.CHAT, KEYS.MOOD_LOGS, 'q_memory_'];
+  for (let index = localStorage.length - 1; index >= 0; index--) {
+    const key = localStorage.key(index);
+    if (key && sensitivePrefixes.some(prefix => key === prefix || key.startsWith(`${prefix}:`))) localStorage.removeItem(key);
+  }
+  sessionStorage.clear();
+}
+
 // Sync Metadata
 function recordPendingSync(): void {
   const current = getSyncStatus();

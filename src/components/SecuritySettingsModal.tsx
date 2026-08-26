@@ -15,7 +15,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { SecuritySettings } from '../types';
-import { getSecuritySettings, saveSecuritySettings } from '../services/storage';
+import { clearSensitiveLocalData, getSecuritySettings, saveSecuritySettings } from '../services/storage';
 
 interface SecuritySettingsModalProps {
   isOpen: boolean;
@@ -537,6 +537,17 @@ export const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
                   </button>
                 </div>
               )}
+
+              <div className="pt-3 border-t border-rose-200">
+                <button type="button" onClick={() => {
+                  if (!window.confirm('Delete local chat history, journals, mood logs, and profile memory from this device? This cannot be undone.')) return;
+                  clearSensitiveLocalData();
+                  flashSuccess('Local personal data deleted');
+                  window.setTimeout(() => window.location.reload(), 700);
+                }} className="w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center justify-center gap-2">
+                  <Delete className="w-4 h-4" /> Wipe Local Cache & Logs
+                </button>
+              </div>
             </>
           )}
         </div>
