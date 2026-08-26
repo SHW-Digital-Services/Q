@@ -104,7 +104,7 @@ async function paypalApi(path: string, init: RequestInit = {}) {
   return data;
 }
 
-async function qualifyReferralAndApplyCredit(db: any, event: any, subscription: any, amountMinor: number, currency: string) {
+async function qualifyReferralAndApplyCredit(db: any, event: any, subscription: any, amountMinor: number, currency: string, founderDiscountActive = false) {
   const userId = subscription.custom_id;
   if (!userId || amountMinor <= 0) return;
   const now = new Date();
@@ -116,12 +116,16 @@ async function qualifyReferralAndApplyCredit(db: any, event: any, subscription: 
     if (referral) {
     const expiresAt = new Date(now); expiresAt.setFullYear(expiresAt.getFullYear() + 1);
     const availableAt = new Date(now); availableAt.setDate(availableAt.getDate() + 14);
-    const welcome = await db.from('referral_credits').insert({ user_id: userId, referral_id: referral.id, kind: 'referred_customer', amount_minor: Math.round(amountMinor * 0.10), currency, status: 'available', available_at: now.toISOString(), expires_at: expiresAt.toISOString(), note: '10% referred-customer first-payment credit' });
-    if (welcome.error && welcome.error.code !== '23505') throw welcome.error;
+    if (!founderDiscountActive) {
+      const welcome = await db.from('referral_credits').insert({ user_id: userId, referral_id: referral.id, kind: 'referred_customer', amount_minor: Math.round(amountMinor * 0.10), currency, status: 'available', available_at: now.toISOString(), expires_at: expiresAt.toISOString(), note: '10% referred-customer first-payment credit' });
+      if (welcome.error && welcome.error.code !== '23505') throw welcome.error;
+    }
     const earned = await db.from('referral_credits').insert({ user_id: referral.referrer_user_id, referral_id: referral.id, kind: 'referrer', amount_minor: Math.round(amountMinor * 0.20), currency, status: 'pending', available_at: availableAt.toISOString(), expires_at: expiresAt.toISOString(), note: '20% successful-referral reward; available after 14 days' });
     if (earned.error && earned.error.code !== '23505') throw earned.error;
     }
   }
+
+  if (founderDiscountActive) return;
 
   await db.from('referral_credits').update({ status: 'available' }).eq('user_id', userId).eq('status', 'pending').lte('available_at', now.toISOString());
   await db.from('referral_credits').update({ status: 'expired' }).eq('user_id', userId).in('status', ['pending','available']).lt('expires_at', now.toISOString());
@@ -176,7 +180,12 @@ billingRouter.post('/paypal/webhook', asyncHandler(async (req, res) => {
         const amountMinor = Math.round(Number(amount.total ?? amount.value ?? 0) * 100);
         const currency = String(amount.currency ?? amount.currency_code ?? 'GBP').toUpperCase();
         await serviceSupabase.from('crm_payments').upsert({ user_id: subscription.custom_id, provider: 'paypal', provider_transaction_id: resource.id, amount_minor: amountMinor, currency, status: type === 'PAYMENT.SALE.COMPLETED' ? 'completed' : 'refunded', payment_type: type === 'PAYMENT.SALE.COMPLETED' ? 'subscription' : 'refund', description: event.summary ?? type, occurred_at: resource.create_time ?? event.create_time ?? new Date().toISOString() }, { onConflict: 'provider,provider_transaction_id' });
-        if (type === 'PAYMENT.SALE.COMPLETED') await qualifyReferralAndApplyCredit(serviceSupabase, event, subscription, amountMinor, currency);
+        if (type === 'PAYMENT.SALE.COMPLETED') {
+          const founder = await serviceSupabase.from('founder_subscriber_slots').select('*').eq('user_id', subscription.custom_id).in('status', ['reserved','qualified']).maybeSingle();
+          const founderDiscountActive = Boolean(founder.data && founder.data.discount_cycles_remaining > 0);
+          if (founder.data && founderDiscountActive) await serviceSupabase.from('founder_subscriber_slots').update({ status: 'qualified', qualified_at: founder.data.qualified_at ?? new Date().toISOString(), paypal_subscription_id: subscription.id, discount_cycles_remaining: founder.data.discount_cycles_remaining - 1 }).eq('slot_number', founder.data.slot_number);
+          await qualifyReferralAndApplyCredit(serviceSupabase, event, subscription, amountMinor, currency, founderDiscountActive);
+        }
       }
     }
   }
@@ -190,9 +199,13 @@ billingRouter.post('/paypal/webhook', asyncHandler(async (req, res) => {
     const price = regular?.pricing_scheme?.fixed_price;
     const interval = regular?.frequency?.interval_unit === 'YEAR' ? 'year' : 'month';
     const updates = { name: plan.name, description: plan.description ?? null, paypal_product_id: plan.product_id, paypal_plan_id: plan.id, price_minor: Math.round(Number(price?.value ?? 0) * 100), currency: price?.currency_code ?? 'GBP', billing_interval: interval, active: plan.status === 'ACTIVE', paypal_sync_status: 'synced', paypal_last_synced_at: new Date().toISOString() };
-    const { data: found } = await serviceSupabase.from('crm_products').select('id').eq('paypal_plan_id', plan.id).maybeSingle();
-    if (found) await serviceSupabase.from('crm_products').update(updates).eq('id', found.id);
-    else await serviceSupabase.from('crm_products').insert(updates);
+    const { data: found } = await serviceSupabase.from('crm_products').select('id,paypal_plan_id,paypal_founder_plan_id').or(`paypal_plan_id.eq.${plan.id},paypal_founder_plan_id.eq.${plan.id}`).maybeSingle();
+    if (found?.paypal_founder_plan_id === plan.id) await serviceSupabase.from('crm_products').update({ paypal_founder_plan_active: plan.status === 'ACTIVE', paypal_last_synced_at: new Date().toISOString() }).eq('id', found.id);
+    else if (found) await serviceSupabase.from('crm_products').update(updates).eq('id', found.id);
+    else {
+      const { data: parentProduct } = await serviceSupabase.from('crm_products').select('id').eq('paypal_product_id', plan.product_id).maybeSingle();
+      if (!parentProduct) await serviceSupabase.from('crm_products').insert(updates);
+    }
   }
   await serviceSupabase.from('paypal_webhook_events').insert({ id: event.id, event_type: type, resource_id: resource.id ?? null });
   return res.json({ received: true });
@@ -204,7 +217,7 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
   if (!identity) return res.status(401).json({ error: 'Authentication required. Please sign in.' });
 
   const planName = req.body?.plan === 'yearly' ? 'yearly' : 'monthly';
-  const planId = planName === 'yearly'
+  let planId = planName === 'yearly'
     ? process.env.PAYPAL_PLAN_ID_YEARLY
     : process.env.PAYPAL_PLAN_ID_MONTHLY;
 
@@ -222,9 +235,21 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
 
   const serviceSupabase = getServiceSupabase();
   if (serviceSupabase) {
-    const linkedProduct = await serviceSupabase.from('crm_products').select('active,paypal_sync_status').eq('paypal_plan_id', planId).maybeSingle();
+    const linkedProduct = await serviceSupabase.from('crm_products').select('active,paypal_sync_status,paypal_founder_plan_id,paypal_founder_plan_active,billing_interval').eq('paypal_plan_id', planId).maybeSingle();
     if (linkedProduct.error) return res.status(503).json({ error: 'Unable to verify subscription plan availability.' });
     if (linkedProduct.data && (!linkedProduct.data.active || linkedProduct.data.paypal_sync_status !== 'synced')) return res.status(409).json({ error: 'This subscription plan is currently unavailable.' });
+    if (linkedProduct.data?.paypal_founder_plan_id && linkedProduct.data.paypal_founder_plan_active) {
+      const reservation = await serviceSupabase.rpc('reserve_founder_subscriber_slot', { target_user_id: identity.user.id, target_interval: planName === 'yearly' ? 'year' : 'month' });
+      if (reservation.error) return res.status(503).json({ error: 'Unable to check Founding 100 eligibility.' });
+      if (reservation.data?.length) planId = linkedProduct.data.paypal_founder_plan_id;
+    }
+  }
+
+  try {
+    const selectedRemotePlan = await paypalApi(`/v1/billing/plans/${encodeURIComponent(planId)}`);
+    if (selectedRemotePlan.status !== 'ACTIVE') return res.status(409).json({ error: 'This subscription plan is currently unavailable.' });
+  } catch {
+    return res.status(409).json({ error: 'This subscription plan is currently unavailable.' });
   }
 
   try {
@@ -307,7 +332,12 @@ billingRouter.get('/paypal/plans', asyncHandler(async (_req, res) => {
       return { key: plan.key, available: false };
     }
   }));
-  return res.json({ plans });
+  let foundingOfferAvailable = false;
+  if (serviceSupabase) {
+    const slots = await serviceSupabase.from('founder_subscriber_slots').select('slot_number', { count: 'exact', head: true }).in('status', ['reserved','qualified']);
+    foundingOfferAvailable = !slots.error && (slots.count ?? 100) < 100;
+  }
+  return res.json({ plans, foundingOfferAvailable });
 }));
 
 // POST /api/billing/paypal/complete

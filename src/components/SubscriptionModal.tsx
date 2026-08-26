@@ -13,6 +13,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
   const [status, setStatus] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
   const [availablePlans, setAvailablePlans] = useState<Array<'monthly' | 'yearly'>>([]);
+  const [foundingOfferAvailable, setFoundingOfferAvailable] = useState(false);
 
   const getAuthHeaders = async () => {
     const supabase = getSupabaseClient();
@@ -90,6 +91,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
       if (!response.ok) throw new Error(data.error || 'Unable to load plans.');
       const available = (data.plans ?? []).filter((plan:any) => plan.available).map((plan:any) => plan.key) as Array<'monthly' | 'yearly'>;
       setAvailablePlans(available);
+      setFoundingOfferAvailable(data.foundingOfferAvailable === true);
       if (available.length && !available.includes(selectedPlan)) setSelectedPlan(available[0]);
     }).catch((error:any) => { setAvailablePlans([]); setMessage(error.message || 'Unable to load subscription plans.'); });
   }, [isOpen]);
@@ -176,6 +178,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
             );
           })}
         </div>
+
+        {foundingOfferAvailable && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900"><div className="font-black">Founding 100 offer: 50% off</div><p className="mt-1">Eligible non-staff customers receive 50% off their first 3 monthly payments or first annual payment. Availability is confirmed during checkout.</p></div>}
 
         {availablePlans.length === 0 && <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-600">There are currently no subscription plans available.</div>}
 

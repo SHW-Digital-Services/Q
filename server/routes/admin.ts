@@ -52,6 +52,7 @@ async function syncProductToPayPal(serviceSupabase: any, product: any) {
       await paypalRequest(`/v1/catalogs/products/${encodeURIComponent(paypalProductId)}`, { method: 'PATCH', body: JSON.stringify([{ op: 'replace', path: '/name', value: product.name }, { op: 'replace', path: '/description', value: product.description || product.name }]) });
     }
     let paypalPlanId = product.paypal_plan_id;
+    let paypalFounderPlanId = product.paypal_founder_plan_id;
     if (product.billing_interval !== 'one_time') {
       const price = (product.price_minor / 100).toFixed(2);
       if (!paypalPlanId) {
@@ -61,8 +62,16 @@ async function syncProductToPayPal(serviceSupabase: any, product: any) {
         await paypalRequest(`/v1/billing/plans/${encodeURIComponent(paypalPlanId)}`, { method: 'PATCH', body: JSON.stringify([{ op: 'replace', path: '/name', value: product.name }, { op: 'replace', path: '/description', value: product.description || product.name }]) });
         await paypalRequest(`/v1/billing/plans/${encodeURIComponent(paypalPlanId)}/update-pricing-schemes`, { method: 'POST', body: JSON.stringify({ pricing_schemes: [{ billing_cycle_sequence: 1, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }] }) });
       }
+      const founderPrice = (product.price_minor * 0.5 / 100).toFixed(2);
+      const founderCycles = product.billing_interval === 'year' ? 1 : 3;
+      if (!paypalFounderPlanId) {
+        const founderPlan = await paypalRequest('/v1/billing/plans', { method: 'POST', body: JSON.stringify({ product_id: paypalProductId, name: `${product.name} — Founding 100`, description: `50% introductory offer for the first 100 eligible Q subscribers`, status: product.active ? 'ACTIVE' : 'INACTIVE', billing_cycles: [{ frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'TRIAL', sequence: 1, total_cycles: founderCycles, pricing_scheme: { fixed_price: { value: founderPrice, currency_code: product.currency } } }, { frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'REGULAR', sequence: 2, total_cycles: 0, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }], payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 3 } }) });
+        paypalFounderPlanId = founderPlan.id;
+      } else {
+        await paypalRequest(`/v1/billing/plans/${encodeURIComponent(paypalFounderPlanId)}/update-pricing-schemes`, { method: 'POST', body: JSON.stringify({ pricing_schemes: [{ billing_cycle_sequence: 1, pricing_scheme: { fixed_price: { value: founderPrice, currency_code: product.currency } } }, { billing_cycle_sequence: 2, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }] }) });
+      }
     }
-    const { data, error } = await serviceSupabase.from('crm_products').update({ paypal_product_id: paypalProductId, paypal_plan_id: paypalPlanId, paypal_sync_status: 'synced', paypal_last_synced_at: new Date().toISOString() }).eq('id', product.id).select().single();
+    const { data, error } = await serviceSupabase.from('crm_products').update({ paypal_product_id: paypalProductId, paypal_plan_id: paypalPlanId, paypal_founder_plan_id: paypalFounderPlanId, paypal_founder_plan_active: Boolean(paypalFounderPlanId && product.active), paypal_sync_status: 'synced', paypal_last_synced_at: new Date().toISOString() }).eq('id', product.id).select().single();
     if (error) throw error;
     return data;
   } catch (error) {
@@ -364,15 +373,30 @@ adminRouter.post('/crm/users/:id/entitlements', asyncHandler(async (req, res) =>
 
 adminRouter.post('/crm/users/:id/paypal-subscriptions', asyncHandler(async (req, res) => {
   const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
-  const { data: product, error } = await adminCtx.serviceSupabase.from('crm_products').select('id, name, paypal_plan_id, billing_interval, active').eq('id', req.body?.productId).maybeSingle();
+  const discountPercent = Number(req.body?.discountPercent || 0);
+  const discountCycles = Number(req.body?.discountCycles || 0);
+  const hasDiscount = discountPercent > 0 || discountCycles > 0;
+  if (hasDiscount && adminCtx.role !== 'partner_admin') return res.status(403).json({ error: 'Only an admin can apply a manual subscription discount.' });
+  if (hasDiscount && (!Number.isFinite(discountPercent) || discountPercent <= 0 || discountPercent > 100 || !Number.isInteger(discountCycles) || discountCycles < 1 || discountCycles > 999)) return res.status(400).json({ error: 'Discount must be 1–100% for between 1 and 999 billing cycles.' });
+  const { data: product, error } = await adminCtx.serviceSupabase.from('crm_products').select('id, name, description, price_minor, currency, paypal_product_id, paypal_plan_id, billing_interval, active').eq('id', req.body?.productId).maybeSingle();
   if (error || !product) return res.status(404).json({ error: 'Subscription product not found.' });
   if (!product.active || product.billing_interval === 'one_time' || !product.paypal_plan_id) return res.status(400).json({ error: 'This product is not an active PayPal subscription plan.' });
   const appUrl = (process.env.APP_URL || 'https://q-ai.online').replace(/\/+$/, '');
-  const subscription = await paypalRequest('/v1/billing/subscriptions', { method: 'POST', headers: { 'PayPal-Request-Id': `q-crm-${req.params.id}-${product.id}-${Date.now()}` }, body: JSON.stringify({ plan_id: product.paypal_plan_id, custom_id: req.params.id, application_context: { brand_name: 'Q Intelligence', user_action: 'SUBSCRIBE_NOW', return_url: `${appUrl}/app?paypal=success`, cancel_url: `${appUrl}/app?paypal=cancel` } }) });
+  let selectedPlanId = product.paypal_plan_id;
+  if (hasDiscount) {
+    if (!product.paypal_product_id) return res.status(400).json({ error: 'The product must be synchronized with PayPal before applying a discount.' });
+    const regularPrice = (product.price_minor / 100).toFixed(2);
+    const discountedPrice = (product.price_minor * (1 - discountPercent / 100) / 100).toFixed(2);
+    const trialCycle:any = { frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'TRIAL', sequence: 1, total_cycles: discountCycles };
+    if (discountPercent < 100) trialCycle.pricing_scheme = { fixed_price: { value: discountedPrice, currency_code: product.currency } };
+    const customPlan = await paypalRequest('/v1/billing/plans', { method: 'POST', body: JSON.stringify({ product_id: product.paypal_product_id, name: `${product.name} — ${discountPercent}% off × ${discountCycles}`, description: `Admin-authorised discount for ${discountCycles} billing cycle(s)`, status: 'ACTIVE', billing_cycles: [trialCycle, { frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'REGULAR', sequence: 2, total_cycles: 0, pricing_scheme: { fixed_price: { value: regularPrice, currency_code: product.currency } } }], payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 3 } }) });
+    selectedPlanId = customPlan.id;
+  }
+  const subscription = await paypalRequest('/v1/billing/subscriptions', { method: 'POST', headers: { 'PayPal-Request-Id': `q-crm-${req.params.id}-${product.id}-${Date.now()}` }, body: JSON.stringify({ plan_id: selectedPlanId, custom_id: req.params.id, application_context: { brand_name: 'Q Intelligence', user_action: 'SUBSCRIBE_NOW', return_url: `${appUrl}/app?paypal=success`, cancel_url: `${appUrl}/app?paypal=cancel` } }) });
   const approvalUrl = subscription.links?.find((link: any) => link.rel === 'approve')?.href;
   if (!approvalUrl) return res.status(502).json({ error: 'PayPal returned no customer approval link.' });
-  await adminCtx.serviceSupabase.from('subscriptions').upsert({ user_id: req.params.id, paypal_subscription_id: subscription.id, paypal_plan_id: product.paypal_plan_id, status: subscription.status || 'APPROVAL_PENDING', current_period_end: null, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
-  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'paypal_subscription_created', `PayPal approval requested for ${product.name}`, { productId: product.id, subscriptionId: subscription.id });
+  await adminCtx.serviceSupabase.from('subscriptions').upsert({ user_id: req.params.id, paypal_subscription_id: subscription.id, paypal_plan_id: selectedPlanId, status: subscription.status || 'APPROVAL_PENDING', current_period_end: null, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'paypal_subscription_created', `PayPal approval requested for ${product.name}${hasDiscount ? ` with ${discountPercent}% off for ${discountCycles} cycle(s)` : ''}`, { productId: product.id, subscriptionId: subscription.id, discountPercent: hasDiscount ? discountPercent : null, discountCycles: hasDiscount ? discountCycles : null, paypalPlanId: selectedPlanId });
   return res.status(201).json({ approvalUrl, subscriptionId: subscription.id, status: subscription.status || 'APPROVAL_PENDING' });
 }));
 
