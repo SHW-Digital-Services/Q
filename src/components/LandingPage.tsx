@@ -17,8 +17,8 @@ function isLaunchLandingEnabled() {
 const LaunchLandingPage: React.FC = () => {
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950 text-white overflow-hidden">
-      <div className="absolute top-0 left-1/3 w-[32rem] h-[32rem] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[28rem] h-[28rem] bg-indigo-500/20 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute top-0 left-0 w-[32rem] max-w-full h-[32rem] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[28rem] max-w-full h-[28rem] bg-indigo-500/20 rounded-full blur-[130px] pointer-events-none" />
 
       <nav className="relative z-10 max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -123,8 +123,8 @@ export const WaitlistLandingPage: React.FC = () => {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950 text-white overflow-hidden">
-      <div className="absolute top-0 left-1/3 w-[32rem] h-[32rem] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[28rem] h-[28rem] bg-indigo-500/20 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute top-0 left-0 w-[32rem] max-w-full h-[32rem] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[28rem] max-w-full h-[28rem] bg-indigo-500/20 rounded-full blur-[130px] pointer-events-none" />
 
       <nav className="relative z-10 max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
