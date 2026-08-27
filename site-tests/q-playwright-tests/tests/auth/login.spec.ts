@@ -10,6 +10,7 @@ test.describe('Login', () => {
   });
 
   test('rejects invalid credentials', async ({ page }) => {
+    test.skip(!process.env.VITE_SUPABASE_URL, 'Supabase credentials are required');
     const login = new LoginPage(page);
     await login.goto();
     await login.login('not-a-user@example.com', 'invalid-password');

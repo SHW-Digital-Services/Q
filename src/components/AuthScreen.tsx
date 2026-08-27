@@ -270,13 +270,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           <form onSubmit={handleSubmit} className="space-y-3.5">
             {mode === 'signup' && (
               <div>
-                <label htmlFor="q-auth-email" className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="q-auth-full-name" className="block text-xs font-bold text-slate-700 mb-1">
                   Full Name or Display Alias
                 </label>
                 <div className="relative">
                   <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
-                    id="q-auth-email"
+                    id="q-auth-full-name"
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -288,15 +288,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+              <label htmlFor="q-auth-email" className="block text-xs font-bold text-slate-700 mb-1">
                 Email Address
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
-type="email"
-required
-pattern="[^\s@.]+(?:\.[^\s@.]+)*@[^\s@.]+(?:\.[^\s@.]+)+"
+                  id="q-auth-email"
+                  type="email"
+                  required
+                  pattern="[^\s@.]+(?:\.[^\s@.]+)*@[^\s@.]+(?:\.[^\s@.]+)+"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
@@ -339,7 +340,7 @@ pattern="[^\s@.]+(?:\.[^\s@.]+)*@[^\s@.]+(?:\.[^\s@.]+)+"
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? 'Hide secret' : 'Show secret'}
                     className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

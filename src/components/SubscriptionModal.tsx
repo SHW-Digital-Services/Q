@@ -78,8 +78,11 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
     if (outcome === 'success') {
       void verifySubscription();
-    } else if (outcome === 'cancel') {
+    } else if (outcome === 'cancel' || outcome === 'cancelled') {
       setMessage('Subscription checkout was cancelled.');
+      clearPaypalQuery();
+    } else if (outcome === 'failed') {
+      setMessage('PayPal checkout could not be completed. Please try again.');
       clearPaypalQuery();
     }
   }, [isOpen]);

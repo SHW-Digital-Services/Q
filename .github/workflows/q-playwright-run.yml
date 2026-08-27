@@ -28,6 +28,12 @@ jobs:
       SUBSCRIBER_PASSWORD: ${{ secrets.TEST_SUBSCRIBER_PASSWORD }}
       ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
       ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+      PAYPAL_ENV: ${{ secrets.TEST_PAYPAL_ENV || 'sandbox' }}
+      PAYPAL_CLIENT_ID: ${{ secrets.TEST_PAYPAL_CLIENT_ID }}
+      PAYPAL_CLIENT_SECRET: ${{ secrets.TEST_PAYPAL_CLIENT_SECRET }}
+      PAYPAL_WEBHOOK_ID: ${{ secrets.TEST_PAYPAL_WEBHOOK_ID }}
+      PAYPAL_PLAN_ID_MONTHLY: ${{ secrets.TEST_PAYPAL_PLAN_ID_MONTHLY }}
+      PAYPAL_PLAN_ID_YEARLY: ${{ secrets.TEST_PAYPAL_PLAN_ID_YEARLY }}
 
     steps:
       - name: Checkout Q
