@@ -1,8 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
+import { openSubscription } from '../../helpers/app.helper';
 
 test.describe('PayPal Checkout', () => {
-  test('shows a PayPal checkout action', async ({ page }) => {
-    await page.goto('/pricing');
-    await expect(page.getByRole('button', { name: /paypal|subscribe|checkout/i }).first()).toBeVisible();
+  test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
+  test('shows a PayPal checkout action', async ({ page, loginAsUser }) => {
+    await loginAsUser();
+    await openSubscription(page);
+    await expect(page.getByRole('button', { name: /continue with paypal/i })).toBeVisible();
   });
 });

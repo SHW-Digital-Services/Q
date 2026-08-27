@@ -1,12 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
+import { openSubscription } from '../../helpers/app.helper';
 
 test.describe('Subscription Upgrade', () => {
   test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
 
-  test('displays upgrade action', async ({ page }) => {
-    await page.goto('/pricing');
-
-    await expect(page.locator('body')).toBeVisible();
-    await expect(page.locator('[data-testid="upgrade-plan"]').first()).toBeAttached();
+  test('offers available plans through the authenticated subscription flow', async ({ page, loginAsUser }) => {
+    await loginAsUser();
+    await openSubscription(page);
+    await expect(page.getByRole('button', { name: /continue with paypal/i })).toBeVisible();
   });
 });

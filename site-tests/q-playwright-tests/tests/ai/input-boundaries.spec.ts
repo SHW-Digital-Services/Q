@@ -15,9 +15,8 @@ const invalidPayloads = [
 
 for (const [index, payload] of invalidPayloads.entries()) {
   test(`AI API rejects invalid payload ${index + 1}`, async ({ request }) => {
-    const response = await request.post('/api/q-ai', { data: payload });
+    const response = await request.post('/api/q-ai/chat', { data: payload });
     expect(response.status()).toBeGreaterThanOrEqual(400);
     expect(response.status()).toBeLessThan(500);
   });
 }
-

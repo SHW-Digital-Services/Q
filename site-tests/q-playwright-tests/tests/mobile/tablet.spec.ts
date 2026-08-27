@@ -1,6 +1,7 @@
 import { test, expect, devices } from '@playwright/test';
 
-test.use({ ...devices['iPad (gen 7)'] });
+const { defaultBrowserType: _browser, ...tablet } = devices['iPad (gen 7)'];
+test.use(tablet);
 
 test.describe('Tablet', () => {
   test('renders the landing page', async ({ page }) => {

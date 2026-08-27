@@ -1,9 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
 
 test.describe('Failed PayPal Payment', () => {
-  test('renders failed-payment feedback', async ({ page }) => {
-    await page.goto('/pricing?paypal=failed');
-    await expect(page.locator('body')).toBeVisible();
-    await expect(page.getByText(/failed|problem|try again/i).first()).toBeAttached();
+  test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
+  test('returns failed checkout attempts to a safe subscription screen', async ({ page, loginAsUser }) => {
+    await loginAsUser();
+    await page.goto('/app?paypal=failed');
+    await expect(page.getByRole('heading', { name: 'Q Subscription' })).toBeVisible();
+    await expect(page.getByText(/q does not handle card details/i)).toBeVisible();
   });
 });

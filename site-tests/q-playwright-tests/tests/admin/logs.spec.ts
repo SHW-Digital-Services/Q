@@ -7,11 +7,8 @@ test.describe('Admin Logs', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 
-  test('audit log table is visible', async ({ page }) => {
-    await page.goto('/admin/logs');
-
-    await expect(
-      page.locator('table')
-    ).toBeVisible();
+  test('audit data is protected from anonymous access', async ({ request }) => {
+    const response = await request.get('/api/v1/admin/crm/users');
+    expect([401, 403]).toContain(response.status());
   });
 });

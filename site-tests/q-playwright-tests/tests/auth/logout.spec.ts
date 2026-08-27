@@ -5,7 +5,8 @@ test.describe('Logout', () => {
 
   test('ends the authenticated session', async ({ page, loginAsUser }) => {
     await loginAsUser();
-    await page.getByRole('button', { name: /logout|sign out/i }).click();
-    await expect(page).toHaveURL(/login|^\/$/);
+    await page.getByRole('button', { name: 'Profile', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).last().click();
+    await expect(page.getByRole('button', { name: /sign in to q app/i })).toBeVisible();
   });
 });

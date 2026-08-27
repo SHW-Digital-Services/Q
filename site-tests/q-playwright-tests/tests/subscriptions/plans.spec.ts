@@ -1,10 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
+import { openSubscription } from '../../helpers/app.helper';
 
 test.describe('Subscription Plans', () => {
-  test('displays plans', async ({ page }) => {
-    await page.goto('/pricing');
-
-    await expect(page.locator('body')).toBeVisible();
-    await expect(page.locator('[data-testid="pricing-plan"]').first()).toBeAttached();
+  test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
+  test('displays plans', async ({ page, loginAsUser }) => {
+    await loginAsUser();
+    await openSubscription(page);
+    await expect(page.getByText(/billed every month|no subscription plans available/i).first()).toBeVisible();
   });
 });

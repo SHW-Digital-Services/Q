@@ -18,7 +18,6 @@ for (const email of invalidEmails) {
 
     await emailInput.fill(email);
     await page.locator('input[type="password"]').fill('ValidTestPassword123!');
-    await page.getByRole('button', { name: /Sign In to Q App/i }).click();
 
     expect(await emailInput.evaluate(input => (input as HTMLInputElement).validity.valid))
       .toBeFalsy();
@@ -34,8 +33,6 @@ for (const password of shortPasswords) {
 
     await page.locator('input[type="email"]').first().fill('valid@example.test');
     await passwordInput.fill(password);
-    await page.getByRole('button', { name: /Sign In to Q App/i }).click();
-
     expect(await passwordInput.evaluate(input => (input as HTMLInputElement).validity.valid))
       .toBeFalsy();
   });

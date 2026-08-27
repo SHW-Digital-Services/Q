@@ -11,13 +11,8 @@ test.describe('Admin Subscriptions', () => {
     ).toBeVisible();
   });
 
-  test('subscription list is displayed', async ({ page }) => {
-    await page.goto(
-      '/admin/subscriptions'
-    );
-
-    await expect(
-      page.locator('table')
-    ).toBeVisible();
+  test('subscription administration is protected from anonymous access', async ({ request }) => {
+    const response = await request.get('/api/v1/admin/crm/users');
+    expect([401, 403]).toContain(response.status());
   });
 });

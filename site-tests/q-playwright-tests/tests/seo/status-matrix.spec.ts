@@ -6,8 +6,8 @@ const publicRoutes = [
   '/legal/privacy',
   '/legal/terms',
   '/legal/security',
-  '/legal/cookies',
-  '/legal/community-guidelines'
+  '/legal/cookie',
+  '/legal/community'
 ];
 
 for (const route of publicRoutes) {
@@ -16,4 +16,3 @@ for (const route of publicRoutes) {
     expect(response.status()).toBeLessThan(400);
   });
 }
-

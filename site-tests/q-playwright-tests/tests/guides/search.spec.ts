@@ -1,10 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
+import { openAppTab } from '../../helpers/app.helper';
 
 test.describe('Guide Search', () => {
-  test('displays search', async ({ page }) => {
-    await page.goto('/guides');
-
-    await expect(page.locator('body')).toBeVisible();
-    await expect(page.locator('input[type="search"]').first()).toBeAttached();
+  test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
+  test('displays search', async ({ page, loginAsUser }) => {
+    await loginAsUser();
+    await openAppTab(page, 'Life Guides');
+    await expect(page.getByPlaceholder(/search guides or topics/i)).toBeVisible();
   });
 });

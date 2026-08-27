@@ -91,6 +91,9 @@ if (process.env.VERCEL !== '1' && process.env.NODE_ENV === 'production') {
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[Server Uncaught Error]:', err);
   if (!res.headersSent) {
+    if (err?.type === 'entity.too.large' || err?.status === 413) {
+      return res.status(413).json({ error: 'Request body is too large.' });
+    }
     res.status(500).json({ error: err?.message || 'An unexpected server error occurred.' });
   }
 });

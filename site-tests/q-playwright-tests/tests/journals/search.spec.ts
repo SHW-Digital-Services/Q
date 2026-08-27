@@ -1,12 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
+import { openAppTab } from '../../helpers/app.helper';
 
 test.describe('Journal Search', () => {
   test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
 
-  test('displays search', async ({ page }) => {
-    await page.goto('/journal');
-
-    await expect(page.locator('body')).toBeVisible();
-    await expect(page.locator('input[type="search"]').first()).toBeAttached();
+  test('displays the journal archive summary', async ({ page, loginAsUser }) => {
+    await loginAsUser();
+    await openAppTab(page, 'Private Journal');
+    await expect(page.getByText(/last reflection/i)).toBeVisible();
   });
 });

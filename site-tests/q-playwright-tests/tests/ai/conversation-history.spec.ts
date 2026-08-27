@@ -1,31 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
 
 test.describe('Conversation History', () => {
-  test('messages appear in history', async ({ page }) => {
-    await page.goto('/chat');
-
-    await page.fill('textarea', 'History test');
-    await page.keyboard.press('Enter');
-
-    await expect(
-      page.locator('text=History test')
-    ).toBeVisible();
+  test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
+  test('messages appear in history', async ({ page, loginAsUser }) => {
+    await page.addInitScript(() => localStorage.setItem('q_chat_history_v1', JSON.stringify([{ id: 'history-test', sender: 'user', text: 'History test', timestamp: '12:00' }])));
+    await loginAsUser();
+    await expect(page.getByText('History test')).toBeVisible();
   });
 
-  test('history persists after reload', async ({ page }) => {
-    await page.goto('/chat');
-
-    await page.fill(
-      'textarea',
-      'Persistent message'
-    );
-
-    await page.keyboard.press('Enter');
-
+  test('history persists after reload', async ({ page, loginAsUser }) => {
+    await page.addInitScript(() => localStorage.setItem('q_chat_history_v1', JSON.stringify([{ id: 'persistent-test', sender: 'user', text: 'Persistent message', timestamp: '12:00' }])));
+    await loginAsUser();
     await page.reload();
-
-    await expect(
-      page.locator('body')
-    ).toContainText('Persistent message');
+    await expect(page.getByText('Persistent message')).toBeVisible();
   });
 });

@@ -1,12 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
+import { openSubscription } from '../../helpers/app.helper';
 
 test.describe('Subscription Renewal', () => {
   test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
 
-  test('displays renewal details', async ({ page }) => {
-    await page.goto('/subscription');
-
-    await expect(page.locator('body')).toBeVisible();
-    await expect(page.locator('[data-testid="renewal-date"]').first()).toBeAttached();
+  test('provides a server-backed subscription status check', async ({ page, loginAsUser }) => {
+    await loginAsUser();
+    await openSubscription(page);
+    await expect(page.getByRole('button', { name: 'Check status' })).toBeVisible();
   });
 });

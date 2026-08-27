@@ -270,12 +270,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           <form onSubmit={handleSubmit} className="space-y-3.5">
             {mode === 'signup' && (
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="q-auth-email" className="block text-xs font-bold text-slate-700 mb-1">
                   Full Name or Display Alias
                 </label>
                 <div className="relative">
                   <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
+                    id="q-auth-email"
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -293,8 +294,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
-                  type="email"
-                  required
+                    type="email"
+                    required
+                    pattern="[^\\s@]+@(?:[^\\s@.]+\\.)+[^\\s@.]+"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
@@ -306,7 +308,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             {mode !== 'forgot' && (
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-slate-700">Password</label>
+                  <label htmlFor="q-auth-password" className="block text-xs font-bold text-slate-700">Password</label>
                   {mode === 'login' && (
                     <button
                       type="button"
@@ -325,6 +327,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
+                    id="q-auth-password"
                     type={showPassword ? 'text' : 'password'}
                     required
                     minLength={6}
@@ -409,10 +412,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               )}
 
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-700">Email address</label>
+                <label htmlFor="q-reset-email" className="mb-1 block text-xs font-bold text-slate-700">Email address</label>
                 <input
+                  id="q-reset-email"
                   type="email"
                   required
+                  pattern="[^\\s@]+@(?:[^\\s@.]+\\.)+[^\\s@.]+"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
                   placeholder="name@example.com"

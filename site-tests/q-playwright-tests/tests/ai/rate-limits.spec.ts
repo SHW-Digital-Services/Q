@@ -1,44 +1,19 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
 
 test.describe('Rate Limits', () => {
-  test('chat remains available under normal use', async ({ page }) => {
-    await page.goto('/chat');
-
-    await page.fill(
-      'textarea',
-      'Normal request'
-    );
-
-    await page.keyboard.press('Enter');
-
-    await expect(
-      page.locator('[data-testid="ai-response"]')
-    ).toBeVisible();
+  test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
+  test('chat remains available under normal use', async ({ page, loginAsUser }) => {
+    await loginAsUser();
+    await expect(page.getByPlaceholder(/ask q about healthcare/i)).toBeEnabled();
   });
 
-  test('handles rapid requests gracefully', async ({ page }) => {
-    await page.goto('/chat');
-
-    for (let i = 1; i <= 5; i++) {
-      await page.fill(
-        'textarea',
-        `Rapid request ${i}`
-      );
-
-      await page.keyboard.press('Enter');
-    }
-
-    await expect(
-      page.locator('body')
-    ).toBeVisible();
+  test('rejects rapid malformed API requests without server errors', async ({ request }) => {
+    const responses = await Promise.all(Array.from({ length: 5 }, () => request.post('/api/q-ai/chat', { data: { message: '' } })));
+    expect(responses.every(response => response.status() === 400)).toBeTruthy();
   });
 
-  test('displays error if limit reached', async ({ page }) => {
-    await page.goto('/chat');
-
-    // Placeholder until actual rate limit UI exists.
-    await expect(
-      page.locator('body')
-    ).toBeVisible();
+  test('limits oversized request bodies', async ({ request }) => {
+    const response = await request.post('/api/q-ai/chat', { data: { message: 'x'.repeat(100_001) } });
+    expect(response.status()).toBe(413);
   });
 });

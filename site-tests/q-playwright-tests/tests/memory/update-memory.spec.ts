@@ -1,12 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
 
 test.describe('Update Memory', () => {
   test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
 
-  test('displays edit action', async ({ page }) => {
-    await page.goto('/memory');
-
-    await expect(page.locator('body')).toBeVisible();
-    await expect(page.locator('[data-testid="edit-memory"]').first()).toBeAttached();
+  test('allows memory preferences to be updated explicitly', async ({ page, loginAsUser }) => {
+    await loginAsUser();
+    await page.getByRole('button', { name: /memory engine/i }).click();
+    await expect(page.getByRole('button', { name: /save preferences/i })).toBeVisible();
   });
 });

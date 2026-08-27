@@ -6,14 +6,9 @@ const legalLinks = [
   { name: 'Accessibility', path: '/legal/accessibility' },
   { name: 'AI Disclaimer', path: '/legal/ai_disclaimer' },
   { name: 'Cookie Policy', path: '/legal/cookie' },
-  { name: 'Copyright', path: '/legal/copyright' },
   { name: 'DPA', path: '/legal/dpa' },
-  { name: 'File Upload', path: '/legal/file_upload' },
-  { name: 'Legal Notice', path: '/legal/legal_notice' },
   { name: 'Privacy Policy', path: '/legal/privacy' },
-  { name: 'Refunds', path: '/legal/refund_and_cancellation' },
   { name: 'Security Policy', path: '/legal/security' },
-  { name: 'Subscription Terms', path: '/legal/subscription_terms' },
   { name: 'Terms of Service', path: '/legal/terms' },
 ];
 

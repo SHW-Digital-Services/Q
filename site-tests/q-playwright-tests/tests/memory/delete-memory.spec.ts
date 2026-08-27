@@ -1,12 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
+import { openAppTab } from '../../helpers/app.helper';
 
 test.describe('Delete Memory', () => {
   test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
 
-  test('displays delete action', async ({ page }) => {
-    await page.goto('/memory');
-
-    await expect(page.locator('body')).toBeVisible();
-    await expect(page.locator('[data-testid="delete-memory"]').first()).toBeAttached();
+  test('explains that saved cloud memories can be removed', async ({ page, loginAsUser }) => {
+    await loginAsUser();
+    await openAppTab(page, 'Private Journal');
+    await expect(page.getByText(/you can remove them at any time/i)).toBeVisible();
   });
 });

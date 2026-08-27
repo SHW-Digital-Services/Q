@@ -1,11 +1,12 @@
 import { test, expect, devices } from '@playwright/test';
 
-test.use({ ...devices['iPhone 15'] });
+const { defaultBrowserType: _browser, ...iphone } = devices['iPhone 15'];
+test.use(iphone);
 
 test.describe('iPhone', () => {
-  test('renders the mobile navigation', async ({ page }) => {
+  test('renders the mobile landing navigation and primary content', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('body')).toBeVisible();
-    await expect(page.locator('[data-testid="mobile-menu"], button[aria-label*="menu" i]').first()).toBeAttached();
+    await expect(page.getByText('A safer life companion')).toBeVisible();
+    await expect(page.locator('h1')).toBeVisible();
   });
 });
