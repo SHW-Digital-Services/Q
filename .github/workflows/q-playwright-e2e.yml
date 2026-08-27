@@ -1,0 +1,20 @@
+name: Q Playwright E2E
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'server/**'
+      - 'site-tests/q-playwright-tests/**'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    uses: ./.github/workflows/q-playwright-run.yml
+    secrets: inherit
+    with:
+      test-command: npm run test:e2e
+      install-browsers: all
+

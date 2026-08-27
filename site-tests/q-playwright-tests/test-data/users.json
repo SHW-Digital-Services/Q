@@ -1,0 +1,22 @@
+[
+  {
+    "role": "user",
+    "email": "user@test.local",
+    "password": "Password123!"
+  },
+  {
+    "role": "subscriber",
+    "email": "subscriber@test.local",
+    "password": "Password123!"
+  },
+  {
+    "role": "admin",
+    "email": "admin@test.local",
+    "password": "Password123!"
+  },
+  {
+    "role": "support",
+    "email": "support@test.local",
+    "password": "Password123!"
+  }
+]

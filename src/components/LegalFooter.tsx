@@ -18,7 +18,7 @@ const legalLinks = [
 ];
 
 export const LegalFooter = () => (
-  <footer className="mt-auto py-10 px-6 text-center text-[10px] text-slate-500 border-t border-slate-900 bg-slate-950">
+  <footer className="mt-auto py-10 px-6 text-center text-[10px] text-slate-400 border-t border-slate-900 bg-slate-950">
     <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 max-w-4xl mx-auto">
       {legalLinks.map((link) => (
         <a
@@ -31,7 +31,7 @@ export const LegalFooter = () => (
       ))}
     </div>
 
-    <div className="mt-6 text-slate-700">
+    <div className="mt-6 text-slate-400">
       © {new Date().getFullYear()} Q Life Operating System. All rights reserved.
     </div>
   </footer>

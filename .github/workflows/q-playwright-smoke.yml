@@ -1,0 +1,14 @@
+name: Q Playwright Smoke
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    uses: ./.github/workflows/q-playwright-run.yml
+    secrets: inherit
+    with:
+      test-command: npm run test:smoke -- --project=chromium
+      install-browsers: chromium
+

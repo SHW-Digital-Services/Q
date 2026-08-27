@@ -1,0 +1,40 @@
+{
+  "name": "q-playwright-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end and API tests for the Q application in D:/Dev/Q",
+  "scripts": {
+    "test": "playwright test",
+    "test:e2e": "playwright test",
+    "test:smoke": "playwright test tests/smoke",
+    "test:api": "playwright test tests/api",
+    "test:functional": "playwright test tests/functional",
+    "test:ui": "playwright test tests/ui",
+    "test:mobile": "playwright test tests/mobile",
+    "test:accessibility": "playwright test tests/accessibility",
+    "test:security": "playwright test tests/security",
+    "test:database": "playwright test tests/database",
+    "test:seo": "playwright test tests/seo",
+    "test:billing": "playwright test tests/paypal tests/subscriptions",
+    "test:ai": "playwright test tests/ai",
+    "test:performance": "playwright test tests/performance",
+    "test:regression": "playwright test tests/regression",
+    "test:uat": "playwright test tests/uat",
+    "test:list": "playwright test --list",
+    "setup:supabase-users": "tsx scripts/create-supabase-test-users.ts",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:runner-ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.1",
+    "@supabase/supabase-js": "^2.112.4",
+    "@types/node": "^22.18.0",
+    "dotenv": "^17.4.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,9 @@
+# Playwright source, dependencies, reports, and test credentials are not part
+# of the production application deployment. The suite remains tracked by Git.
+site-tests/
+
+# Local and generated development artifacts.
+playwright-report/
+test-results/
+blob-report/
+coverage/

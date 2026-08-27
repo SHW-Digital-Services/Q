@@ -1,0 +1,17 @@
+[
+  {
+    "mood": "happy",
+    "score": 5,
+    "note": "Feeling great today"
+  },
+  {
+    "mood": "neutral",
+    "score": 3,
+    "note": "Average day"
+  },
+  {
+    "mood": "sad",
+    "score": 1,
+    "note": "Feeling low"
+  }
+]

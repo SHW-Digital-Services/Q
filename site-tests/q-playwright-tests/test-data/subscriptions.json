@@ -1,0 +1,32 @@
+[
+  {
+    "plan": "Free",
+    "price": 0,
+    "billingCycle": "None",
+    "features": [
+      "Basic Chat",
+      "Limited Memory"
+    ]
+  },
+  {
+    "plan": "Monthly",
+    "price": 9.99,
+    "billingCycle": "Monthly",
+    "features": [
+      "Unlimited Chat",
+      "Mood Tracking",
+      "Journaling"
+    ]
+  },
+  {
+    "plan": "Annual",
+    "price": 99.99,
+    "billingCycle": "Yearly",
+    "features": [
+      "Unlimited Chat",
+      "Mood Tracking",
+      "Journaling",
+      "Priority Features"
+    ]
+  }
+]

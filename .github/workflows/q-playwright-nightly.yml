@@ -1,0 +1,15 @@
+name: Q Playwright Nightly
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  nightly:
+    uses: ./.github/workflows/q-playwright-run.yml
+    secrets: inherit
+    with:
+      test-command: npm run test:e2e
+      install-browsers: all
+

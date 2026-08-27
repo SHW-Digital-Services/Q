@@ -1,0 +1,17 @@
+[
+  {
+    "title": "First Journal Entry",
+    "content": "Today was a productive day.",
+    "tags": ["productivity", "reflection"]
+  },
+  {
+    "title": "Stress Management",
+    "content": "Practiced mindfulness and breathing exercises.",
+    "tags": ["wellbeing", "mindfulness"]
+  },
+  {
+    "title": "Weekly Reflection",
+    "content": "Reviewed goals and progress.",
+    "tags": ["goals", "reflection"]
+  }
+]

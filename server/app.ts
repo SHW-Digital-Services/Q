@@ -10,6 +10,19 @@ import { referralsRouter } from './routes/referrals.js';
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
+app.disable('x-powered-by');
+
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=(self)'
+  );
+  next();
+});
+
 app.use((req, _res, next) => {
   const candidates = [
     req.headers['x-invoke-path'],
