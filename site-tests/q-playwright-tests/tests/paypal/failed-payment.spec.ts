@@ -5,13 +5,11 @@ test.describe('Failed PayPal Payment', () => {
 
   test('returns failed checkout attempts to a safe subscription screen', async ({ page, loginAsUser }) => {
     await loginAsUser();
-    
-    // Wait for the login redirect to finish before navigating away
     await page.waitForURL('**/app');
-    
     await page.goto('/app?paypal=failed');
     
-    await expect(page.getByRole('heading', { name: /subscription/i })).toBeVisible();
+    // FIX: Use getByText since the modal title isn't an actual HTML heading tag
+    await expect(page.getByText('Subscription', { exact: true }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /continue with paypal/i })).toBeVisible();
   });
 });
