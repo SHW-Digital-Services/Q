@@ -1,7 +1,7 @@
 ---
 title: Security Policy
 description: Security Policy for Q Intelligence
-version: 1.0.1
+version: 1.1.0
 effective_date: 26/08/2026
 last_updated: 26/08/2026
 applies_to: https://q-ai.online
@@ -46,7 +46,7 @@ Q Intelligence uses separate systems for distinct security-sensitive functions:
 | Application data | Supabase PostgreSQL with Row Level Security |
 | File and object storage | Supabase Storage where enabled |
 | Subscription payments | PayPal |
-| AI-assisted features | Configured AI service providers through server-controlled APIs |
+| AI-assisted features | On-device WebLLM by default; optional configured provider through server-controlled APIs |
 | Administrative CRM | Q's role-restricted administrative interface |
 | Source control and automated checks | GitHub and GitHub Actions |
 
@@ -141,7 +141,7 @@ Users should report unrecognised payments directly to PayPal and to Q Intelligen
 
 ## 10. AI and Sensitive Information
 
-AI-assisted features may transmit user-provided content to configured AI providers to generate a response. Users should avoid submitting information they are not authorised to disclose.
+Private local AI performs generation in the browser and does not send prompts to Q's AI endpoint. It still downloads model assets and may retrieve user-approved memory from Supabase. When a user explicitly selects hosted AI, client-side PII masking is applied and prompt context is transmitted to Q's server and configured provider. PII masking reduces exposure but cannot guarantee removal of every identifying detail. Users should avoid submitting information they are not authorised to disclose.
 
 Because Q Intelligence may be used for personal wellbeing, identity, journal, or LGBTQ+ related content, access to private content must be kept separate from ordinary CRM and customer-support records wherever practicable.
 

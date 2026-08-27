@@ -1,7 +1,7 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.0.2
+version: 1.1.0
 effective_date: 02/08/2026
 last_updated: 26/08/2026
 applies_to: https://q-ai.online
@@ -239,7 +239,7 @@ Depending upon your browser settings we may collect:
 
 ## 5.7 AI Interaction Data
 
-When you use AI features, we process:
+When you use AI features, the information processed depends on the mode you select. Local WebLLM processing occurs in your browser. Hosted AI sends client-side PII-masked prompt context to Q's server and configured AI provider. Relevant data may include:
 
 - prompts
 - uploaded context
@@ -458,7 +458,7 @@ AI features may process:
 - contextual information
 - generated outputs
 
-These features are provided using third-party AI infrastructure, including **Google Gemini**, together with supporting infrastructure operated by SHW Digital Services.
+Private local AI is provided through WebLLM and runs model inference in the user's browser. The browser downloads model assets from third-party distribution infrastructure, but Q does not send the conversation prompt to its AI server in this mode. If the user explicitly selects hosted AI, PII-masked prompt context is processed through supporting infrastructure operated by SHW Digital Services and the configured hosted provider, currently OpenAI.
 
 AI-generated content may:
 
@@ -504,7 +504,7 @@ Current providers include:
 | Provider | Purpose |
 |-----------|---------|
 | Supabase | Authentication, database, storage |
-| Google Gemini | AI processing |
+| OpenAI | Optional hosted AI processing selected by the user |
 | PayPal | Payment processing |
 | Email providers | Transactional email delivery |
 | Cloud hosting providers | Infrastructure and security |
@@ -676,7 +676,7 @@ Financial records, invoices, transaction references, and related accounting info
 
 ## 17.3 AI Conversations
 
-AI prompts, responses, and related processing logs may be retained for:
+Locally generated prompts and responses may be retained in browser storage to provide conversation continuity. User-approved memory may be stored in the user's RLS-protected Supabase records. When hosted AI is selected, prompts, responses, and related processing logs may also be retained for:
 
 - service continuity
 - troubleshooting

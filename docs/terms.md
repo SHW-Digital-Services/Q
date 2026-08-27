@@ -1,7 +1,7 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.0.2
+version: 1.1.0
 effective_date: 02/08/2026
 last_updated: 26/08/2026
 website: https://q-ai.online
@@ -44,7 +44,7 @@ For these Terms:
 - **User** means any individual or organisation using the Service.
 - **Subscription** means a paid plan providing access to premium functionality.
 - **Content** means text, files, prompts, images, code, data, and any other material processed through the Service.
-- **AI Output** means responses generated using integrated AI models, including Google Gemini.
+- **AI Output** means responses generated using integrated on-device or hosted AI models.
 
 ---
 
@@ -84,7 +84,7 @@ Additional requirements are set out in our Acceptable Use Policy, which forms pa
 
 # 6. AI Services
 
-Q Intelligence provides AI-assisted features using third-party language models, including Google Gemini.
+Q Intelligence provides AI-assisted features through on-device WebLLM models and optional hosted language models, currently supplied through OpenAI when selected and configured.
 
 AI responses are generated automatically and may:
 
@@ -338,7 +338,7 @@ All implied warranties, conditions, and guarantees that may be excluded by law a
 
 # 22. AI Disclaimer
 
-Q Intelligence incorporates artificial intelligence technologies, including **Google Gemini**, to assist users with generating, analysing, summarising, transforming, and interpreting information.
+Q Intelligence incorporates on-device WebLLM and optional hosted AI technologies to assist users with generating, analysing, summarising, transforming, and interpreting information.
 
 AI-generated content:
 
@@ -418,7 +418,8 @@ Where there is any inconsistency between these Terms and mandatory data protecti
 The Service integrates with third-party providers including, but not limited to:
 
 - Supabase;
-- Google Gemini;
+- OpenAI, when hosted AI is selected;
+- WebLLM and model-distribution services;
 - PayPal;
 - Zoho Bigin;
 - email delivery providers;

@@ -1,9 +1,9 @@
 ---
 title: AI Disclaimer
 description: AI Disclaimer for Q Intelligence
-version: 1.0.0
+version: 1.1.0
 effective_date: 02/08/2026
-last_updated: 02/08/2026
+last_updated: 26/08/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -26,7 +26,7 @@ By using AI features, you acknowledge and accept the limitations described in th
 
 # 2. AI Technology
 
-Q Intelligence integrates artificial intelligence technologies, including **Google Gemini**, to assist users with tasks such as:
+Q Intelligence provides both on-device AI through WebLLM and an optional hosted AI service. Users select the mode used for a conversation. These technologies assist users with tasks such as:
 
 - answering questions;
 - generating text;
@@ -108,7 +108,7 @@ You are responsible for carrying out appropriate legal and commercial checks bef
 
 # 8. Availability of AI Services
 
-AI functionality depends on third-party providers, including Google Gemini.
+Local AI depends on compatible browser hardware, WebGPU support, sufficient storage, and the availability of model-download infrastructure. Hosted AI depends on configured third-party providers, currently OpenAI, and network availability.
 
 We may:
 

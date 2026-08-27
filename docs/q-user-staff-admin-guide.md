@@ -509,7 +509,13 @@ PAYPAL_ENV=
 PAYPAL_PLAN_ID_MONTHLY=
 PAYPAL_PLAN_ID_YEARLY=
 PAYPAL_WEBHOOK_ID=
+OPENAI_API_KEY=
+AI_FREE_MODEL=gpt-5-nano
+AI_PAID_MODEL=gpt-5-mini
+AI_EMBEDDING_MODEL=text-embedding-3-small
 ```
+
+`OPENAI_API_KEY` is optional for local-only WebLLM deployments. Without it, explicitly selected hosted AI and hosted vetted-knowledge embedding queries are unavailable. Local AI requires no provider key, but users need WebGPU and must download the cached model assets on first use.
 
 Set Supabase Edge Function secrets:
 
@@ -622,6 +628,8 @@ Expected result:
 - no trailing whitespace or conflict markers
 
 The Vite build may warn about large chunks. That is not the same as a failed build.
+
+The WebLLM worker and runtime intentionally create multi-megabyte build assets. Verify that the hosting platform accepts these asset sizes and serves worker JavaScript with the correct content type. See `docs/local-ai-memory-safety.md` for the AI and safety test matrix.
 
 ## Testing Staff Password Reset
 

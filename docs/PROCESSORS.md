@@ -1,9 +1,9 @@
 ---
 title: Processor Register
 description: Sub-processor and Processor Register for Q Intelligence
-version: 1.0.1
+version: 1.1.0
 effective_date: 02/08/2026
-last_updated: 17/08/2026
+last_updated: 26/08/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 jurisdiction: Worldwide
@@ -24,7 +24,9 @@ This register supports transparency under applicable data protection legislation
 | Provider | Purpose | Data Processed |
 |----------|---------|----------------|
 | Supabase | Authentication, PostgreSQL database, object storage, user sessions | Account information, authentication data, uploaded files, application data |
-| Google Gemini | AI model processing | User prompts, uploaded content submitted for AI processing, AI responses |
+| OpenAI | Optional hosted AI model processing selected by the user | PII-masked prompts and context submitted for hosted processing, AI responses |
+
+WebLLM performs inference on the user's device and is not used by Q as a processor of prompts on Q's behalf. A user's browser contacts model-distribution infrastructure to download the WebLLM runtime and model assets; those services may process ordinary network metadata under their own policies.
 | PayPal | Subscription billing and payment processing | Billing information, payment identifiers, transaction records |
 
 ---
