@@ -4,10 +4,11 @@ test.describe('Conversation History', () => {
   test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
 
   test('history persists after reload', async ({ page, loginAsUser }) => {
-    // 1. Actually log in using your fixture
+    // 1. Log in and explicitly wait for the redirect to finish
     await loginAsUser();
+    await page.waitForURL('**/app');
     
-    // 2. Wait for the chat input to be visible
+    // 2. Wait for the chat input to be visible and fill it
     const input = page.locator('input[type="text"], textarea').first();
     await input.waitFor({ state: 'visible' });
     await input.fill('Persistent message');
@@ -21,7 +22,7 @@ test.describe('Conversation History', () => {
     
     await page.getByRole('button', { name: /send/i }).click();
 
-    // 4. Instant UI update
+    // 4. Instant UI update check
     await expect(page.getByText('Persistent message')).toBeVisible();
     
     // 5. Wait for DB save, then reload

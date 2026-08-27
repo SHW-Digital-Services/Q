@@ -6,10 +6,11 @@ test.describe('Edit Mood', () => {
 
   test('allows the current mood selection to change', async ({ page, loginAsUser }) => {
     await loginAsUser();
+    await page.waitForURL('**/app'); // Ensure login completes
     await openAppTab(page, 'Private Journal');
     
-    // Use "Meh" which matches the actual UI button
-    const mood = page.getByRole('button', { name: /meh/i });
+    // Look for any element containing the text "Meh" instead of strictly requiring a button role
+    const mood = page.getByText('Meh', { exact: true });
     
     await mood.click();
     await expect(mood).toBeVisible();

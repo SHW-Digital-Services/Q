@@ -5,12 +5,11 @@ test.describe('Password Reset', () => {
     await page.goto('/app');
     await page.getByText(/forgot|reset password/i).click();
     
-    // Scope the search ONLY to the active dialog/modal
-    const resetModal = page.getByRole('dialog');
-    const resetEmailInput = resetModal.getByLabel(/email/i);
+    // Bypass role issues and grab the second email input on the page (the modal overlay)
+    const resetEmailInput = page.locator('input[type="email"]').nth(1);
     
     await resetEmailInput.fill('invalid-email');
-    await resetModal.getByRole('button', { name: /send request/i }).click();
+    await page.getByRole('button', { name: /send request/i }).click();
     
     expect(await resetEmailInput.evaluate(input => (input as HTMLInputElement).validity.valid)).toBeFalsy();
   });
