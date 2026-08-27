@@ -11,18 +11,14 @@ test.describe('Conversation History', () => {
     await input.waitFor({ state: 'visible' });
     await input.fill('Persistent message');
     
-    const saveResponsePromise = page.waitForResponse(response => 
-      response.url().includes('/api/') && 
-      response.request().method() === 'POST' &&
-      response.status() === 200
-    );
-    
-    // FIX: Press 'Enter' instead of trying to find the icon button
+    // Press 'Enter' instead of trying to click the SVG icon
     await input.press('Enter');
 
     await expect(page.getByText('Persistent message')).toBeVisible();
     
-    await saveResponsePromise;
+    // Wait for the optimistic UI save to reach Supabase before reloading
+    await page.waitForTimeout(1500);
+    
     await page.reload();
 
     await expect(page.getByText('Persistent message')).toBeVisible();

@@ -5,10 +5,12 @@ test.describe('Cancelled PayPal Payment', () => {
 
   test('returns the user safely from a cancelled checkout', async ({ page, loginAsUser }) => {
     await loginAsUser();
-    await page.waitForURL('**/app');
+    
+    // FIX: Wait for the dashboard to render to ensure auth session is saved before navigating
+    await expect(page.getByText(/Private Journal/i).first()).toBeVisible();
+    
     await page.goto('/app?paypal=cancelled');
     
-    // FIX: Use getByText since the modal title isn't an actual HTML heading tag
     await expect(page.getByText('Subscription', { exact: true }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /continue with paypal/i })).toBeVisible();
   });

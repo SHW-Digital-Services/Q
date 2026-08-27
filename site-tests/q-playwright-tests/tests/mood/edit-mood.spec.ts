@@ -6,13 +6,17 @@ test.describe('Edit Mood', () => {
 
   test('allows the current mood selection to change', async ({ page, loginAsUser }) => {
     await loginAsUser();
-    await page.waitForURL('**/app'); 
+    
+    // Wait for login to finish
+    await expect(page.getByText(/Private Journal/i).first()).toBeVisible();
     await openAppTab(page, 'Private Journal');
     
-    // FIX: Use 'Okay' to match the exact UI copy shown in the trace
-    const mood = page.getByText('Okay', { exact: true });
+    // FIX: Click the 'Log Mood' button to reveal the mood faces
+    await page.getByRole('button', { name: /log mood/i }).click();
     
+    const mood = page.getByText('Okay', { exact: true });
     await mood.click();
+    
     await expect(mood).toBeVisible();
   });
 });
