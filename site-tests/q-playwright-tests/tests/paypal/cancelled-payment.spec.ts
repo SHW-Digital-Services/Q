@@ -5,10 +5,13 @@ test.describe('Cancelled PayPal Payment', () => {
 
   test('returns the user safely from a cancelled checkout', async ({ page, loginAsUser }) => {
     await loginAsUser();
-    await page.waitForURL('**/app');
+    
+    // FIX: Explicitly wait for the login screen to disappear so we know auth is complete
+    // This prevents the page.goto() from cancelling the Supabase login request
+    await expect(page.getByRole('button', { name: /sign in to q app/i })).toBeHidden();
+    
     await page.goto('/app?paypal=cancelled');
     
-    // FIX: Use a loose, case-insensitive regex to bypass DOM text quirks and spacing
     await expect(page.getByText(/subscription/i).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /continue with paypal/i })).toBeVisible();
   });
