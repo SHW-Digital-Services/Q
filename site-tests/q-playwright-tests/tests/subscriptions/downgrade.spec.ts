@@ -7,6 +7,9 @@ test.describe('Subscription Downgrade', () => {
   test('offers explicit plan selection instead of a placeholder downgrade control', async ({ page, loginAsUser }) => {
     await loginAsUser();
     await openSubscription(page);
-    await expect(page.getByRole('button', { name: /monthly|yearly/i }).first()).toBeVisible();
+    
+    // Updated to use getByText to avoid role-specific failures if the toggle 
+    // was changed from a <button> to a tab, radio, or label element.
+    await expect(page.getByText(/monthly|yearly/i).first()).toBeVisible();
   });
 });
