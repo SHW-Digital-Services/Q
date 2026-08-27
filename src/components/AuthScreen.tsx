@@ -294,9 +294,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
-                    type="email"
-                    required
-                    pattern="[^\\s@]+@(?:[^\\s@.]+\\.)+[^\\s@.]+"
+type="email"
+required
+pattern="[^\s@.]+(?:\.[^\s@.]+)*@[^\s@.]+(?:\.[^\s@.]+)+"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
