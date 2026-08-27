@@ -1,15 +1,18 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures/auth.fixture';
 
 test.describe('Conversation History', () => {
-  test('history persists after reload', async ({ page }) => {
-    // Assuming you have a standard setup/login step here
-    await page.goto('/app');
+  test.skip(!process.env.FREE_USER_EMAIL, 'Test user credentials are required');
+
+  test('history persists after reload', async ({ page, loginAsUser }) => {
+    // 1. Actually log in using your fixture
+    await loginAsUser();
     
+    // 2. Wait for the chat input to be visible
     const input = page.locator('input[type="text"], textarea').first();
+    await input.waitFor({ state: 'visible' });
     await input.fill('Persistent message');
     
-    // 1. Set up a listener for the outgoing chat API request BEFORE clicking
-    // Adjust the URL string ('/api/') if your chat endpoint is named something specific like '/api/chat'
+    // 3. Set up the intercept BEFORE clicking send
     const saveResponsePromise = page.waitForResponse(response => 
       response.url().includes('/api/') && 
       response.request().method() === 'POST' &&
@@ -18,15 +21,14 @@ test.describe('Conversation History', () => {
     
     await page.getByRole('button', { name: /send/i }).click();
 
-    // 2. The optimistic UI update happens instantly
+    // 4. Instant UI update
     await expect(page.getByText('Persistent message')).toBeVisible();
     
-    // 3. WAIT for the server to actually save the message before reloading
+    // 5. Wait for DB save, then reload
     await saveResponsePromise;
-
     await page.reload();
 
-    // 4. Now the history will survive the reload
+    // 6. Verify persistence
     await expect(page.getByText('Persistent message')).toBeVisible();
   });
 });

@@ -8,13 +8,10 @@ test.describe('Edit Mood', () => {
     await loginAsUser();
     await openAppTab(page, 'Private Journal');
     
-    // Updated to match the actual UI copy (e.g., Rad, Happy, Neutral, Sad, Awful)
-    const mood = page.getByRole('button', { name: /neutral/i });
+    // Use "Meh" which matches the actual UI button
+    const mood = page.getByRole('button', { name: /meh/i });
     
     await mood.click();
-    
-    // Depending on your UI, you might want to assert an "active" or "selected" 
-    // state here, but ensuring it is visible works as a basic check.
     await expect(mood).toBeVisible();
   });
 });
