@@ -231,14 +231,14 @@ export default function App() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 font-sans text-slate-900 antialiased selection:bg-fuchsia-600 selection:text-white">
+    <div className="q-app-shell relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 font-sans text-slate-900 antialiased selection:bg-fuchsia-600 selection:text-white">
       {/* Soft Pride-spectrum ambient colour keeps content readable while adding identity. */}
       <div className="pointer-events-none fixed -left-24 top-10 -z-10 h-72 w-72 rounded-full bg-rose-300/25 blur-[90px]" />
       <div className="pointer-events-none fixed -right-28 top-1/3 -z-10 h-80 w-80 rounded-full bg-sky-300/25 blur-[100px]" />
       <div className="pointer-events-none fixed bottom-0 left-1/3 -z-10 h-72 w-72 rounded-full bg-violet-300/25 blur-[100px]" />
 
       {/* Mobile-First App Shell Container */}
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col bg-white/72 pb-24 shadow-2xl shadow-purple-950/5 backdrop-blur-xl sm:max-w-2xl sm:border-x sm:border-white/70 sm:pb-0 lg:max-w-5xl">
+      <div className="q-content-shell relative mx-auto flex min-h-screen w-full max-w-md flex-col bg-white/72 pb-24 shadow-2xl shadow-purple-950/5 backdrop-blur-xl sm:max-w-2xl sm:border-x sm:border-white/70 sm:pb-0 lg:max-w-5xl">
         {/* Main Navigation (Sticky Header & Bottom Nav) */}
         <Navbar
           activeTab={activeTab}

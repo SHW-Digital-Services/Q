@@ -95,6 +95,71 @@ input {
   box-shadow: 0 12px 35px rgba(88, 28, 135, 0.08);
 }
 
+/* ThemeContext places `.dark` on the document root. These scoped overrides
+   give the authenticated app a complete dark palette without muting Pride accents. */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background: #020617;
+}
+
+.dark .q-app-shell {
+  background: linear-gradient(135deg, #020617, #1e1235 48%, #082f49);
+  color: #e2e8f0;
+}
+
+.dark .q-content-shell {
+  background-color: rgba(2, 6, 23, 0.82);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.dark .q-app-shell .pride-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, .97), rgba(46, 16, 101, .42), rgba(8, 47, 73, .62));
+  border-color: rgba(167, 139, 250, 0.35);
+}
+
+.dark .q-app-shell [class*="bg-white"] {
+  background-color: rgba(15, 23, 42, 0.94);
+}
+
+.dark .q-app-shell [class*="bg-slate-50"],
+.dark .q-app-shell [class*="bg-slate-100"],
+.dark .q-app-shell [class*="bg-slate-200"] {
+  background-color: rgba(30, 41, 59, 0.92);
+}
+
+.dark .q-app-shell [class*="text-slate-950"],
+.dark .q-app-shell [class*="text-slate-900"],
+.dark .q-app-shell [class*="text-slate-800"],
+.dark .q-app-shell [class*="text-slate-700"] {
+  color: #e2e8f0;
+}
+
+.dark .q-app-shell [class*="text-slate-600"],
+.dark .q-app-shell [class*="text-slate-500"],
+.dark .q-app-shell [class*="text-slate-400"] {
+  color: #a5b4fc;
+}
+
+.dark .q-app-shell [class*="border-slate-"],
+.dark .q-app-shell [class*="border-violet-"],
+.dark .q-app-shell [class*="border-purple-"] {
+  border-color: rgba(167, 139, 250, 0.28);
+}
+
+.dark .q-app-shell input,
+.dark .q-app-shell textarea,
+.dark .q-app-shell select {
+  color: #e2e8f0;
+}
+
+.dark .q-app-shell input::placeholder,
+.dark .q-app-shell textarea::placeholder {
+  color: #94a3b8;
+}
+
 /* A restrained 1px moving Pride spectrum for primary card surfaces. */
 .pride-edge,
 main > div > div.rounded-2xl,
