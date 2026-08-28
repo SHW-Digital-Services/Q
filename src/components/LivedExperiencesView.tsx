@@ -191,21 +191,22 @@ export const LivedExperiencesView: React.FC = () => {
 
       {/* Share Story Modal */}
       {showShareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="w-full max-w-lg p-6 rounded-2xl bg-white border border-slate-200 shadow-2xl space-y-4 text-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-base flex items-center gap-2 text-slate-900">
+        <div role="dialog" aria-modal="true" aria-labelledby="share-reflection-title" className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm sm:items-center">
+          <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-white px-5 py-4 sm:px-6">
+              <h3 id="share-reflection-title" className="font-bold text-base flex items-center gap-2 text-slate-900">
                 <Users className="w-5 h-5 text-purple-600" /> Share Anonymous Advice / Reflection
               </h3>
-              <button onClick={() => setShowShareModal(false)} className="text-slate-400 hover:text-slate-700 font-bold">
+              <button type="button" aria-label="Close share reflection form" onClick={() => setShowShareModal(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 font-bold">
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4 text-xs sm:px-6">
               <div>
                 <label className="block text-slate-600 font-medium mb-1">Title</label>
                 <input
+                  autoFocus
                   type="text"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
@@ -262,7 +263,7 @@ export const LivedExperiencesView: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+            <div className="flex shrink-0 justify-end gap-2 border-t border-slate-100 bg-white px-5 py-4 sm:px-6">
               <button
                 onClick={() => setShowShareModal(false)}
                 className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
