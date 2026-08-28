@@ -462,6 +462,53 @@ adminRouter.patch('/crm/products/:id', asyncHandler(async (req, res) => {
   catch (syncError: any) { return res.status(502).json({ error: `Product updated in Q but PayPal sync failed: ${syncError.message}` }); }
 }));
 
+adminRouter.post('/contact-requests', asyncHandler(async (req, res) => {
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim().slice(0, 120) : '';
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const category = ['general', 'account', 'billing', 'privacy', 'technical', 'feedback'].includes(req.body?.category) ? req.body.category : 'general';
+  const subject = typeof req.body?.subject === 'string' ? req.body.subject.trim() : '';
+  const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+  if (req.body?.website) return res.status(202).json({ success: true });
+  if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
+  if (subject.length < 3 || subject.length > 160) return res.status(400).json({ error: 'Subject must be between 3 and 160 characters.' });
+  if (message.length < 10 || message.length > 5000) return res.status(400).json({ error: 'Message must be between 10 and 5,000 characters.' });
+  const serviceSupabase = getServiceSupabase();
+  if (!serviceSupabase) return res.status(503).json({ error: 'Contact requests are temporarily unavailable.' });
+  const recentCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const recent = await serviceSupabase.from('contact_requests').select('id').eq('email', email).gte('created_at', recentCutoff).limit(1);
+  if (recent.error) return res.status(503).json({ error: 'Unable to check the support queue. Please try again.' });
+  if (recent.data?.length) return res.status(429).json({ error: 'A request from this email was recently received. Please wait five minutes before sending another.' });
+  const { data, error } = await serviceSupabase.from('contact_requests').insert({ name: name || null, email, category, subject, message }).select('id,created_at').single();
+  if (error) return res.status(500).json({ error: 'Unable to save your support request.' });
+  return res.status(201).json({ success: true, request: data });
+}));
+
+adminRouter.get('/contact-requests', asyncHandler(async (req, res) => {
+  const staffCtx = await requireStaff(req, res);
+  if (!staffCtx) return;
+  const { data, error } = await staffCtx.serviceSupabase.from('contact_requests').select('*').order('created_at', { ascending: false }).limit(200);
+  if (error) return res.status(500).json({ error: 'Unable to load contact requests.' });
+  return res.json(data ?? []);
+}));
+
+adminRouter.patch('/contact-requests/:id', asyncHandler(async (req, res) => {
+  const staffCtx = await requireStaff(req, res);
+  if (!staffCtx) return;
+  const status = ['new', 'in_progress', 'answered', 'closed'].includes(req.body?.status) ? req.body.status : null;
+  const responseText = typeof req.body?.responseText === 'string' ? req.body.responseText.trim().slice(0, 5000) : undefined;
+  if (!status && responseText === undefined) return res.status(400).json({ error: 'No valid support-request changes supplied.' });
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (status) updates.status = status;
+  if (responseText !== undefined) updates.response_text = responseText || null;
+  if (status === 'answered') {
+    updates.answered_by = staffCtx.identity.user.id;
+    updates.answered_at = new Date().toISOString();
+  }
+  const { data, error } = await staffCtx.serviceSupabase.from('contact_requests').update(updates).eq('id', req.params.id).select('*').single();
+  if (error) return res.status(500).json({ error: 'Unable to update the contact request.' });
+  return res.json(data);
+}));
+
 adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
   try {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';

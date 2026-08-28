@@ -79,9 +79,9 @@ const helpArticles: HelpArticle[] = [
 const categories = ['All', ...Array.from(new Set(helpArticles.map(article => article.category)))];
 
 interface Props {
-  onNavigate: (tab: ActiveTab) => void;
+  onNavigate?: (tab: ActiveTab) => void;
   onOpenCrisis: () => void;
-  onOpenSubscription: () => void;
+  onOpenSubscription?: () => void;
 }
 
 export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubscription }) => {
@@ -118,9 +118,9 @@ export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubs
       </div>
 
       <section className="grid grid-cols-2 gap-2 rounded-2xl bg-white/80 p-3 sm:grid-cols-4">
-        <button onClick={() => onNavigate('chat')} className="min-h-20 rounded-2xl bg-violet-50 p-3 text-left text-xs font-bold text-violet-800 transition hover:bg-violet-100 active:scale-[.98]"><Bot className="mb-2 h-5 w-5" />Open Q Intelligence</button>
-        <button onClick={() => onNavigate('journal')} className="min-h-20 rounded-2xl bg-indigo-50 p-3 text-left text-xs font-bold text-indigo-800 transition hover:bg-indigo-100 active:scale-[.98]"><Notebook className="mb-2 h-5 w-5" />Open Journal</button>
-        <button onClick={onOpenSubscription} className="min-h-20 rounded-2xl bg-rose-50 p-3 text-left text-xs font-bold text-rose-800 transition hover:bg-rose-100 active:scale-[.98]"><CreditCard className="mb-2 h-5 w-5" />Subscription help</button>
+        {onNavigate && <button onClick={() => onNavigate('chat')} className="min-h-20 rounded-2xl bg-violet-50 p-3 text-left text-xs font-bold text-violet-800 transition hover:bg-violet-100 active:scale-[.98]"><Bot className="mb-2 h-5 w-5" />Open Q Intelligence</button>}
+        {onNavigate && <button onClick={() => onNavigate('journal')} className="min-h-20 rounded-2xl bg-indigo-50 p-3 text-left text-xs font-bold text-indigo-800 transition hover:bg-indigo-100 active:scale-[.98]"><Notebook className="mb-2 h-5 w-5" />Open Journal</button>}
+        {onOpenSubscription && <button onClick={onOpenSubscription} className="min-h-20 rounded-2xl bg-rose-50 p-3 text-left text-xs font-bold text-rose-800 transition hover:bg-rose-100 active:scale-[.98]"><CreditCard className="mb-2 h-5 w-5" />Subscription help</button>}
         <button onClick={onOpenCrisis} className="min-h-20 rounded-2xl bg-red-50 p-3 text-left text-xs font-bold text-red-800 transition hover:bg-red-100 active:scale-[.98]"><HeartHandshake className="mb-2 h-5 w-5" />24/7 support</button>
       </section>
 

@@ -14,11 +14,15 @@ import {
   Heart,
   Database,
   Lock as LockIcon,
+  CircleHelp,
+  MessageSquareText,
+  X,
 } from 'lucide-react';
 import { AuthUser } from '../types';
 import { getSupabaseClient, getSupabaseEnvConfig, mapSupabaseUser } from '../services/supabase';
 import { QLogo } from './QLogo';
 import { LegalFooter } from './LegalFooter';
+import { HelpView } from './HelpView';
 
 interface AuthScreenProps {
   onUserSignedIn: (user: AuthUser) => void;
@@ -43,6 +47,28 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   const [forgotMessage, setForgotMessage] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotFeedback, setForgotFeedback] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [contact, setContact] = useState({ name: '', email: '', category: 'general', subject: '', message: '', website: '' });
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactFeedback, setContactFeedback] = useState<string | null>(null);
+
+  const handleContactRequest = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setContactLoading(true);
+    setContactFeedback(null);
+    try {
+      const response = await fetch('/api/v1/admin/contact-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(contact) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to send your message.');
+      setContactFeedback('Your message has been sent to the Q support team.');
+      setContact(current => ({ ...current, subject: '', message: '', website: '' }));
+    } catch (error: any) {
+      setContactFeedback(error.message || 'Unable to send your message.');
+    } finally {
+      setContactLoading(false);
+    }
+  };
 
   const envConfig = getSupabaseEnvConfig();
   const referralCode = new URLSearchParams(window.location.search).get('ref');
@@ -449,9 +475,39 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         </div>
       )}
 
+      {showHelp && (
+        <div role="dialog" aria-modal="true" aria-label="Q Help centre" className="fixed inset-0 z-[80] overflow-y-auto bg-slate-950/80 p-3 backdrop-blur-sm sm:p-6">
+          <div className="mx-auto max-w-5xl rounded-3xl bg-slate-50 p-3 shadow-2xl sm:p-5">
+            <div className="mb-3 flex items-center justify-between px-1"><h2 className="font-black text-slate-900">Q Help centre</h2><button type="button" onClick={() => setShowHelp(false)} aria-label="Close Help centre" className="rounded-full bg-slate-200 p-2 text-slate-700 hover:bg-slate-300"><X className="h-5 w-5" /></button></div>
+            <HelpView onOpenCrisis={() => { setShowHelp(false); onOpenCrisis?.(); }} />
+          </div>
+        </div>
+      )}
+
+      {showContact && (
+        <div role="dialog" aria-modal="true" aria-labelledby="contact-q-title" className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm sm:items-center">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-5 text-slate-900 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-3"><div><h2 id="contact-q-title" className="text-lg font-black">Contact Q support</h2><p className="mt-1 text-xs text-slate-500">Your message will enter the secure Q CRM queue for an authorised staff member to answer.</p></div><button type="button" onClick={() => setShowContact(false)} aria-label="Close contact form" className="rounded-full p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+            <form onSubmit={handleContactRequest} className="mt-5 space-y-3">
+              {contactFeedback && <div className={`rounded-xl border p-3 text-xs font-semibold ${contactFeedback.includes('sent') ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`}>{contactFeedback}</div>}
+              <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-bold text-slate-700">Name (optional)<input value={contact.name} onChange={event => setContact({ ...contact, name: event.target.value })} maxLength={120} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-medium" /></label><label className="text-xs font-bold text-slate-700">Email address<input required type="email" value={contact.email} onChange={event => setContact({ ...contact, email: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-medium" /></label></div>
+              <label className="block text-xs font-bold text-slate-700">What can we help with?<select value={contact.category} onChange={event => setContact({ ...contact, category: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-medium"><option value="general">General question</option><option value="account">Account</option><option value="billing">Billing</option><option value="privacy">Privacy</option><option value="technical">Technical problem</option><option value="feedback">Feedback</option></select></label>
+              <label className="block text-xs font-bold text-slate-700">Subject<input required minLength={3} maxLength={160} value={contact.subject} onChange={event => setContact({ ...contact, subject: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-medium" /></label>
+              <label className="block text-xs font-bold text-slate-700">Message<textarea required minLength={10} maxLength={5000} rows={6} value={contact.message} onChange={event => setContact({ ...contact, message: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-medium" placeholder="Please avoid passwords, payment details, or highly sensitive personal information." /></label>
+              <label className="absolute -left-[10000px]" aria-hidden="true">Website<input tabIndex={-1} autoComplete="off" value={contact.website} onChange={event => setContact({ ...contact, website: event.target.value })} /></label>
+              <button disabled={contactLoading} className="w-full rounded-2xl bg-purple-600 px-4 py-3 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-60">{contactLoading ? 'Sending…' : 'Send to Q support'}</button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Footer Support & Lifeline Link */}
       <div className="w-full z-10">
         <div className="max-w-md mx-auto pb-4 pt-4 text-center space-y-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button type="button" onClick={() => setShowHelp(true)} className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/30 bg-sky-500/20 px-3 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/30"><CircleHelp className="h-3.5 w-3.5" />Help</button>
+            <button type="button" onClick={() => { setContact(current => ({ ...current, email: current.email || email })); setShowContact(true); }} className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/30 bg-purple-500/20 px-3 py-1.5 text-xs font-semibold text-purple-100 transition hover:bg-purple-500/30"><MessageSquareText className="h-3.5 w-3.5" />Contact us</button>
+          </div>
           {onOpenCrisis && (
             <button
               onClick={onOpenCrisis}
