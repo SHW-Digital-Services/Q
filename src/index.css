@@ -220,7 +220,7 @@ input {
   --tw-ring-color: rgba(124, 58, 237, 0.28);
 }
 
-/* A restrained 1px moving Pride spectrum for primary card surfaces. */
+/* A clear 2px moving Pride spectrum for primary card surfaces. */
 .pride-edge,
 main > div > div.rounded-2xl,
 main > div > div.rounded-3xl,
@@ -244,7 +244,7 @@ main article.rounded-3xl {
     position: absolute;
     inset: 0;
     z-index: 20;
-    padding: 1px;
+    padding: 2px;
     border-radius: inherit;
     pointer-events: none;
     background: linear-gradient(115deg, #e11d48, #f97316, #eab308, #10b981, #0ea5e9, #7c3aed, #db2777, #e11d48);
