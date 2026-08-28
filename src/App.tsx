@@ -215,7 +215,7 @@ export default function App() {
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
-  if (!isAppRoute) return <><LandingPage /><button onClick={enableCamouflage} className="fixed bottom-4 right-4 z-40 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-md">Disguise Mode (Alt+M)</button></>;
+  if (!isAppRoute) return <><LandingPage /><button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">Disguise Mode (Alt+M)</button></>;
 
   if (!currentUser) {
     return (
@@ -225,7 +225,7 @@ export default function App() {
           onOpenCrisis={() => setIsCrisisOpen(true)}
         />
         <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
-        <button onClick={enableCamouflage} className="fixed bottom-4 right-4 z-40 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-md">Disguise Mode (Alt+M)</button>
+        <button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">Disguise Mode (Alt+M)</button>
       </>
     );
   }
@@ -312,7 +312,7 @@ export default function App() {
 
       {/* Modals */}
       <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
-      <button onClick={enableCamouflage} className="fixed bottom-4 right-4 z-40 px-3 py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-xs rounded-lg text-slate-200 shadow-md">Disguise Mode (Alt+M)</button>
+      <button onClick={enableCamouflage} className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] right-4 z-40 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 shadow-md hover:bg-slate-700 sm:bottom-4">Disguise Mode (Alt+M)</button>
       <BackupModal
         isOpen={isBackupOpen}
         onClose={() => setIsBackupOpen(false)}
