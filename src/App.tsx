@@ -17,7 +17,6 @@ import { LandingPage } from './components/LandingPage';
 import { getSyncStatus, getSecuritySettings, saveSecuritySettings } from './services/storage';
 import { getSupabaseClient, mapSupabaseUser } from './services/supabase';
 import { SyncStatusState, SecuritySettings, AuthUser } from './types';
-import { QuickExitButton } from './components/QuickExitButton';
 import { FakeNotesApp } from './components/FakeNotesApp';
 import { useCamouflage } from './hooks/useCamouflage';
 
@@ -215,7 +214,7 @@ export default function App() {
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
-  if (!isAppRoute) return <><QuickExitButton /><LandingPage /><button onClick={enableCamouflage} className="fixed bottom-4 right-4 z-40 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-md">Disguise Mode (Alt+M)</button></>;
+  if (!isAppRoute) return <><LandingPage /><button onClick={enableCamouflage} className="fixed bottom-4 right-4 z-40 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-md">Disguise Mode (Alt+M)</button></>;
 
   if (!currentUser) {
     return (
@@ -224,7 +223,6 @@ export default function App() {
           onUserSignedIn={(user) => setCurrentUser(user)}
           onOpenCrisis={() => setIsCrisisOpen(true)}
         />
-        <QuickExitButton />
         <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
         <button onClick={enableCamouflage} className="fixed bottom-4 right-4 z-40 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-md">Disguise Mode (Alt+M)</button>
       </>
@@ -305,7 +303,6 @@ export default function App() {
       )}
 
       {/* Modals */}
-      <QuickExitButton />
       <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
       <button onClick={enableCamouflage} className="fixed bottom-4 right-4 z-40 px-3 py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-xs rounded-lg text-slate-200 shadow-md">Disguise Mode (Alt+M)</button>
       <BackupModal

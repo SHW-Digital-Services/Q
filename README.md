@@ -8,7 +8,7 @@ Q is a privacy-conscious LGBTQ+ wellbeing, life-guidance, and personal-reflectio
 - **Optional hosted AI:** Users can explicitly select the server-hosted OpenAI provider when local WebGPU is unavailable or unsuitable. Client-side PII masking is applied before hosted requests.
 - **Per-user memory:** User-approved memories are stored in Supabase and protected by Row Level Security. Relevant memories are retrieved only for the authenticated user.
 - **Crisis support:** A static, offline-capable country directory provides one-tap emergency, phone, text, and chat actions. Crisis intent is checked before model inference.
-- **Safety controls:** Quick Exit, cross-tab exit, camouflage mode, privacy lock, and local-data deletion are built into the application.
+- **Safety controls:** a single discreet Notes mode, privacy lock, and local-data controls are built into the application.
 - **Journaling and mood tracking:** Private local/cloud-backed reflection tools with user controls.
 - **Operations:** PayPal subscriptions, staff access controls, and optional Zoho Bigin CRM synchronization.
 

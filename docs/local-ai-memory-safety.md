@@ -39,9 +39,9 @@ Country selection follows this order:
 
 No IP-geolocation request is made. Users can manually change the country in the crisis modal. Helpline availability can change, so entries should be reviewed regularly by the product owner.
 
-## Quick Exit and camouflage
+## Discreet Notes mode
 
-- **Quick Exit:** visible globally and activated by clicking or pressing Escape twice within 500 ms.
+- **Discreet Notes:** the single visible safety control immediately replaces Q with a functional neutral notes interface. The Alt+M shortcut provides the same transition.
 - **Cross-tab exit:** uses `BroadcastChannel`, with a `storage` event fallback, to redirect other Q tabs.
 - **Navigation:** `window.location.replace()` opens a neutral destination without retaining the current Q entry as the immediately previous history item.
 - **Session purge:** clears session storage, temporary Q keys, and Supabase browser auth tokens before redirecting.
@@ -49,7 +49,7 @@ No IP-geolocation request is made. Users can manually change the country in the 
 - **Protected reveal:** four quick clicks on the QuickNotes icon reveal an unlock prompt when an app PIN is configured.
 - **Media and notifications:** entering camouflage pauses/mutes current media and sends a state message to registered service workers so notification implementations can suppress sensitive content.
 
-Browser history predating the current entry, operating-system logs, DNS/network records, downloaded model files, and browser-managed caches cannot be guaranteed erased by Quick Exit.
+Browser history predating the current entry, operating-system logs, DNS/network records, downloaded model files, and browser-managed caches are not erased by entering Notes mode.
 
 ## Local deletion
 
@@ -63,4 +63,4 @@ Browser history predating the current entry, operating-system logs, DNS/network 
 4. Keep `OPENAI_API_KEY` server-side and omit it entirely for a local-only deployment.
 5. Test first-load model progress, cached offline generation, unsupported-WebGPU messaging, and explicit hosted selection.
 6. Test crisis interception with the hosted API unavailable.
-7. Test Quick Exit and camouflage across multiple tabs.
+7. Test Notes mode and its discreet return control on mobile and desktop.

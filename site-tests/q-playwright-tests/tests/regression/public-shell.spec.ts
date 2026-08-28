@@ -6,7 +6,7 @@ test.describe('Regression - Public Shell', () => {
 
     await expect(page.locator('main')).toBeVisible();
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Quick Exit' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Disguise Mode/i })).toBeVisible();
   });
 
   test('retains the protected application entry screen', async ({ page }) => {
@@ -17,4 +17,3 @@ test.describe('Regression - Public Shell', () => {
     await expect(page.locator('input[type="password"]')).toBeVisible();
   });
 });
-
