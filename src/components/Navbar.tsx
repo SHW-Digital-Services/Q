@@ -1,9 +1,9 @@
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sun, Moon, MessageCircle, BookOpen, Users, Notebook, CreditCard, LogOut, UserCircle } from 'lucide-react';
+import { Sun, Moon, MessageCircle, BookOpen, Users, Notebook, CreditCard, LogOut, UserCircle, CircleHelp } from 'lucide-react';
 import { QLogo } from './QLogo';
 
-export type ActiveTab = 'chat' | 'guides' | 'stories' | 'journal' | 'profile';
+export type ActiveTab = 'chat' | 'guides' | 'stories' | 'journal' | 'profile' | 'help';
 
 interface Props {
   activeTab: ActiveTab;
@@ -37,9 +37,10 @@ export const Navbar: React.FC<Props> = ({
   const navItems = [
     { id: 'chat' as const, label: 'Q Intelligence', shortLabel: 'Q', icon: MessageCircle, activeClass: 'bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-fuchsia-500/25' },
     { id: 'guides' as const, label: 'Life Guides', shortLabel: 'Guides', icon: BookOpen, activeClass: 'bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-orange-500/25' },
-    { id: 'stories' as const, label: 'Peer Knowledge', shortLabel: 'Community', icon: Users, activeClass: 'bg-gradient-to-br from-emerald-500 to-sky-600 text-white shadow-sky-500/25' },
+    { id: 'stories' as const, label: 'Peer Knowledge', shortLabel: 'Peers', icon: Users, activeClass: 'bg-gradient-to-br from-emerald-500 to-sky-600 text-white shadow-sky-500/25' },
     { id: 'journal' as const, label: 'Private Journal', shortLabel: 'Journal', icon: Notebook, activeClass: 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-indigo-500/25' },
-    { id: 'profile' as const, label: 'Profile', shortLabel: 'Profile', icon: UserCircle, activeClass: 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-pink-500/25' }
+    { id: 'profile' as const, label: 'Profile', shortLabel: 'Profile', icon: UserCircle, activeClass: 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-pink-500/25' },
+    { id: 'help' as const, label: 'Help', shortLabel: 'Help', icon: CircleHelp, activeClass: 'bg-gradient-to-br from-sky-500 to-violet-600 text-white shadow-sky-500/25' }
   ];
 
   const { theme, toggleTheme } = useTheme();
@@ -144,7 +145,7 @@ export const Navbar: React.FC<Props> = ({
 
       <nav className="mobile-safe-bottom sticky bottom-0 z-40 border-t border-purple-100/80 bg-white/95 shadow-[0_-10px_30px_rgba(88,28,135,0.08)] backdrop-blur-xl sm:hidden">
         <div className="mx-auto max-w-md px-2 pt-2">
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-6 gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = activeTab === item.id;

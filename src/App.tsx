@@ -14,6 +14,7 @@ import { AuthModal } from './components/AuthModel';
 import { AuthScreen } from './components/AuthScreen';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { LandingPage } from './components/LandingPage';
+import { HelpView } from './components/HelpView';
 import { getSyncStatus, getSecuritySettings, saveSecuritySettings } from './services/storage';
 import { getSupabaseClient, mapSupabaseUser } from './services/supabase';
 import { SyncStatusState, SecuritySettings, AuthUser } from './types';
@@ -282,6 +283,13 @@ export default function App() {
               onOpenSecurity={() => setIsSecurityOpen(true)}
               onOpenSubscription={() => setIsSubscriptionOpen(true)}
               onSignOut={handleSignOut}
+            />
+          )}
+          {activeTab === 'help' && (
+            <HelpView
+              onNavigate={setActiveTab}
+              onOpenCrisis={() => setIsCrisisOpen(true)}
+              onOpenSubscription={() => setIsSubscriptionOpen(true)}
             />
           )}
         </main>
