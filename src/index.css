@@ -87,6 +87,43 @@ input {
   box-shadow: 0 12px 35px rgba(88, 28, 135, 0.08);
 }
 
+/* A restrained 1px moving Pride spectrum for primary card surfaces. */
+.pride-edge,
+main > div > div.rounded-2xl,
+main > div > div.rounded-3xl,
+main section.rounded-2xl,
+main section.rounded-3xl,
+main article.rounded-2xl,
+main article.rounded-3xl {
+  position: relative;
+  isolation: isolate;
+}
+
+@supports ((-webkit-mask-composite: xor) or (mask-composite: exclude)) {
+  .pride-edge::after,
+  main > div > div.rounded-2xl::after,
+  main > div > div.rounded-3xl::after,
+  main section.rounded-2xl::after,
+  main section.rounded-3xl::after,
+  main article.rounded-2xl::after,
+  main article.rounded-3xl::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    padding: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(115deg, #e11d48, #f97316, #eab308, #10b981, #0ea5e9, #7c3aed, #db2777, #e11d48);
+    background-size: 300% 300%;
+    animation: rainbowSweep 7s linear infinite;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

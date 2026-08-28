@@ -216,7 +216,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
   return (
     <div className="mx-auto flex h-[calc(100dvh-15rem)] min-h-80 max-w-4xl flex-col gap-3 sm:h-[calc(100dvh-9rem)]">
       {/* Top Controls Bar */}
-      <div className="pride-card relative flex items-center justify-between overflow-hidden rounded-3xl p-3.5">
+      <div className="pride-card pride-edge relative flex items-center justify-between overflow-hidden rounded-3xl p-3.5">
         <div className="pride-spectrum absolute inset-x-0 top-0 h-1" />
         <div className="flex items-center gap-3">
           <QLogo size="md" className="shadow-lg" />
@@ -295,7 +295,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
 
 
       {/* Main Conversation Canvas */}
-      <div className="flex-1 overflow-y-auto space-y-3.5 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+      <div className="pride-edge flex-1 overflow-y-auto space-y-3.5 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
         {messages.map((msg) => {
           const isAI = msg.sender === 'q_ai';
           return (
@@ -405,7 +405,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
           e.preventDefault();
           handleSendMessage();
         }}
-        className="flex items-center gap-2 rounded-3xl border border-violet-200 bg-white/95 p-2 shadow-xl shadow-violet-950/10 ring-4 ring-violet-100/60"
+        className="pride-edge flex items-center gap-2 rounded-3xl border border-violet-200 bg-white/95 p-2 shadow-xl shadow-violet-950/10 ring-4 ring-violet-100/60"
       >
         <span
           title={inputPrompt.trim() ? 'PII shield active: this message will be masked before leaving your device' : 'PII shield ready'}
