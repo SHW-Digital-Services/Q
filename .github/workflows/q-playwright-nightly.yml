@@ -7,9 +7,13 @@ on:
 
 jobs:
   nightly:
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit]
     uses: ./.github/workflows/q-playwright-run.yml
     secrets: inherit
     with:
-      test-command: npm run test:e2e
-      install-browsers: all
-
+      test-command: npm run test:e2e -- --project=${{ matrix.project }} --workers=4
+      install-browsers: ${{ matrix.project }}
+      artifact_suffix: nightly-${{ matrix.project }}

@@ -30,6 +30,6 @@ export const LegalFooter = () => (
     <div className="mt-6 text-slate-400">
       © {new Date().getFullYear()} Q Life Operating System. All rights reserved.
     </div>
-    <div className="mt-2 text-slate-500 font-semibold">Built with Llama</div>
+    <div className="mt-2 text-slate-400 font-semibold">Built with Llama</div>
   </footer>
 );
