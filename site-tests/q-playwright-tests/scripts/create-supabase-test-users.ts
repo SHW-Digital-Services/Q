@@ -95,7 +95,21 @@ for (const definition of users) {
     authUser = created.data.user;
     console.log(`Created ${email}`);
   } else {
-    console.log(`Kept existing Auth user ${email}`);
+    const updated = await supabase.auth.admin.updateUserById(authUser.id, {
+      password: definition.password!,
+      email_confirm: true,
+      user_metadata: {
+        name: definition.name,
+        q_test_account: true
+      }
+    });
+
+    if (updated.error) {
+      throw new Error(`Could not refresh ${email}: ${updated.error.message}`);
+    }
+
+    authUser = updated.data.user;
+    console.log(`Refreshed ${email}`);
   }
 
   const profile = await supabase
