@@ -232,13 +232,14 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 selection:bg-purple-600 selection:text-white font-sans antialiased flex flex-col relative overflow-x-hidden">
-      {/* Background subtle purple & silver ambient light */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-200/40 rounded-full blur-[150px] pointer-events-none -z-10" />
-      <div className="fixed bottom-0 right-1/4 w-[500px] h-[500px] bg-slate-200/50 rounded-full blur-[140px] pointer-events-none -z-10" />
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 font-sans text-slate-900 antialiased selection:bg-fuchsia-600 selection:text-white">
+      {/* Soft Pride-spectrum ambient colour keeps content readable while adding identity. */}
+      <div className="pointer-events-none fixed -left-24 top-10 -z-10 h-72 w-72 rounded-full bg-rose-300/25 blur-[90px]" />
+      <div className="pointer-events-none fixed -right-28 top-1/3 -z-10 h-80 w-80 rounded-full bg-sky-300/25 blur-[100px]" />
+      <div className="pointer-events-none fixed bottom-0 left-1/3 -z-10 h-72 w-72 rounded-full bg-violet-300/25 blur-[100px]" />
 
       {/* Mobile-First App Shell Container */}
-      <div className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto min-h-screen bg-slate-50 sm:border-x border-slate-200/80 sm:shadow-xl flex flex-col relative pb-20 sm:pb-0">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col bg-white/72 pb-24 shadow-2xl shadow-purple-950/5 backdrop-blur-xl sm:max-w-2xl sm:border-x sm:border-white/70 sm:pb-0 lg:max-w-5xl">
         {/* Main Navigation (Sticky Header & Bottom Nav) */}
         <Navbar
           activeTab={activeTab}
@@ -259,7 +260,7 @@ export default function App() {
         />
 
         {/* Main Content Viewport */}
-        <main className="flex-1 p-3 sm:p-5">
+        <main className="flex-1 p-3 sm:p-5 lg:p-6">
           {activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} />}
           {activeTab === 'guides' && <LifeGuidesView />}
           {activeTab === 'stories' && <LivedExperiencesView />}

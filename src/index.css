@@ -2,8 +2,24 @@
 
 html,
 body {
+  min-height: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  background: #f8f7ff;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+button,
+a,
+select,
+input {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(147, 51, 234, 0.35);
+  outline-offset: 2px;
 }
 
 @layer utilities {
@@ -13,6 +29,14 @@ body {
   .scrollbar-none {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  .mobile-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .mobile-safe-bottom {
+    padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
   }
 }
 
@@ -39,6 +63,39 @@ body {
 
 .animate-fade-in {
   animation: fadeIn 0.2s ease-out forwards;
+}
+
+.pride-spectrum {
+  background-image: linear-gradient(110deg, #e11d48 0%, #f97316 18%, #eab308 34%, #10b981 50%, #0ea5e9 66%, #7c3aed 82%, #db2777 100%);
+}
+
+.pride-topline {
+  position: relative;
+}
+
+.pride-topline::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background-image: linear-gradient(90deg, #e11d48, #f97316, #eab308, #10b981, #0ea5e9, #7c3aed, #db2777);
+}
+
+.pride-card {
+  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(250,245,255,.92) 45%, rgba(240,249,255,.92));
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  box-shadow: 0 12px 35px rgba(88, 28, 135, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .rainbow-border {

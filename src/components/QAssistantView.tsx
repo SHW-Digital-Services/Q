@@ -214,9 +214,10 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
   ];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6.5rem)] max-w-4xl mx-auto gap-3">
+    <div className="mx-auto flex h-[calc(100dvh-15rem)] min-h-80 max-w-4xl flex-col gap-3 sm:h-[calc(100dvh-9rem)]">
       {/* Top Controls Bar */}
-      <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+      <div className="pride-card relative flex items-center justify-between overflow-hidden rounded-3xl p-3.5">
+        <div className="pride-spectrum absolute inset-x-0 top-0 h-1" />
         <div className="flex items-center gap-3">
           <QLogo size="md" className="shadow-lg" />
           <div>
@@ -315,8 +316,8 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
               <div
                 className={`p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm leading-relaxed space-y-3 ${
                   isAI
-                    ? 'bg-slate-50 border border-slate-200 text-slate-800 shadow-sm'
-                    : 'bg-purple-600 text-white font-medium shadow-sm'
+                    ? 'border border-violet-100 bg-gradient-to-br from-white to-violet-50 text-slate-800 shadow-sm'
+                    : 'bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 text-white font-medium shadow-lg shadow-fuchsia-500/15'
                 }`}
               >
                 <div className="whitespace-pre-wrap">{msg.text}</div>
@@ -390,9 +391,9 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
           <button
             key={idx}
             onClick={() => handleSendMessage(prompt.text)}
-            className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 hover:border-purple-300 text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 shadow-sm active:scale-95"
+            className={`flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-2xl border px-3.5 py-2.5 text-xs font-semibold shadow-sm transition-all active:scale-95 ${['border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100','border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100','border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100','border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100'][idx % 4]}`}
           >
-            <Zap className="w-3.5 h-3.5 text-purple-600" />
+            <Zap className="h-3.5 w-3.5" />
             {prompt.title}
           </button>
         ))}
@@ -404,7 +405,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
           e.preventDefault();
           handleSendMessage();
         }}
-        className="flex items-center gap-2 p-2 rounded-2xl bg-white border border-slate-200 shadow-md"
+        className="flex items-center gap-2 rounded-3xl border border-violet-200 bg-white/95 p-2 shadow-xl shadow-violet-950/10 ring-4 ring-violet-100/60"
       >
         <span
           title={inputPrompt.trim() ? 'PII shield active: this message will be masked before leaving your device' : 'PII shield ready'}
@@ -428,7 +429,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         <button
           type="submit"
           disabled={!inputPrompt.trim() || isLoading}
-          className="p-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-40 transition-all shadow-sm font-semibold active:scale-95 shrink-0"
+          className="pride-spectrum shrink-0 rounded-2xl p-3 text-white shadow-lg shadow-fuchsia-500/20 transition-all hover:brightness-105 active:scale-95 disabled:opacity-40"
         >
           <Send className="w-4 h-4" />
         </button>
