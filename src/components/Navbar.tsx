@@ -48,16 +48,16 @@ export const Navbar: React.FC<Props> = ({
     <>
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 text-slate-800 shadow-sm">
         <div className="px-3 sm:px-5">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setActiveTab('chat')}>
+          <div className="flex min-h-14 items-center gap-3 py-2 sm:min-h-16">
+            <div className="flex shrink-0 items-center gap-2.5 cursor-pointer" onClick={() => setActiveTab('chat')}>
               <QLogo size="sm" />
-              <div className="hidden sm:block">
+              <div>
                 <p className="text-sm font-semibold tracking-tight">Q</p>
-                <p className="text-[11px] text-slate-500">Safe support</p>
+                <p className="hidden text-[11px] text-slate-500 sm:block">Safe support</p>
               </div>
             </div>
 
-            <nav className="hidden lg:flex items-center gap-1 rounded-2xl border border-slate-200 bg-slate-100 p-1">
+            <nav aria-label="Primary navigation" className="hidden min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-100 p-1 sm:flex">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = activeTab === item.id;
@@ -66,7 +66,7 @@ export const Navbar: React.FC<Props> = ({
                     key={item.id}
                     type="button"
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-bold transition ${
+                    className={`flex shrink-0 items-center gap-1.5 rounded-xl px-2 py-1.5 text-[10px] font-bold transition lg:px-2.5 lg:text-[11px] ${
                       active
                         ? 'bg-white text-purple-800 shadow-sm'
                         : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'
@@ -79,7 +79,25 @@ export const Navbar: React.FC<Props> = ({
               })}
             </nav>
 
-            <div className="hidden sm:flex items-center gap-2">
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pb-2 pt-2 sm:hidden">
+            <button
+              onClick={onOpenCrisis}
+              className="flex min-h-10 items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 shadow-sm transition-all hover:bg-red-100"
+            >
+              24/7 Helpline
+            </button>
+            <button
+              onClick={onOpenSubscription}
+              className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-3 py-2 text-xs font-bold text-white shadow-lg shadow-purple-500/20 transition-all hover:brightness-105"
+            >
+              <CreditCard className="h-4 w-4" />
+              Subscribe
+            </button>
+          </div>
+
+          <div className="hidden items-center justify-end gap-2 border-t border-slate-100 py-2 sm:flex">
               <button
                 onClick={toggleTheme}
                 title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
@@ -119,7 +137,6 @@ export const Navbar: React.FC<Props> = ({
                 <LogOut className="w-4 h-4" />
                 <span>Sign Out</span>
               </button>
-            </div>
           </div>
         </div>
 
