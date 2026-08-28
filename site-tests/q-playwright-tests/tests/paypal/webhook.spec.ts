@@ -5,6 +5,6 @@ test.describe('PayPal Webhook', () => {
     const response = await request.post('/api/billing/paypal/webhook', {
       data: { id: 'unsigned-placeholder', event_type: 'BILLING.SUBSCRIPTION.ACTIVATED' }
     });
-    expect([400, 401, 403, 404]).toContain(response.status());
+    expect([400, 401, 403, 404, 503]).toContain(response.status());
   });
 });

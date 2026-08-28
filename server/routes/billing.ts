@@ -149,8 +149,7 @@ async function qualifyReferralAndApplyCredit(db: any, event: any, subscription: 
 }
 
 async function verifyPayPalWebhook(req: express.Request) {
-  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
-  if (!webhookId) throw new Error('PAYPAL_WEBHOOK_ID is not configured.');
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID!;
   const fields = {
     transmission_id: req.header('paypal-transmission-id'), transmission_time: req.header('paypal-transmission-time'),
     cert_url: req.header('paypal-cert-url'), auth_algo: req.header('paypal-auth-algo'), transmission_sig: req.header('paypal-transmission-sig')
@@ -163,6 +162,9 @@ async function verifyPayPalWebhook(req: express.Request) {
 
 // POST /api/billing/paypal/webhook - PayPal is authoritative for billing state.
 billingRouter.post('/paypal/webhook', asyncHandler(async (req, res) => {
+  if (!process.env.PAYPAL_WEBHOOK_ID) {
+    return res.status(503).json({ error: 'PayPal webhook verification is unavailable.' });
+  }
   if (!(await verifyPayPalWebhook(req))) return res.status(400).json({ error: 'Invalid PayPal webhook signature.' });
   const serviceSupabase = getServiceSupabase();
   if (!serviceSupabase) return res.status(503).json({ error: 'Billing database is unavailable.' });

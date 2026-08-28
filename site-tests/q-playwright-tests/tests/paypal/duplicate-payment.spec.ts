@@ -5,6 +5,6 @@ test.describe('Duplicate PayPal Payment', () => {
     const response = await request.post('/api/billing/paypal/webhook', {
       data: { id: 'duplicate-placeholder', event_type: 'PAYMENT.CAPTURE.COMPLETED' }
     });
-    expect([400, 401, 403, 404]).toContain(response.status());
+    expect([400, 401, 403, 404, 503]).toContain(response.status());
   });
 });
