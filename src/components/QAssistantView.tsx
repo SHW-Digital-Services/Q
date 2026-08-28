@@ -296,7 +296,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
 
 
       {/* Main Conversation Canvas */}
-      <div className="pride-edge min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="q-ai-canvas pride-edge min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="h-full space-y-3.5 overflow-y-auto p-3.5 sm:p-4">
           {messages.map((msg) => {
           const isAI = msg.sender === 'q_ai';
@@ -318,8 +318,8 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
               <div
                 className={`p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm leading-relaxed space-y-3 ${
                   isAI
-                    ? 'border border-violet-100 bg-gradient-to-br from-white to-violet-50 text-slate-800 shadow-sm'
-                    : 'bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 text-white font-medium shadow-lg shadow-fuchsia-500/15'
+                    ? 'q-ai-assistant-message border border-violet-100 bg-gradient-to-br from-white to-violet-50 text-slate-800 shadow-sm'
+                    : 'q-ai-user-message bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 text-white font-medium shadow-lg shadow-fuchsia-500/15'
                 }`}
               >
                 <div className="whitespace-pre-wrap">{msg.text}</div>
@@ -361,7 +361,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
 
                 {/* Footer Controls for AI messages */}
                 {isAI && (
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200 text-[10px] text-slate-500">
+                  <div className="q-ai-message-meta flex items-center justify-between pt-2 border-t border-slate-200 text-[10px] text-slate-500">
                     <span>Q Intelligence • {msg.timestamp}</span>
                     <button
                       onClick={() => handleSaveToGuides(msg)}
@@ -408,7 +408,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
           e.preventDefault();
           handleSendMessage();
         }}
-        className="pride-edge flex items-center gap-2 rounded-3xl border border-violet-200 bg-white/95 p-2 shadow-xl shadow-violet-950/10 ring-4 ring-violet-100/60"
+        className="q-ai-composer pride-edge flex items-center gap-2 rounded-3xl border border-violet-200 bg-white/95 p-2 shadow-xl shadow-violet-950/10 ring-4 ring-violet-100/60"
       >
         <span
           title={inputPrompt.trim() ? 'PII shield active: this message will be masked before leaving your device' : 'PII shield ready'}

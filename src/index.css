@@ -179,6 +179,47 @@ input {
   color: #94a3b8;
 }
 
+.dark .q-app-shell [class*="from-white"] {
+  background-image: linear-gradient(135deg, #111827, #1e1b4b);
+}
+
+.dark .q-app-shell .q-ai-canvas {
+  background: #020617;
+  border-color: rgba(167, 139, 250, 0.38);
+}
+
+.dark .q-app-shell .q-ai-assistant-message {
+  background: linear-gradient(135deg, #172033, #251642);
+  border-color: rgba(196, 181, 253, 0.35);
+  color: #f8fafc;
+}
+
+.dark .q-app-shell .q-ai-assistant-message strong,
+.dark .q-app-shell .q-ai-assistant-message b,
+.dark .q-app-shell .q-ai-assistant-message li {
+  color: #f8fafc;
+}
+
+.dark .q-app-shell .q-ai-message-meta {
+  color: #c4b5fd;
+  border-color: rgba(196, 181, 253, 0.25);
+}
+
+.dark .q-app-shell .q-ai-assistant-message button,
+.dark .q-app-shell .q-ai-assistant-message a {
+  color: #ddd6fe;
+}
+
+.dark .q-app-shell .q-ai-user-message {
+  color: #fff;
+}
+
+.dark .q-app-shell .q-ai-composer {
+  background: rgba(15, 23, 42, 0.98);
+  border-color: rgba(196, 181, 253, 0.42);
+  --tw-ring-color: rgba(124, 58, 237, 0.28);
+}
+
 /* A restrained 1px moving Pride spectrum for primary card surfaces. */
 .pride-edge,
 main > div > div.rounded-2xl,
