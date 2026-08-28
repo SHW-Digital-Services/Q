@@ -44,7 +44,7 @@ jobs:
 
   deploy:
     name: Apply migrations to production
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
