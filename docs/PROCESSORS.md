@@ -1,9 +1,9 @@
 ---
 title: Processor Register
 description: Sub-processor and Processor Register for Q Intelligence
-version: 1.1.0
+version: 1.2.0
 effective_date: 02/08/2026
-last_updated: 26/08/2026
+last_updated: 28/08/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 jurisdiction: Worldwide
@@ -24,10 +24,20 @@ This register supports transparency under applicable data protection legislation
 | Provider | Purpose | Data Processed |
 |----------|---------|----------------|
 | Supabase | Authentication, PostgreSQL database, object storage, user sessions | Account information, authentication data, uploaded files, application data |
-| OpenAI | Optional hosted AI model processing selected by the user | PII-masked prompts and context submitted for hosted processing, AI responses |
+| OpenAI | Optional hosted AI model processing explicitly selected by the user | PII-masked prompts, recent chat context, selected profile context, relevant opted-in memory, AI responses, and technical usage metadata |
+| PayPal | Subscription billing and payment processing | Billing information, payment identifiers, transaction records |
 
 WebLLM performs inference on the user's device and is not used by Q as a processor of prompts on Q's behalf. A user's browser contacts model-distribution infrastructure to download the WebLLM runtime and model assets; those services may process ordinary network metadata under their own policies.
-| PayPal | Subscription billing and payment processing | Billing information, payment identifiers, transaction records |
+
+For hosted OpenAI processing, OpenAI acts as a processor under its Services Agreement and Data Processing Addendum. OpenAI states that API inputs and outputs are not used to train its models by default unless the API customer explicitly opts in. Standard API abuse-monitoring logs may retain customer content and associated metadata for up to 30 days unless a different approved retention control applies or law requires longer retention.
+
+Current governing and transparency documents:
+
+- OpenAI Services Agreement: https://openai.com/en-GB/policies/services-agreement/
+- OpenAI Service Terms: https://openai.com/policies/service-terms/
+- OpenAI Data Processing Addendum (effective 1 January 2026): https://openai.com/policies/data-processing-addendum/
+- OpenAI Sub-processor List: https://openai.com/policies/sub-processor-list/
+- OpenAI API data controls: https://platform.openai.com/docs/models/default-usage-policies-by-endpoint
 
 ---
 
@@ -137,7 +147,8 @@ This Register should be read together with:
 
 | Version | Date | Summary |
 |---------|------|---------|
-| 1.0.0 | **[TO BE COMPLETED]** | Initial public release. |
+| 1.2.0 | 28/08/2026 | Added current OpenAI API terms, DPA, retention, and sub-processor disclosures. |
+| 1.1.0 | 26/08/2026 | Added local and hosted AI processing disclosures. |
 
 ---
 

@@ -21,6 +21,7 @@ import { QLogo } from './QLogo';
 import { detectUserCountry } from '../services/localeDetection';
 import { generateLocalReply, isWebLlmSupported, WEBLLM_MODEL } from '../services/webLlm';
 import { hasCrisisIntent } from '../services/crisisDetection';
+import { getSupabaseClient } from '../services/supabase';
 
 interface QAssistantViewProps {
   onOpenReflection?: () => void;
@@ -125,7 +126,10 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         data = { reply, actionItems: [], model: WEBLLM_MODEL };
         setModelProgress(null);
       } else {
-        const response = await fetch('/api/q-ai/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: finalPrompt, history: sanitizeChatHistory(updatedMessages.slice(-6)), userProfile: sanitizeProfileForExternalService(profile), trustedKnowledge, countryCode }) });
+        const supabase = getSupabaseClient();
+        const { data: sessionData } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
+        if (!sessionData.session?.access_token) throw new Error('Sign in to use hosted AI, or select private local AI.');
+        const response = await fetch('/api/q-ai/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session.access_token}` }, body: JSON.stringify({ message: finalPrompt, history: sanitizeChatHistory(updatedMessages.slice(-6)), userProfile: sanitizeProfileForExternalService(profile), trustedKnowledge, countryCode }) });
         data = await response.json();
         if (!response.ok) { const detail = [data.error, data.detail, data.model ? `Model: ${data.model}` : ''].filter(Boolean).join('\n'); throw new Error(detail || 'Q chat service unavailable.'); }
       }
@@ -280,7 +284,13 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         </div>
       )}
 
-      {aiProvider === 'local' && <div className={`px-3 py-2 rounded-xl border text-[11px] ${isWebLlmSupported() ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>{isWebLlmSupported() ? 'WebLLM runs responses on this device. The first use downloads and caches a model of roughly 900 MB.' : 'Local AI needs a WebGPU-capable browser. Select Hosted AI to use the server instead.'}</div>}
+      <div role="status" className={`px-3 py-2 rounded-xl border text-[11px] ${aiProvider === 'local' ? (isWebLlmSupported() ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-amber-50 border-amber-200 text-amber-800') : 'bg-purple-50 border-purple-200 text-purple-900'}`}>
+        <strong>{aiProvider === 'local' ? 'Selected: Private local processing.' : 'Selected: Hosted OpenAI processing.'}</strong>{' '}
+        {aiProvider === 'local'
+          ? (isWebLlmSupported() ? 'Prompts and generation stay in this browser. The first use downloads and caches a model of roughly 900 MB.' : 'Local AI needs a WebGPU-capable browser. Select Hosted AI to use the server instead.')
+          : 'PII-masked prompt, recent chat context, selected profile context, and relevant opted-in memory are sent to Q’s server and OpenAI. Usage limits apply.'}
+        <span className="ml-1 font-semibold">Built with Llama.</span>
+      </div>
 
 
       {/* Main Conversation Canvas */}

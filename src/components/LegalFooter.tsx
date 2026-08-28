@@ -10,6 +10,7 @@ const legalLinks = [
   { name: 'Privacy Policy', path: '/legal/privacy' },
   { name: 'Security Policy', path: '/legal/security' },
   { name: 'Terms of Service', path: '/legal/terms' },
+  { name: 'Third-Party Notices', path: '/legal/third_party_notices' },
 ];
 
 export const LegalFooter = () => (
@@ -29,5 +30,6 @@ export const LegalFooter = () => (
     <div className="mt-6 text-slate-400">
       © {new Date().getFullYear()} Q Life Operating System. All rights reserved.
     </div>
+    <div className="mt-2 text-slate-500 font-semibold">Built with Llama</div>
   </footer>
 );

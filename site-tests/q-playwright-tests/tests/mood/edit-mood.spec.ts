@@ -10,13 +10,10 @@ test.describe('Edit Mood', () => {
     // Wait for login to finish
     await expect(page.getByText(/Private Journal/i).first()).toBeVisible();
     await openAppTab(page, 'Private Journal');
-    
-    // FIX: Click the 'Log Mood' button to reveal the mood faces
-    await page.getByRole('button', { name: /log mood/i }).click();
-    
-    const mood = page.getByText('Okay', { exact: true });
+
+    const mood = page.getByRole('button', { name: /okay.*3\/5/i });
     await mood.click();
-    
-    await expect(mood).toBeVisible();
+
+    await expect(page.getByText('Saved', { exact: true })).toBeVisible();
   });
 });

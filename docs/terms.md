@@ -1,9 +1,9 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.1.0
+version: 1.2.0
 effective_date: 02/08/2026
-last_updated: 26/08/2026
+last_updated: 28/08/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -85,6 +85,8 @@ Additional requirements are set out in our Acceptable Use Policy, which forms pa
 # 6. AI Services
 
 Q Intelligence provides AI-assisted features through on-device WebLLM models and optional hosted language models, currently supplied through OpenAI when selected and configured.
+
+The processing mode displayed in Q Intelligence controls where AI generation occurs. In local mode, generation occurs in the user's browser. In hosted mode, the masked prompt and disclosed context are transmitted to Q Intelligence and OpenAI. Hosted use requires an authenticated account and is subject to per-minute and daily usage limits. OpenAI's current Services Agreement, Service Terms, and Data Processing Addendum apply to our API use and are linked from the Processor Register.
 
 AI responses are generated automatically and may:
 

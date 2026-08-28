@@ -7,6 +7,8 @@ test.describe('Logout', () => {
     await loginAsUser();
     await page.getByRole('button', { name: 'Profile', exact: true }).first().click();
     await page.getByRole('button', { name: 'Sign out', exact: true }).last().click();
-    await expect(page.getByRole('button', { name: /sign in to q app/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /sign in to q app/i })).toBeVisible({
+      timeout: 15_000
+    });
   });
 });

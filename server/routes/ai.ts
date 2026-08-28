@@ -2,7 +2,7 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { redactPii } from '../../src/services/pii.js';
-import { asyncHandler } from '../middleware.js';
+import { asyncHandler, getAuthenticatedUser } from '../middleware.js';
 import { crisisDirectory, globalFallback } from '../../src/data/crisisHelplines.js';
 import { hasCrisisIntent } from '../../src/services/crisisDetection.js';
 
@@ -11,6 +11,8 @@ export const aiRouter = express.Router();
 const DEFAULT_FREE_MODEL = 'gpt-5-nano';
 const DEFAULT_PAID_MODEL = 'gpt-5-mini';
 const DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small';
+const MAX_MESSAGE_CHARACTERS = 8_000;
+const MAX_OUTPUT_TOKENS = 500;
 export function checkCrisisTrigger(message: string, countryCode = 'GB') {
   if (!hasCrisisIntent(message)) return { isCrisis: false as const };
   const normalizedCountry = countryCode.trim().toUpperCase();
@@ -123,27 +125,41 @@ function buildChatPrompt(body: any) {
 aiRouter.post('/chat', asyncHandler(async (req, res) => {
   const { message, prompt } = buildChatPrompt(req.body);
   if (!message) return res.status(400).json({ error: 'Valid message required.' });
+  if (message.length > MAX_MESSAGE_CHARACTERS) return res.status(413).json({ error: `Hosted AI messages are limited to ${MAX_MESSAGE_CHARACTERS.toLocaleString()} characters.` });
 
   const requestedCountry = typeof req.body?.countryCode === 'string' ? req.body.countryCode : 'GLOBAL';
   const crisis = checkCrisisTrigger(message, requestedCountry);
   if (crisis.isCrisis) return res.json({ reply: crisis.message, actionItems: [], ...crisis });
 
+  const identity = await getAuthenticatedUser(req);
+  if (!identity) return res.status(401).json({ error: 'Sign in to use hosted AI, or select private local AI.' });
+  const allowanceResult = await identity.authClient.rpc('consume_hosted_ai_allowance');
+  if (allowanceResult.error) {
+    console.error('[Q-AI Allowance Error]:', allowanceResult.error.message);
+    return res.status(503).json({ error: 'Hosted AI usage controls are not available. Please use private local AI.' });
+  }
+  const allowance = Array.isArray(allowanceResult.data) ? allowanceResult.data[0] : allowanceResult.data;
+  if (!allowance?.allowed) {
+    res.setHeader('Retry-After', allowance?.minute_remaining === 0 ? '60' : '3600');
+    return res.status(429).json({ error: 'Hosted AI usage limit reached. Private local AI remains available.', usage: allowance });
+  }
+
   const openai = getOpenAIClient();
   if (!openai) return res.status(503).json({ error: 'AI chat model is not configured. Missing OPENAI_API_KEY.' });
 
-  const model = getChatModel(req.body?.tier);
+  const model = getChatModel(allowance.tier);
 
   try {
     const result = await openai.responses.create({
       model,
       input: prompt,
-      max_output_tokens: 700
+      max_output_tokens: MAX_OUTPUT_TOKENS
     });
 
     const reply = result.output_text?.trim();
     if (!reply) throw new Error('OpenAI returned an empty response.');
 
-    return res.json({ reply, actionItems: [], model });
+    return res.json({ reply, actionItems: [], model, processing: 'hosted', usage: allowance });
   } catch (error) {
     const providerError = getProviderError(error);
     console.error('[Q-AI Chat Error]:', {
@@ -162,6 +178,16 @@ aiRouter.post('/chat', asyncHandler(async (req, res) => {
 aiRouter.post('/query', asyncHandler(async (req, res) => {
   const query = typeof req.body?.query === 'string' ? redactPii(req.body.query).trim() : '';
   if (!query) return res.status(400).json({ error: 'Valid query string required.' });
+  if (query.length > MAX_MESSAGE_CHARACTERS) return res.status(413).json({ error: `Hosted AI queries are limited to ${MAX_MESSAGE_CHARACTERS.toLocaleString()} characters.` });
+  const identity = await getAuthenticatedUser(req);
+  if (!identity) return res.status(401).json({ error: 'Sign in to use hosted AI knowledge search.' });
+  const allowanceResult = await identity.authClient.rpc('consume_hosted_ai_allowance');
+  if (allowanceResult.error) return res.status(503).json({ error: 'Hosted AI usage controls are not available.' });
+  const allowance = Array.isArray(allowanceResult.data) ? allowanceResult.data[0] : allowanceResult.data;
+  if (!allowance?.allowed) {
+    res.setHeader('Retry-After', allowance?.minute_remaining === 0 ? '60' : '3600');
+    return res.status(429).json({ error: 'Hosted AI usage limit reached.', usage: allowance });
+  }
   const openai = getOpenAIClient();
   const supabase = getAiSupabaseClient();
   if (!openai || !supabase) return res.status(503).json({ error: 'AI infrastructure not initialized.' });

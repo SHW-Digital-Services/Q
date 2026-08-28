@@ -1,9 +1,9 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.1.0
+version: 1.2.0
 effective_date: 02/08/2026
-last_updated: 26/08/2026
+last_updated: 28/08/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -950,3 +950,9 @@ Version   Date                  Summary
 # Referral information
 
 When you use the referral programme, Q processes your referral code, the invited person's email address, signup and subscription status, qualifying payment amount, credit balance, and credit history. We use this information to attribute referrals, prevent fraud, calculate and apply benefits, provide customer support, and maintain financial and security audit records. Do not submit an email address unless you are permitted to contact that person. Q does not expose one customer's payment details to another customer.
+
+# Hosted AI Processing Disclosure
+
+Q Intelligence displays the selected processing mode before a user sends an AI message. Local mode performs generation in the browser. When a user explicitly selects hosted processing, Q sends the PII-masked prompt, recent chat context, selected profile context, relevant opted-in memory, and necessary technical metadata to Q's server and OpenAI for response generation.
+
+OpenAI states that API inputs and outputs are not used to train its models by default unless the API customer explicitly opts in. Standard abuse-monitoring logs may retain customer content and associated metadata for up to 30 days, subject to approved retention controls and legal requirements. Current OpenAI contractual terms, data-processing terms, retention information, and sub-processors are listed in the Processor Register.
