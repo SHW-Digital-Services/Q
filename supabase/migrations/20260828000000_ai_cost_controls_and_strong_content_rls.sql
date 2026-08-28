@@ -14,6 +14,10 @@ drop policy if exists "Users can manage their own memories" on public.memory_ent
 drop policy if exists "Users can manage their own journal entries" on public.journal_entries;
 drop policy if exists "Users can manage their own mood logs" on public.daily_mood_logs;
 drop policy if exists "Users can manage their own chat messages" on public.chat_messages;
+drop policy if exists "memory_entries_owner_only" on public.memory_entries;
+drop policy if exists "journal_entries_owner_only" on public.journal_entries;
+drop policy if exists "daily_mood_logs_owner_only" on public.daily_mood_logs;
+drop policy if exists "chat_messages_owner_only" on public.chat_messages;
 
 create policy "memory_entries_owner_only" on public.memory_entries for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "journal_entries_owner_only" on public.journal_entries for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);

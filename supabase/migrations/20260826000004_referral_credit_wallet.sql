@@ -46,8 +46,11 @@ alter table public.referral_credits enable row level security;
 revoke all on public.referral_codes, public.referrals, public.referral_credits from anon, authenticated;
 grant select on public.referral_codes, public.referrals, public.referral_credits to authenticated;
 
+drop policy if exists "Users read their referral code" on public.referral_codes;
 create policy "Users read their referral code" on public.referral_codes for select to authenticated using (user_id = auth.uid() or public.is_admin());
+drop policy if exists "Users read their referrals" on public.referrals;
 create policy "Users read their referrals" on public.referrals for select to authenticated using (referrer_user_id = auth.uid() or prospect_user_id = auth.uid() or public.is_admin());
+drop policy if exists "Users read their credits" on public.referral_credits;
 create policy "Users read their credits" on public.referral_credits for select to authenticated using (user_id = auth.uid() or public.is_admin());
 
 comment on table public.referral_credits is 'Append-only referral credit ledger. Positive rows earn credit; negative redemption/reversal rows consume it.';

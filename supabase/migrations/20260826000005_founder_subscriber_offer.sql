@@ -17,6 +17,7 @@ create table if not exists public.founder_subscriber_slots (
 alter table public.founder_subscriber_slots enable row level security;
 revoke all on public.founder_subscriber_slots from anon, authenticated;
 grant select on public.founder_subscriber_slots to authenticated;
+drop policy if exists "Users read their founder offer" on public.founder_subscriber_slots;
 create policy "Users read their founder offer" on public.founder_subscriber_slots for select to authenticated using (user_id = auth.uid() or public.is_admin());
 
 create or replace function public.reserve_founder_subscriber_slot(target_user_id uuid, target_interval text)

@@ -12,4 +12,5 @@ create table if not exists public.paypal_webhook_events (
 );
 alter table public.paypal_webhook_events enable row level security;
 revoke all on public.paypal_webhook_events from anon, authenticated;
+drop policy if exists "Admins read PayPal webhook events" on public.paypal_webhook_events;
 create policy "Admins read PayPal webhook events" on public.paypal_webhook_events for select to authenticated using (public.is_admin());
