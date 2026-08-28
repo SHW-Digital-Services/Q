@@ -24,6 +24,13 @@ export function getPaypalBaseUrl(): string {
     : 'https://api-m.sandbox.paypal.com';
 }
 
+async function getIncludedStaffRole(serviceSupabase: ReturnType<typeof getServiceSupabase>, userId: string) {
+  if (!serviceSupabase) return null;
+  const { data, error } = await serviceSupabase.from('profiles').select('role').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  return data?.role === 'staff' || data?.role === 'partner_admin' ? data.role : null;
+}
+
 function getPaypalEnvironment(): 'live' | 'sandbox' {
   return process.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox';
 }
@@ -216,6 +223,18 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
   const identity = await getAuthenticatedUser(req);
   if (!identity) return res.status(401).json({ error: 'Authentication required. Please sign in.' });
 
+  const serviceSupabase = getServiceSupabase();
+  const includedRole = await getIncludedStaffRole(serviceSupabase, identity.user.id);
+  if (includedRole) {
+    return res.status(409).json({
+      error: 'PayPal checkout is not required for staff or admin accounts.',
+      code: 'STAFF_ACCESS_INCLUDED',
+      status: 'ACTIVE',
+      accessSource: 'staff',
+      role: includedRole
+    });
+  }
+
   const planName = req.body?.plan === 'yearly' ? 'yearly' : 'monthly';
   let planId = planName === 'yearly'
     ? process.env.PAYPAL_PLAN_ID_YEARLY
@@ -233,7 +252,6 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
     return res.status(409).json({ error: 'This subscription plan is currently unavailable.' });
   }
 
-  const serviceSupabase = getServiceSupabase();
   if (serviceSupabase) {
     const linkedProduct = await serviceSupabase.from('crm_products').select('active,paypal_sync_status,paypal_founder_plan_id,paypal_founder_plan_active,billing_interval').eq('paypal_plan_id', planId).maybeSingle();
     if (linkedProduct.error) return res.status(503).json({ error: 'Unable to verify subscription plan availability.' });
@@ -391,13 +409,13 @@ billingRouter.get('/paypal/status', asyncHandler(async (req, res) => {
   }
 
   try {
-    const { data, error } = await serviceSupabase
-      .from('subscriptions')
-      .select('status,paypal_plan_id')
-      .eq('user_id', identity.user.id)
-      .limit(1)
-      .maybeSingle();
+    const [includedRole, subscriptionResult] = await Promise.all([
+      getIncludedStaffRole(serviceSupabase, identity.user.id),
+      serviceSupabase.from('subscriptions').select('status,paypal_plan_id').eq('user_id', identity.user.id).limit(1).maybeSingle()
+    ]);
 
+    if (includedRole) return res.json({ status: 'ACTIVE', accessSource: 'staff', role: includedRole, message: 'Q subscription access is included free of charge for staff and admins.' });
+    const { data, error } = subscriptionResult;
     if (error) throw error;
     if (!data) return res.json({ status: 'Not subscribed' });
     return res.json({ status: data.status || 'Unknown', planId: data.paypal_plan_id });

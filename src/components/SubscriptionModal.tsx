@@ -14,6 +14,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
   const [availablePlans, setAvailablePlans] = useState<Array<'monthly' | 'yearly'>>([]);
   const [foundingOfferAvailable, setFoundingOfferAvailable] = useState(false);
+  const [includedAccess, setIncludedAccess] = useState(false);
 
   const getAuthHeaders = async () => {
     const supabase = getSupabaseClient();
@@ -89,6 +90,23 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
   useEffect(() => {
     if (!isOpen) return;
+    setIncludedAccess(false);
+    getAuthHeaders()
+      .then(headers => fetch('/api/billing/paypal/status', { headers }))
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load access status.');
+        if (data.accessSource === 'staff') {
+          setIncludedAccess(true);
+          setStatus('ACTIVE — included for staff and admins');
+          setMessage(null);
+        }
+      })
+      .catch(() => undefined);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
     fetch('/api/billing/paypal/plans').then(async response => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to load plans.');
@@ -140,12 +158,12 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-black flex items-center gap-2"><CreditCard className="w-5 h-5 text-purple-600" /> Q Subscription</h2>
-            <p className="text-xs text-slate-500 mt-1">Secure recurring billing through PayPal.</p>
+            <p className="text-xs text-slate-500 mt-1">{includedAccess ? 'Your staff access is included free of charge.' : 'Secure recurring billing through PayPal.'}</p>
           </div>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        {!includedAccess && <div className="grid gap-3 sm:grid-cols-2">
           {[
             {
               key: 'monthly',
@@ -180,11 +198,13 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
               </button>
             );
           })}
-        </div>
+        </div>}
 
-        {foundingOfferAvailable && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900"><div className="font-black">Founding 100 offer: 50% off</div><p className="mt-1">Eligible non-staff customers receive 50% off their first 3 monthly payments or first annual payment. Availability is confirmed during checkout.</p></div>}
+        {!includedAccess && foundingOfferAvailable && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900"><div className="font-black">Founding 100 offer: 50% off</div><p className="mt-1">Eligible non-staff customers receive 50% off their first 3 monthly payments or first annual payment. Availability is confirmed during checkout.</p></div>}
 
-        {availablePlans.length === 0 && <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-600">There are currently no subscription plans available.</div>}
+        {!includedAccess && availablePlans.length === 0 && <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-xs font-semibold text-slate-600">There are currently no subscription plans available.</div>}
+
+        {includedAccess && <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900"><div className="flex items-center gap-2 font-black"><CheckCircle2 className="h-5 w-5 text-emerald-600" />Staff subscription included</div><p className="mt-2 text-xs leading-relaxed">Your Q subscription and paid hosted-AI allowance are active at no charge while your account has an authorised staff or admin role. No PayPal checkout is needed.</p></div>}
 
         <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 space-y-3">
           <div className="text-sm font-semibold text-slate-700">What’s included</div>
@@ -198,15 +218,15 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
         {message && <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">{message}</div>}
         {status && <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">Subscription status: {status}</div>}
 
-        <div className="flex gap-2">
+        {!includedAccess && <div className="flex gap-2">
           <button onClick={startSubscription} disabled={loading || availablePlans.length === 0} className="flex-1 py-3 rounded-xl bg-[#0070ba] hover:bg-[#005ea6] text-white text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-2">
             <ExternalLink className="w-4 h-4" /> {loading ? 'Connecting...' : 'Continue with PayPal'}
           </button>
           <button onClick={checkStatus} disabled={loading} className="px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold disabled:opacity-50">
             Check status
           </button>
-        </div>
-        <p className="text-[10px] text-slate-400 text-center">You will complete approval on PayPal. Q does not handle card details.</p>
+        </div>}
+        {includedAccess ? <button type="button" onClick={onClose} className="w-full rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white hover:bg-emerald-700">Continue using Q</button> : <p className="text-[10px] text-slate-400 text-center">You will complete approval on PayPal. Q does not handle card details.</p>}
       </div>
     </div>
   );
