@@ -218,7 +218,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       {/* Top Controls Bar */}
       <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div className="flex items-center gap-3">
-          <QLogo size="sm" />
+          <QLogo size="md" className="shadow-lg" />
           <div>
             <h1 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
               Q Intelligence
@@ -303,15 +303,13 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
               className={`flex items-start gap-2.5 max-w-[90%] sm:max-w-2xl ${isAI ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}
             >
               {/* Avatar */}
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${
-                  isAI
-                    ? 'bg-purple-950 text-white border-purple-800 shadow-sm p-0.5 overflow-hidden'
-                    : 'bg-slate-800 text-white border-slate-900 shadow-sm'
-                }`}
-              >
-                {isAI ? <QLogo size="xs" /> : <User className="w-4 h-4" />}
-              </div>
+              {isAI ? (
+                <QLogo size="sm" alt="Q Intelligence" className="shadow-lg" />
+              ) : (
+                <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 border bg-slate-800 text-white border-slate-900 shadow-sm">
+                  <User className="w-4 h-4" />
+                </div>
+              )}
 
               {/* Message Bubble */}
               <div
@@ -378,7 +376,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
 
         {isLoading && (
           <div className="flex items-center gap-3 text-xs text-purple-800 bg-purple-50 p-3 rounded-2xl border border-purple-200 w-fit font-medium">
-            <QLogo size="xs" className="animate-spin" />
+            <QLogo size="sm" className="animate-pulse" alt="Q Intelligence is generating" />
             <span>{modelProgress || 'Q is synthesizing personalized guidance...'}</span>
           </div>
         )}
