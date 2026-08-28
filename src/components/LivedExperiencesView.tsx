@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { LivedExperienceStory } from '../types';
 import { getLivedExperiences, addLivedExperience, toggleSaveLivedExperience } from '../services/storage';
+import { CategoryScroller } from './CategoryScroller';
 
 export const LivedExperiencesView: React.FC = () => {
   const [stories, setStories] = useState<LivedExperienceStory[]>([]);
@@ -100,12 +101,12 @@ export const LivedExperiencesView: React.FC = () => {
       {/* Filter & Search Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Category Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 scrollbar-none">
+        <CategoryScroller ariaLabel="Peer Knowledge categories" className="w-full sm:flex-1">
           {tagsList.map((tag) => (
             <button
               key={tag}
               onClick={() => setSelectedTag(tag)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold capitalize whitespace-nowrap transition-all border shrink-0 active:scale-95 ${
+              className={`shrink-0 snap-start whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-semibold capitalize transition-all active:scale-95 ${
                 selectedTag === tag
                   ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
                   : 'bg-white text-slate-700 border-slate-200 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 shadow-sm'
@@ -114,7 +115,7 @@ export const LivedExperiencesView: React.FC = () => {
               {tag}
             </button>
           ))}
-        </div>
+        </CategoryScroller>
 
         {/* Search Bar */}
         <div className="relative w-full sm:w-64">

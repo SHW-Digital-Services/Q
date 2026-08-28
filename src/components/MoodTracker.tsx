@@ -25,6 +25,7 @@ import {
 } from 'recharts';
 import { DailyMoodLog } from '../types';
 import { getPastWeekMoodLogs, saveDailyMoodLog } from '../services/storage';
+import { CategoryScroller } from './CategoryScroller';
 
 interface MoodTrackerProps {
   onAskQSupport?: (prompt: string) => void;
@@ -247,7 +248,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId 
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
               How are you feeling right now?
             </label>
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5">
+            <CategoryScroller ariaLabel="Journal mood categories">
               {MOOD_OPTIONS.map((opt) => {
                 const isSelected = selectedRating === opt.rating;
                 return (
@@ -255,7 +256,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId 
                     key={opt.rating}
                     type="button"
                     onClick={() => handleSelectMood(opt.rating)}
-                    className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl border text-center transition-all active:scale-95 ${
+                    className={`flex min-w-24 shrink-0 snap-start flex-col items-center justify-center rounded-xl border p-2 text-center transition-all active:scale-95 sm:min-w-28 sm:p-3 ${
                       isSelected ? opt.activeColor : opt.color
                     }`}
                   >
@@ -265,7 +266,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId 
                   </button>
                 );
               })}
-            </div>
+            </CategoryScroller>
           </div>
 
           {/* 2. Recharts 7-Day Trend Visualization */}
@@ -342,7 +343,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId 
             </div>
 
             {/* Tags selection */}
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <CategoryScroller ariaLabel="Journal context categories">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mr-1">
                 <Tag className="w-3 h-3 text-slate-400" /> Context:
               </span>
@@ -356,7 +357,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId 
                       toggleTag(tag);
                       setTimeout(handleSaveNoteAndTags, 50);
                     }}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all border ${
+                    className={`shrink-0 snap-start rounded-lg border px-2.5 py-1 text-[10px] font-semibold transition-all ${
                       active
                         ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
                         : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -366,7 +367,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId 
                   </button>
                 );
               })}
-            </div>
+            </CategoryScroller>
           </div>
         </div>
       )}

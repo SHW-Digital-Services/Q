@@ -33,6 +33,7 @@ import {
   bookmarkGuideProgress,
   toggleGuideBookmark
 } from '../services/storage';
+import { CategoryScroller } from './CategoryScroller';
 
 export const LifeGuidesView: React.FC = () => {
   const [guides, setGuides] = useState<LifeGuide[]>([]);
@@ -249,7 +250,7 @@ export const LifeGuidesView: React.FC = () => {
       {/* Filter & Search Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Category Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 scrollbar-none">
+        <CategoryScroller ariaLabel="Life Guide categories" className="w-full sm:flex-1">
           {categories.map((cat) => {
             const Icon = cat.icon;
             const isActive = selectedCategory === cat.id;
@@ -257,7 +258,7 @@ export const LifeGuidesView: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border shrink-0 active:scale-95 ${
+                className={`flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-semibold transition-all active:scale-95 ${
                   isActive
                     ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
                     : 'bg-white text-slate-700 border-slate-200 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 shadow-sm'
@@ -268,7 +269,7 @@ export const LifeGuidesView: React.FC = () => {
               </button>
             );
           })}
-        </div>
+        </CategoryScroller>
 
         {/* Search Bar */}
         <div className="relative w-full sm:w-64">

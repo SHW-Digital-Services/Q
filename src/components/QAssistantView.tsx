@@ -22,6 +22,7 @@ import { detectUserCountry } from '../services/localeDetection';
 import { generateLocalReply, isWebLlmSupported, WEBLLM_MODEL } from '../services/webLlm';
 import { hasCrisisIntent } from '../services/crisisDetection';
 import { getSupabaseClient } from '../services/supabase';
+import { CategoryScroller } from './CategoryScroller';
 
 interface QAssistantViewProps {
   onOpenReflection?: () => void;
@@ -388,18 +389,18 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       </div>
 
       {/* Quick Prompt Category Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <CategoryScroller ariaLabel="Q Intelligence prompt categories">
         {quickPrompts.map((prompt, idx) => (
           <button
             key={idx}
             onClick={() => handleSendMessage(prompt.text)}
-            className={`flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-2xl border px-3.5 py-2.5 text-xs font-semibold shadow-sm transition-all active:scale-95 ${['border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100','border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100','border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100','border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100'][idx % 4]}`}
+            className={`flex min-h-11 shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-2xl border px-3.5 py-2.5 text-xs font-semibold shadow-sm transition-all active:scale-95 ${['border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100','border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100','border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100','border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100'][idx % 4]}`}
           >
             <Zap className="h-3.5 w-3.5" />
             {prompt.title}
           </button>
         ))}
-      </div>
+      </CategoryScroller>
 
       {/* Input Form */}
       <form
