@@ -552,7 +552,7 @@ adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
 
     const serviceSupabase = getServiceSupabase();
     if (!serviceSupabase) {
-      return res.status(503).json({ error: 'Password reset requests are not configured. Please set SUPABASE_SERVICE_ROLE_KEY in environment variables.' });
+      return res.status(503).json({ error: 'Password reset requests are temporarily unavailable. Please contact Q support.' });
     }
 
     const { data, error } = await serviceSupabase

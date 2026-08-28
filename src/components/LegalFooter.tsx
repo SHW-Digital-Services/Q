@@ -8,6 +8,7 @@ const legalLinks = [
   { name: 'Cookie Policy', path: '/legal/cookie' },
   { name: 'DPA', path: '/legal/dpa' },
   { name: 'Privacy Policy', path: '/legal/privacy' },
+  { name: 'Processor Register', path: '/legal/PROCESSORS' },
   { name: 'Security Policy', path: '/legal/security' },
   { name: 'Terms of Service', path: '/legal/terms' },
   { name: 'Third-Party Notices', path: '/legal/third_party_notices' },
