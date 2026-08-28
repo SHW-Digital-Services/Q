@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy } from 'lucide-react';
+import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2 } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 
 interface AdminPanelProps {
@@ -204,6 +204,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       setProducts((current) => current.map((item) => item.id === product.id ? updated : item));
     } catch (error: any) {
       setProductMessage(error.message || 'Unable to update product.');
+    }
+  };
+
+  const deleteProduct = async (product: CrmProduct) => {
+    setProductMessage(null);
+    if (product.active) {
+      setProductMessage(`Deactivate ${product.name} before deleting it.`);
+      return;
+    }
+    if (!window.confirm(`Permanently delete “${product.name}” from the Q CRM catalogue? This cannot be undone. PayPal records are not deleted.`)) return;
+    try {
+      const response = await fetch(`/api/v1/admin/crm/products/${product.id}`, { method: 'DELETE', headers: await getAuthHeaders() });
+      const deleted = await parseJsonResponse(response);
+      setProducts(current => current.filter(item => item.id !== product.id));
+      setProductMessage(`${deleted.name || product.name} was deleted from the Q CRM catalogue.`);
+    } catch (error: any) {
+      setProductMessage(error.message || 'Unable to delete product.');
     }
   };
 
@@ -481,7 +498,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {products.length === 0 ? <p className="text-xs text-slate-400">No products created yet.</p> : products.map((product) => (
               <div key={product.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-                <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-white">{product.name}</p><p className="mt-1 text-xs text-slate-400">{product.description || 'No description'}</p></div><button type="button" onClick={() => void toggleProduct(product)} className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${product.active ? 'bg-emerald-500/10 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>{product.active ? 'ACTIVE' : 'INACTIVE'}</button></div>
+                <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-white">{product.name}</p><p className="mt-1 text-xs text-slate-400">{product.description || 'No description'}</p></div><div className="flex items-center gap-1.5"><button type="button" onClick={() => void toggleProduct(product)} className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${product.active ? 'bg-emerald-500/10 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>{product.active ? 'ACTIVE' : 'INACTIVE'}</button><button type="button" onClick={() => void deleteProduct(product)} title={product.active ? 'Deactivate before deleting' : `Delete ${product.name}`} aria-label={`Delete ${product.name}`} className={`rounded-full p-1.5 transition ${product.active ? 'cursor-not-allowed text-slate-600' : 'text-rose-300 hover:bg-rose-500/15 hover:text-rose-200'}`}><Trash2 className="h-3.5 w-3.5" /></button></div></div>
                 <p className="mt-3 text-xl font-black text-white">{new Intl.NumberFormat('en-GB', { style: 'currency', currency: product.currency }).format(product.price_minor / 100)} <span className="text-xs font-medium text-slate-400">/{product.billing_interval}</span></p>
                 <p className="mt-2 truncate text-[10px] text-slate-500">PayPal: {product.paypal_plan_id || 'Not linked'} · Sync: {product.paypal_sync_status}</p>
               </div>

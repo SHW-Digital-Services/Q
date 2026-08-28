@@ -462,6 +462,38 @@ adminRouter.patch('/crm/products/:id', asyncHandler(async (req, res) => {
   catch (syncError: any) { return res.status(502).json({ error: `Product updated in Q but PayPal sync failed: ${syncError.message}` }); }
 }));
 
+adminRouter.delete('/crm/products/:id', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res);
+  if (!adminCtx) return;
+
+  const { data: product, error: productError } = await adminCtx.serviceSupabase
+    .from('crm_products')
+    .select('id,name,active,paypal_plan_id,paypal_founder_plan_id')
+    .eq('id', req.params.id)
+    .maybeSingle();
+  if (productError) return res.status(500).json({ error: productError.message });
+  if (!product) return res.status(404).json({ error: 'Product not found.' });
+  if (product.active) return res.status(409).json({ error: 'Deactivate this product before deleting it.' });
+
+  const planIds = [product.paypal_plan_id, product.paypal_founder_plan_id].filter(Boolean);
+  const [entitlements, subscriptions] = await Promise.all([
+    adminCtx.serviceSupabase.from('crm_entitlements').select('id', { count: 'exact', head: true }).eq('product_id', product.id),
+    planIds.length
+      ? adminCtx.serviceSupabase.from('subscriptions').select('user_id', { count: 'exact', head: true }).in('paypal_plan_id', planIds)
+      : Promise.resolve({ count: 0, error: null })
+  ]);
+  if (entitlements.error || subscriptions.error) return res.status(500).json({ error: 'Unable to verify whether the product is safe to delete.' });
+  if ((entitlements.count ?? 0) > 0) return res.status(409).json({ error: 'This product cannot be deleted because it has customer entitlements. Keep it inactive for historical records.' });
+  if ((subscriptions.count ?? 0) > 0) return res.status(409).json({ error: 'This product cannot be deleted because PayPal subscriptions reference its plan. Keep it inactive for billing history.' });
+
+  const { error: deleteError } = await adminCtx.serviceSupabase.from('crm_products').delete().eq('id', product.id);
+  if (deleteError) {
+    if (deleteError.code === '23503') return res.status(409).json({ error: 'This product is still referenced by CRM records and cannot be deleted.' });
+    return res.status(500).json({ error: deleteError.message });
+  }
+  return res.json({ success: true, id: product.id, name: product.name });
+}));
+
 adminRouter.post('/contact-requests', asyncHandler(async (req, res) => {
   const name = typeof req.body?.name === 'string' ? req.body.name.trim().slice(0, 120) : '';
   const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
