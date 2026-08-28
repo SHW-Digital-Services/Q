@@ -222,7 +222,7 @@ These Subscription Terms should be read together with:
 
 | Version | Date | Summary |
 |---------|------|---------|
-| 1.0.0 | **[TO BE COMPLETED]** | Initial release. |
+| 1.0.0 | 02/08/2026 | Initial release. |
 
 ---
 

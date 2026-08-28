@@ -941,10 +941,11 @@ This Privacy Policy should be read together with the Terms of Service,Cookie Pol
 
 32. Version History
 
-Version   Date                  Summary
+Version   Date         Summary
 
-
-1.0.0     [TO BE COMPLETED]   Initial release.
+1.2.0     28/08/2026   Added hosted AI processing and current processor disclosures.
+1.1.0     26/08/2026   Added local AI, memory, safety, CRM, and subscription disclosures.
+1.0.0     02/08/2026   Initial release.
 
 © Scott Harvey-Whittle trading as SHW Digital Services. All rightsreserved.
 # Referral information

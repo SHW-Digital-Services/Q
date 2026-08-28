@@ -593,8 +593,10 @@ Where there is any conflict between these Terms and a mandatory provision of app
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.2.0 | 28/08/2026 | Added hosted-processing, OpenAI, and usage-limit disclosures. |
+| 1.1.0 | 26/08/2026 | Added local AI, memory, safety, CRM, and subscription disclosures. |
 | 1.0.1 | 17/08/2026 | Added Zoho Bigin to third-party service disclosures. |
-| 1.0.0 | **[TO BE COMPLETED]** | Initial public release. |
+| 1.0.0 | 02/08/2026 | Initial public release. |
 
 ---
 
@@ -606,7 +608,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 **Operator:** Scott Harvey-Whittle trading as SHW Digital Services  
 **Availability:** Worldwide  
 **Governing Law:** England & Wales  
-**Current Version:** 1.0.0
+**Current Version:** 1.2.0
 
 ---
 

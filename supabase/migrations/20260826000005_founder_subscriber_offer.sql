@@ -42,7 +42,7 @@ begin
   select candidate::smallint into selected_slot from generate_series(1,100) candidate
     where not exists(select 1 from public.founder_subscriber_slots f where f.slot_number = candidate and f.status in ('reserved','qualified')) limit 1;
   if selected_slot is null then return; end if;
-  delete from public.founder_subscriber_slots where slot_number = selected_slot or user_id = target_user_id;
+  delete from public.founder_subscriber_slots f where f.slot_number = selected_slot or f.user_id = target_user_id;
   insert into public.founder_subscriber_slots(slot_number,user_id,billing_interval,discount_cycles_remaining)
     values(selected_slot,target_user_id,target_interval,cycles);
   return query select selected_slot, cycles;
