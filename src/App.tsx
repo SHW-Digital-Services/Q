@@ -21,6 +21,8 @@ import { getSupabaseClient, mapSupabaseUser } from './services/supabase';
 import { SyncStatusState, SecuritySettings, AuthUser } from './types';
 import { FakeNotesApp } from './components/FakeNotesApp';
 import { useCamouflage } from './hooks/useCamouflage';
+import { LanguageSelector } from './components/LanguageSelector';
+import { useLanguage } from './contexts/LanguageContext';
 
 
 function isViewAppRequest() {
@@ -36,6 +38,7 @@ function isViewAppRequest() {
 }
 
 export default function App() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<ActiveTab>('chat');
   const [syncStatus, setSyncStatus] = useState<SyncStatusState>(getSyncStatus());
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings>(getSecuritySettings());
@@ -259,17 +262,18 @@ export default function App() {
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
-  if (!isAppRoute) return <><LandingPage /><button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">Disguise Mode (Alt+M)</button></>;
+  if (!isAppRoute) return <><div className="fixed right-4 top-4 z-50"><LanguageSelector /></div><LandingPage /><button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} (Alt+M)</button></>;
 
   if (!currentUser) {
     return (
       <>
+        <div className="fixed right-4 top-4 z-50"><LanguageSelector /></div>
         <AuthScreen
           onUserSignedIn={(user) => setCurrentUser(user)}
           onOpenCrisis={() => setIsCrisisOpen(true)}
         />
         <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
-        <button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">Disguise Mode (Alt+M)</button>
+        <button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} (Alt+M)</button>
       </>
     );
   }
@@ -356,7 +360,7 @@ export default function App() {
 
       {/* Modals */}
       <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
-      <button onClick={enableCamouflage} className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] right-4 z-40 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 shadow-md hover:bg-slate-700 sm:bottom-4">Disguise Mode (Alt+M)</button>
+      <button onClick={enableCamouflage} className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] right-4 z-40 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 shadow-md hover:bg-slate-700 sm:bottom-4">{t('disguise')} (Alt+M)</button>
       {canAccessCrm && !isLockActive && (
         <button type="button" onClick={() => setIsAdminPanelOpen(true)} aria-label="Open staff CRM" title="Open staff CRM" className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] left-4 z-40 rounded-full border border-violet-300/40 bg-slate-900/90 p-3 text-white shadow-xl backdrop-blur transition hover:bg-violet-900 sm:bottom-4">
           <Settings className="h-5 w-5" />

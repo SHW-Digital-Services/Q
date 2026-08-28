@@ -2,6 +2,8 @@ import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon, MessageCircle, BookOpen, Users, Notebook, CreditCard, LogOut, UserCircle, CircleHelp } from 'lucide-react';
 import { QLogo } from './QLogo';
+import { LanguageSelector } from './LanguageSelector';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export type ActiveTab = 'chat' | 'guides' | 'stories' | 'journal' | 'profile' | 'help';
 
@@ -34,13 +36,14 @@ export const Navbar: React.FC<Props> = ({
   onOpenSubscription,
   onSignOut
 }) => {
+  const { t } = useLanguage();
   const navItems = [
-    { id: 'chat' as const, label: 'Q Intelligence', shortLabel: 'Q', icon: MessageCircle, activeClass: 'bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-fuchsia-500/25' },
-    { id: 'guides' as const, label: 'Life Guides', shortLabel: 'Guides', icon: BookOpen, activeClass: 'bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-orange-500/25' },
-    { id: 'stories' as const, label: 'Peer Knowledge', shortLabel: 'Peers', icon: Users, activeClass: 'bg-gradient-to-br from-emerald-500 to-sky-600 text-white shadow-sky-500/25' },
-    { id: 'journal' as const, label: 'Private Journal', shortLabel: 'Journal', icon: Notebook, activeClass: 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-indigo-500/25' },
-    { id: 'profile' as const, label: 'Profile', shortLabel: 'Profile', icon: UserCircle, activeClass: 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-pink-500/25' },
-    { id: 'help' as const, label: 'Help', shortLabel: 'Help', icon: CircleHelp, activeClass: 'bg-gradient-to-br from-sky-500 to-violet-600 text-white shadow-sky-500/25' }
+    { id: 'chat' as const, label: t('qIntelligence'), shortLabel: 'Q', icon: MessageCircle, activeClass: 'bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-fuchsia-500/25' },
+    { id: 'guides' as const, label: t('lifeGuides'), shortLabel: t('lifeGuides'), icon: BookOpen, activeClass: 'bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-orange-500/25' },
+    { id: 'stories' as const, label: t('peerKnowledge'), shortLabel: t('peerKnowledge'), icon: Users, activeClass: 'bg-gradient-to-br from-emerald-500 to-sky-600 text-white shadow-sky-500/25' },
+    { id: 'journal' as const, label: t('privateJournal'), shortLabel: t('privateJournal'), icon: Notebook, activeClass: 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-indigo-500/25' },
+    { id: 'profile' as const, label: t('profile'), shortLabel: t('profile'), icon: UserCircle, activeClass: 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-pink-500/25' },
+    { id: 'help' as const, label: t('help'), shortLabel: t('help'), icon: CircleHelp, activeClass: 'bg-gradient-to-br from-sky-500 to-violet-600 text-white shadow-sky-500/25' }
   ];
 
   const { theme, toggleTheme } = useTheme();
@@ -54,11 +57,11 @@ export const Navbar: React.FC<Props> = ({
               <QLogo size="sm" />
               <div>
                 <p className="text-sm font-semibold tracking-tight">Q</p>
-                <p className="hidden text-[11px] text-slate-500 sm:block">Safe support</p>
+                <p className="hidden text-[11px] text-slate-500 sm:block">{t('safeSupport')}</p>
               </div>
             </div>
 
-            <nav aria-label="Primary navigation" className="hidden min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto rounded-2xl border border-purple-100 bg-gradient-to-r from-rose-50 via-violet-50 to-sky-50 p-1 sm:flex">
+            <nav aria-label={t('primaryNavigation')} className="hidden min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto rounded-2xl border border-purple-100 bg-gradient-to-r from-rose-50 via-violet-50 to-sky-50 p-1 sm:flex">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = activeTab === item.id;
@@ -80,6 +83,8 @@ export const Navbar: React.FC<Props> = ({
               })}
             </nav>
 
+            <div className="ms-auto sm:hidden"><LanguageSelector compact /></div>
+
           </div>
 
           <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pb-2 pt-2 sm:hidden">
@@ -87,21 +92,22 @@ export const Navbar: React.FC<Props> = ({
               onClick={onOpenCrisis}
               className="flex min-h-10 items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 shadow-sm transition-all hover:bg-red-100"
             >
-              24/7 Helpline
+              {t('helpline')}
             </button>
             <button
               onClick={onOpenSubscription}
               className="pride-spectrum flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white shadow-lg shadow-fuchsia-500/20 transition-all hover:brightness-105 active:scale-[.98]"
             >
               <CreditCard className="h-4 w-4" />
-              Subscribe
+              {t('subscribe')}
             </button>
           </div>
 
           <div className="hidden items-center justify-end gap-2 border-t border-slate-100 py-2 sm:flex">
+              <LanguageSelector compact />
               <button
                 onClick={toggleTheme}
-                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                title={theme === 'dark' ? t('lightMode') : t('darkMode')}
                 className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all shadow-sm"
                 aria-label="Toggle theme"
               >
@@ -112,7 +118,7 @@ export const Navbar: React.FC<Props> = ({
                 onClick={onOpenCrisis}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all shadow-sm shrink-0"
               >
-                <span>24/7 Helpline</span>
+                <span>{t('helpline')}</span>
               </button>
 
               <button
@@ -120,7 +126,7 @@ export const Navbar: React.FC<Props> = ({
                 className="pride-spectrum flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold text-white shadow-lg shadow-fuchsia-500/20 transition-all hover:brightness-105 active:scale-[.98]"
               >
                 <CreditCard className="w-4 h-4" />
-                <span>Subscribe</span>
+                <span>{t('subscribe')}</span>
               </button>
 
               <button
@@ -128,7 +134,7 @@ export const Navbar: React.FC<Props> = ({
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-all shadow-sm"
               >
                 <UserCircle className="w-4 h-4" />
-                <span>Profile</span>
+                <span>{t('profile')}</span>
               </button>
 
               <button
@@ -136,7 +142,7 @@ export const Navbar: React.FC<Props> = ({
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-all shadow-sm shrink-0"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                <span>{t('signOut')}</span>
               </button>
           </div>
         </div>

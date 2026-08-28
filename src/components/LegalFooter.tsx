@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Centralized list of all legal documents
 const legalLinks = [
@@ -14,8 +15,9 @@ const legalLinks = [
   { name: 'Third-Party Notices', path: '/legal/third_party_notices' },
 ];
 
-export const LegalFooter = () => (
-  <footer className="mt-auto py-10 px-6 text-center text-[10px] text-slate-400 border-t border-slate-900 bg-slate-950">
+export const LegalFooter = () => {
+  const { language, t } = useLanguage();
+  return <footer className="mt-auto py-10 px-6 text-center text-[10px] text-slate-400 border-t border-slate-900 bg-slate-950">
     <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 max-w-4xl mx-auto">
       {legalLinks.map((link) => (
         <a
@@ -32,5 +34,6 @@ export const LegalFooter = () => (
       © {new Date().getFullYear()} Q Life Operating System. All rights reserved.
     </div>
     <div className="mt-2 text-slate-400 font-semibold">Built with Llama</div>
-  </footer>
-);
+    {language !== 'en' && <div className="mx-auto mt-3 max-w-2xl rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-amber-100">{t('englishLegal')}</div>}
+  </footer>;
+};

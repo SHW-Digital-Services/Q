@@ -23,6 +23,7 @@ import { getSupabaseClient, getSupabaseEnvConfig, mapSupabaseUser } from '../ser
 import { QLogo } from './QLogo';
 import { LegalFooter } from './LegalFooter';
 import { HelpView } from './HelpView';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AuthScreenProps {
   onUserSignedIn: (user: AuthUser) => void;
@@ -33,6 +34,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   onUserSignedIn,
   onOpenCrisis
 }) => {
+  const { t } = useLanguage();
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -244,7 +246,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 }`}
             >
               <LogIn className="w-4 h-4 text-purple-600" />
-              <span>Sign In</span>
+              <span>{t('signIn')}</span>
             </button>
             <button
               type="button"
@@ -259,7 +261,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 }`}
             >
               <UserPlus className="w-4 h-4 text-purple-600" />
-              <span>Create Account</span>
+              <span>{t('createAccount')}</span>
             </button>
           </div>
         </div>
@@ -315,7 +317,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
             <div>
               <label htmlFor="q-auth-email" className="block text-xs font-bold text-slate-700 mb-1">
-                Email Address
+                {t('email')}
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -335,7 +337,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             {mode !== 'forgot' && (
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label htmlFor="q-auth-password" className="block text-xs font-bold text-slate-700">Password</label>
+                  <label htmlFor="q-auth-password" className="block text-xs font-bold text-slate-700">{t('password')}</label>
                   {mode === 'login' && (
                     <button
                       type="button"
@@ -347,7 +349,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                       }}
                       className="text-[11px] font-semibold text-purple-700 hover:text-purple-900"
                     >
-                      Forgot password?
+                      {t('forgotPassword')}
                     </button>
                   )}
                 </div>
@@ -505,7 +507,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       <div className="w-full z-10">
         <div className="max-w-md mx-auto pb-4 pt-4 text-center space-y-2">
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <button type="button" onClick={() => setShowHelp(true)} className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/30 bg-sky-500/20 px-3 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/30"><CircleHelp className="h-3.5 w-3.5" />Help</button>
+            <button type="button" onClick={() => setShowHelp(true)} className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/30 bg-sky-500/20 px-3 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/30"><CircleHelp className="h-3.5 w-3.5" />{t('help')}</button>
             <button type="button" onClick={() => { setContact(current => ({ ...current, email: current.email || email })); setShowContact(true); }} className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/30 bg-purple-500/20 px-3 py-1.5 text-xs font-semibold text-purple-100 transition hover:bg-purple-500/30"><MessageSquareText className="h-3.5 w-3.5" />Contact us</button>
           </div>
           {onOpenCrisis && (

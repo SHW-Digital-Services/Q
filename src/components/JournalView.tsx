@@ -24,6 +24,7 @@ import { JournalEntry } from '../types';
 import { getJournalEntries, saveJournalEntry, deleteJournalEntry } from '../services/storage';
 import { deleteMemoryBlob, getMemoryBlobs, MemoryBlob } from '../services/memory';
 import { MoodTracker } from './MoodTracker';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface JournalViewProps {
   onAskQSupport?: (prompt: string) => void;
@@ -31,6 +32,7 @@ interface JournalViewProps {
 }
 
 export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId }) => {
+  const { locale } = useLanguage();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [memoryBlobs, setMemoryBlobs] = useState<MemoryBlob[]>([]);
   const [memoryError, setMemoryError] = useState<string | null>(null);
@@ -80,7 +82,7 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
       const recognition = new SpeechRecognitionAPI();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = 'en-US';
+      recognition.lang = locale;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -214,7 +216,7 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139); // Slate-500
-    const dateStr = new Date().toLocaleDateString('en-US', {
+    const dateStr = new Date().toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

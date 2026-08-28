@@ -26,6 +26,7 @@ import {
 import { DailyMoodLog } from '../types';
 import { getPastWeekMoodLogs, saveDailyMoodLog } from '../services/storage';
 import { CategoryScroller } from './CategoryScroller';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface MoodTrackerProps {
   onAskQSupport?: (prompt: string) => void;
@@ -78,6 +79,7 @@ const MOOD_OPTIONS = [
 const PRESET_TAGS = ['Self-Care', 'Workplace', 'Healthcare', 'Boundaries', 'Family', 'Social', 'Identity'];
 
 export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId }) => {
+  const { locale } = useLanguage();
   const [pastWeekLogs, setPastWeekLogs] = useState<DailyMoodLog[]>([]);
   const [todayLog, setTodayLog] = useState<DailyMoodLog | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
@@ -158,8 +160,8 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId 
   // Format chart data for recharts
   const chartData = pastWeekLogs.map((log) => {
     const d = new Date(log.date + 'T00:00:00');
-    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-    const formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const dayName = d.toLocaleDateString(locale, { weekday: 'short' });
+    const formattedDate = d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
     return {
       date: log.date,
       dayName: `${dayName}`,

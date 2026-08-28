@@ -19,6 +19,7 @@ import {
   Users
 } from 'lucide-react';
 import type { ActiveTab } from './Navbar';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface HelpArticle {
   id: string;
@@ -85,6 +86,7 @@ interface Props {
 }
 
 export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubscription }) => {
+  const { language, t } = useLanguage();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const normalizedQuery = query.trim().toLowerCase();
@@ -101,31 +103,33 @@ export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubs
         <div className="flex items-start gap-4">
           <span className="rounded-2xl bg-gradient-to-br from-sky-500 to-violet-600 p-3 text-white shadow-lg shadow-violet-500/20"><CircleHelp className="h-7 w-7" /></span>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">Q Knowledge Base</p>
-            <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">How can we help?</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">Search practical, privacy-aware instructions for using every part of Q. This guide is bundled with the app so its core content remains available without relying on an external help centre.</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">{t('knowledgeBase')}</p>
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{t('howHelp')}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">{t('helpIntro')}</p>
           </div>
         </div>
         <label className="mt-5 flex min-h-12 items-center gap-3 rounded-2xl border border-violet-200 bg-white px-4 shadow-sm ring-4 ring-violet-100/60">
           <Search className="h-5 w-5 shrink-0 text-violet-600" />
-          <span className="sr-only">Search help</span>
-          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search Q help…" className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
+          <span className="sr-only">{t('searchHelp')}</span>
+          <input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('searchHelp')} className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
         </label>
       </section>
 
       <div className="scrollbar-none flex gap-2 overflow-x-auto pb-1">
-        {categories.map(item => <button key={item} onClick={() => setCategory(item)} className={`min-h-10 shrink-0 rounded-full px-3.5 text-xs font-bold transition active:scale-95 ${category === item ? 'bg-violet-600 text-white shadow-md shadow-violet-500/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-violet-200 hover:text-violet-700'}`}>{item}</button>)}
+        {categories.map(item => <button key={item} onClick={() => setCategory(item)} className={`min-h-10 shrink-0 rounded-full px-3.5 text-xs font-bold transition active:scale-95 ${category === item ? 'bg-violet-600 text-white shadow-md shadow-violet-500/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-violet-200 hover:text-violet-700'}`}>{item === 'All' ? t('all') : item}</button>)}
       </div>
 
       <section className="grid grid-cols-2 gap-2 rounded-2xl bg-white/80 p-3 sm:grid-cols-4">
-        {onNavigate && <button onClick={() => onNavigate('chat')} className="min-h-20 rounded-2xl bg-violet-50 p-3 text-left text-xs font-bold text-violet-800 transition hover:bg-violet-100 active:scale-[.98]"><Bot className="mb-2 h-5 w-5" />Open Q Intelligence</button>}
-        {onNavigate && <button onClick={() => onNavigate('journal')} className="min-h-20 rounded-2xl bg-indigo-50 p-3 text-left text-xs font-bold text-indigo-800 transition hover:bg-indigo-100 active:scale-[.98]"><Notebook className="mb-2 h-5 w-5" />Open Journal</button>}
-        {onOpenSubscription && <button onClick={onOpenSubscription} className="min-h-20 rounded-2xl bg-rose-50 p-3 text-left text-xs font-bold text-rose-800 transition hover:bg-rose-100 active:scale-[.98]"><CreditCard className="mb-2 h-5 w-5" />Subscription help</button>}
-        <button onClick={onOpenCrisis} className="min-h-20 rounded-2xl bg-red-50 p-3 text-left text-xs font-bold text-red-800 transition hover:bg-red-100 active:scale-[.98]"><HeartHandshake className="mb-2 h-5 w-5" />24/7 support</button>
+        {onNavigate && <button onClick={() => onNavigate('chat')} className="min-h-20 rounded-2xl bg-violet-50 p-3 text-left text-xs font-bold text-violet-800 transition hover:bg-violet-100 active:scale-[.98]"><Bot className="mb-2 h-5 w-5" />{t('openAI')}</button>}
+        {onNavigate && <button onClick={() => onNavigate('journal')} className="min-h-20 rounded-2xl bg-indigo-50 p-3 text-left text-xs font-bold text-indigo-800 transition hover:bg-indigo-100 active:scale-[.98]"><Notebook className="mb-2 h-5 w-5" />{t('openJournal')}</button>}
+        {onOpenSubscription && <button onClick={onOpenSubscription} className="min-h-20 rounded-2xl bg-rose-50 p-3 text-left text-xs font-bold text-rose-800 transition hover:bg-rose-100 active:scale-[.98]"><CreditCard className="mb-2 h-5 w-5" />{t('subscriptionHelp')}</button>}
+        <button onClick={onOpenCrisis} className="min-h-20 rounded-2xl bg-red-50 p-3 text-left text-xs font-bold text-red-800 transition hover:bg-red-100 active:scale-[.98]"><HeartHandshake className="mb-2 h-5 w-5" />{t('support247')}</button>
       </section>
 
+      {language !== 'en' && <p className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">{t('englishNotice')}</p>}
+
       <div className="space-y-3">
-        <div className="flex items-center justify-between px-1"><h2 className="text-sm font-black text-slate-900">{visibleArticles.length} help {visibleArticles.length === 1 ? 'article' : 'articles'}</h2><span className="text-[11px] text-slate-500">Select an article to expand</span></div>
+        <div className="flex items-center justify-between px-1"><h2 className="text-sm font-black text-slate-900">{visibleArticles.length} {visibleArticles.length === 1 ? t('article') : t('articles')}</h2><span className="text-[11px] text-slate-500">{t('selectArticle')}</span></div>
         {visibleArticles.map(article => {
           const Icon = article.icon;
           return <details key={article.id} className="group pride-edge rounded-2xl border border-violet-100 bg-white/95 shadow-sm open:shadow-lg open:shadow-violet-950/5">
@@ -136,11 +140,11 @@ export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubs
             </summary>
             <div className="border-t border-violet-100 px-4 pb-5 pt-4 sm:px-6">
               <ol className="space-y-3">{article.steps.map((step, index) => <li key={step} className="flex gap-3 text-sm leading-relaxed text-slate-700"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[11px] font-black text-violet-700">{index + 1}</span><span>{step}</span></li>)}</ol>
-              {article.note && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900"><strong>Important:</strong> {article.note}</div>}
+              {article.note && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900"><strong>{t('important')}:</strong> {article.note}</div>}
             </div>
           </details>;
         })}
-        {visibleArticles.length === 0 && <div className="rounded-2xl border border-dashed border-violet-200 bg-white/70 p-8 text-center"><Search className="mx-auto h-7 w-7 text-violet-300" /><p className="mt-3 font-bold text-slate-700">No help articles matched</p><button onClick={() => { setQuery(''); setCategory('All'); }} className="mt-3 text-xs font-bold text-violet-700 underline">Clear search and filters</button></div>}
+        {visibleArticles.length === 0 && <div className="rounded-2xl border border-dashed border-violet-200 bg-white/70 p-8 text-center"><Search className="mx-auto h-7 w-7 text-violet-300" /><p className="mt-3 font-bold text-slate-700">{t('noArticles')}</p><button onClick={() => { setQuery(''); setCategory('All'); }} className="mt-3 text-xs font-bold text-violet-700 underline">{t('clearFilters')}</button></div>}
       </div>
     </div>
   );
