@@ -48,6 +48,7 @@ do $$ declare table_name text; begin
   foreach table_name in array array['crm_notes','crm_tasks','crm_payments','crm_entitlements','crm_activities'] loop
     execute format('alter table public.%I enable row level security', table_name);
     execute format('revoke all on public.%I from anon, authenticated', table_name);
+    execute format('drop policy if exists "Admins manage %s" on public.%I', table_name, table_name);
     execute format('create policy "Admins manage %s" on public.%I for all to authenticated using (public.is_admin()) with check (public.is_admin())', table_name, table_name);
   end loop;
 end $$;

@@ -14,7 +14,9 @@ create table if not exists public.site_settings (
 insert into public.site_settings(key, value) values ('launch_override', 'false'::jsonb) on conflict (key) do nothing;
 alter table public.site_settings enable row level security;
 grant select on public.site_settings to anon, authenticated;
+drop policy if exists "Anyone can read site settings" on public.site_settings;
 create policy "Anyone can read site settings" on public.site_settings for select using (true);
+drop policy if exists "Admins manage site settings" on public.site_settings;
 create policy "Admins manage site settings" on public.site_settings for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 create or replace function public.is_staff()
