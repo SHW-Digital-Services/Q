@@ -207,6 +207,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     }
   };
 
+  const retryProductSync = async (product: CrmProduct) => {
+    setProductMessage(null);
+    setProductSaving(true);
+    try {
+      const response = await fetch(`/api/v1/admin/crm/products/${product.id}/sync`, {
+        method: 'POST', headers: await getAuthHeaders()
+      });
+      const updated = await parseJsonResponse(response);
+      setProducts((current) => current.map((item) => item.id === product.id ? updated : item));
+      setProductMessage(`${product.name} synchronized successfully.`);
+    } catch (error: any) {
+      setProductMessage(error.message || 'Unable to synchronize product.');
+    } finally {
+      setProductSaving(false);
+    }
+  };
+
   const deleteProduct = async (product: CrmProduct) => {
     setProductMessage(null);
     if (product.active) {
@@ -500,7 +517,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               <div key={product.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
                 <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-white">{product.name}</p><p className="mt-1 text-xs text-slate-400">{product.description || 'No description'}</p></div><div className="flex items-center gap-1.5"><button type="button" onClick={() => void toggleProduct(product)} className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${product.active ? 'bg-emerald-500/10 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>{product.active ? 'ACTIVE' : 'INACTIVE'}</button><button type="button" onClick={() => void deleteProduct(product)} title={product.active ? 'Deactivate before deleting' : `Delete ${product.name}`} aria-label={`Delete ${product.name}`} className={`rounded-full p-1.5 transition ${product.active ? 'cursor-not-allowed text-slate-600' : 'text-rose-300 hover:bg-rose-500/15 hover:text-rose-200'}`}><Trash2 className="h-3.5 w-3.5" /></button></div></div>
                 <p className="mt-3 text-xl font-black text-white">{new Intl.NumberFormat('en-GB', { style: 'currency', currency: product.currency }).format(product.price_minor / 100)} <span className="text-xs font-medium text-slate-400">/{product.billing_interval}</span></p>
-                <p className="mt-2 truncate text-[10px] text-slate-500">PayPal: {product.paypal_plan_id || 'Not linked'} · Sync: {product.paypal_sync_status}</p>
+                <div className="mt-2 flex items-center justify-between gap-2"><p className="min-w-0 truncate text-[10px] text-slate-500">PayPal: {product.paypal_plan_id || 'Not linked'} · Sync: {product.paypal_sync_status}</p>{product.paypal_sync_status === 'error' && <button type="button" disabled={productSaving} onClick={() => void retryProductSync(product)} className="shrink-0 rounded-lg bg-amber-500/15 px-2 py-1 text-[10px] font-bold text-amber-200 disabled:opacity-50">Retry sync</button>}</div>
               </div>
             ))}
           </div>

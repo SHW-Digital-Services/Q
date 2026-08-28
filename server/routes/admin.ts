@@ -42,31 +42,45 @@ async function paypalRequest(path: string, init: RequestInit = {}) {
   return data;
 }
 
+function paypalText(value: unknown, maximumLength: number, fallback: string) {
+  const text = typeof value === 'string' && value.trim() ? value.trim() : fallback;
+  return Array.from(text).slice(0, maximumLength).join('');
+}
+
 async function syncProductToPayPal(serviceSupabase: any, product: any) {
   try {
+    const productName = paypalText(product.name, 127, 'Q subscription');
+    const productDescription = paypalText(product.description, 256, productName);
+    const planDescription = paypalText(product.description, 127, productName);
     let paypalProductId = product.paypal_product_id;
     if (!paypalProductId) {
-      const remoteProduct = await paypalRequest('/v1/catalogs/products', { method: 'POST', body: JSON.stringify({ name: product.name, description: product.description || product.name, type: 'SERVICE', category: 'SOFTWARE' }) });
+      const remoteProduct = await paypalRequest('/v1/catalogs/products', { method: 'POST', body: JSON.stringify({ name: productName, description: productDescription, type: 'SERVICE', category: 'SOFTWARE' }) });
       paypalProductId = remoteProduct.id;
+      const { error } = await serviceSupabase.from('crm_products').update({ paypal_product_id: paypalProductId }).eq('id', product.id);
+      if (error) throw error;
     } else {
-      await paypalRequest(`/v1/catalogs/products/${encodeURIComponent(paypalProductId)}`, { method: 'PATCH', body: JSON.stringify([{ op: 'replace', path: '/name', value: product.name }, { op: 'replace', path: '/description', value: product.description || product.name }]) });
+      await paypalRequest(`/v1/catalogs/products/${encodeURIComponent(paypalProductId)}`, { method: 'PATCH', body: JSON.stringify([{ op: 'replace', path: '/name', value: productName }, { op: 'replace', path: '/description', value: productDescription }]) });
     }
     let paypalPlanId = product.paypal_plan_id;
     let paypalFounderPlanId = product.paypal_founder_plan_id;
     if (product.billing_interval !== 'one_time') {
       const price = (product.price_minor / 100).toFixed(2);
       if (!paypalPlanId) {
-        const remotePlan = await paypalRequest('/v1/billing/plans', { method: 'POST', body: JSON.stringify({ product_id: paypalProductId, name: product.name, description: product.description || product.name, status: product.active ? 'ACTIVE' : 'INACTIVE', billing_cycles: [{ frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'REGULAR', sequence: 1, total_cycles: 0, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }], payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 3 } }) });
+        const remotePlan = await paypalRequest('/v1/billing/plans', { method: 'POST', body: JSON.stringify({ product_id: paypalProductId, name: productName, description: planDescription, status: product.active ? 'ACTIVE' : 'CREATED', billing_cycles: [{ frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'REGULAR', sequence: 1, total_cycles: 0, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }], payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 3 } }) });
         paypalPlanId = remotePlan.id;
+        const { error } = await serviceSupabase.from('crm_products').update({ paypal_plan_id: paypalPlanId }).eq('id', product.id);
+        if (error) throw error;
       } else {
-        await paypalRequest(`/v1/billing/plans/${encodeURIComponent(paypalPlanId)}`, { method: 'PATCH', body: JSON.stringify([{ op: 'replace', path: '/name', value: product.name }, { op: 'replace', path: '/description', value: product.description || product.name }]) });
+        await paypalRequest(`/v1/billing/plans/${encodeURIComponent(paypalPlanId)}`, { method: 'PATCH', body: JSON.stringify([{ op: 'replace', path: '/name', value: productName }, { op: 'replace', path: '/description', value: planDescription }]) });
         await paypalRequest(`/v1/billing/plans/${encodeURIComponent(paypalPlanId)}/update-pricing-schemes`, { method: 'POST', body: JSON.stringify({ pricing_schemes: [{ billing_cycle_sequence: 1, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }] }) });
       }
       const founderPrice = (product.price_minor * 0.5 / 100).toFixed(2);
       const founderCycles = product.billing_interval === 'year' ? 1 : 3;
       if (!paypalFounderPlanId) {
-        const founderPlan = await paypalRequest('/v1/billing/plans', { method: 'POST', body: JSON.stringify({ product_id: paypalProductId, name: `${product.name} — Founding 100`, description: `50% introductory offer for the first 100 eligible Q subscribers`, status: product.active ? 'ACTIVE' : 'INACTIVE', billing_cycles: [{ frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'TRIAL', sequence: 1, total_cycles: founderCycles, pricing_scheme: { fixed_price: { value: founderPrice, currency_code: product.currency } } }, { frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'REGULAR', sequence: 2, total_cycles: 0, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }], payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 3 } }) });
+        const founderPlan = await paypalRequest('/v1/billing/plans', { method: 'POST', body: JSON.stringify({ product_id: paypalProductId, name: paypalText(`${productName} — Founding 100`, 127, 'Q Founding 100'), description: `50% introductory offer for the first 100 eligible Q subscribers`, status: product.active ? 'ACTIVE' : 'CREATED', billing_cycles: [{ frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'TRIAL', sequence: 1, total_cycles: founderCycles, pricing_scheme: { fixed_price: { value: founderPrice, currency_code: product.currency } } }, { frequency: { interval_unit: product.billing_interval === 'year' ? 'YEAR' : 'MONTH', interval_count: 1 }, tenure_type: 'REGULAR', sequence: 2, total_cycles: 0, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }], payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 3 } }) });
         paypalFounderPlanId = founderPlan.id;
+        const { error } = await serviceSupabase.from('crm_products').update({ paypal_founder_plan_id: paypalFounderPlanId }).eq('id', product.id);
+        if (error) throw error;
       } else {
         await paypalRequest(`/v1/billing/plans/${encodeURIComponent(paypalFounderPlanId)}/update-pricing-schemes`, { method: 'POST', body: JSON.stringify({ pricing_schemes: [{ billing_cycle_sequence: 1, pricing_scheme: { fixed_price: { value: founderPrice, currency_code: product.currency } } }, { billing_cycle_sequence: 2, pricing_scheme: { fixed_price: { value: price, currency_code: product.currency } } }] }) });
       }
@@ -460,6 +474,19 @@ adminRouter.patch('/crm/products/:id', asyncHandler(async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   try { return res.json(await syncProductToPayPal(adminCtx.serviceSupabase, data)); }
   catch (syncError: any) { return res.status(502).json({ error: `Product updated in Q but PayPal sync failed: ${syncError.message}` }); }
+}));
+
+adminRouter.post('/crm/products/:id/sync', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res);
+  if (!adminCtx) return;
+  const { data, error } = await adminCtx.serviceSupabase.from('crm_products').select('*').eq('id', req.params.id).maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!data) return res.status(404).json({ error: 'Product not found.' });
+  try { return res.json(await syncProductToPayPal(adminCtx.serviceSupabase, data)); }
+  catch (syncError: any) {
+    console.error('[Admin] PayPal product sync failed:', syncError);
+    return res.status(502).json({ error: `PayPal sync failed: ${syncError.message}` });
+  }
 }));
 
 adminRouter.delete('/crm/products/:id', asyncHandler(async (req, res) => {
