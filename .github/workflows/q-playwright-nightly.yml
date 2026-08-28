@@ -14,6 +14,6 @@ jobs:
     uses: ./.github/workflows/q-playwright-run.yml
     secrets: inherit
     with:
-      test-command: npm run test:e2e -- --project=${{ matrix.project }} --workers=4
+      test-command: npm run test:e2e -- --project=${{ matrix.project }} --workers=2
       install-browsers: ${{ matrix.project }}
       artifact_suffix: nightly-${{ matrix.project }}
