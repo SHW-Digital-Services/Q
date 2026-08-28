@@ -319,7 +319,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId 
             </div>
           </div>
 
-          {/* 3. Notes, Tags, & AI Support Button */}
+          {/* 3. Notes, Tags, Save, & optional AI Support */}
           <div className="space-y-3 pt-1">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input
@@ -330,6 +330,15 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId 
                 placeholder="Add a quick daily note (e.g. Grounding walk, doctor appointment)..."
                 className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 font-medium"
               />
+              <button
+                type="button"
+                onClick={handleSaveNoteAndTags}
+                disabled={!selectedRating}
+                className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white border border-purple-700 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shrink-0 active:scale-95 shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Save Journal Entry</span>
+              </button>
               {onAskQSupport && (
                 <button
                   type="button"
