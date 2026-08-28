@@ -140,6 +140,9 @@ aiRouter.post('/chat', asyncHandler(async (req, res) => {
   }
   const allowance = Array.isArray(allowanceResult.data) ? allowanceResult.data[0] : allowanceResult.data;
   if (!allowance?.allowed) {
+    if (allowance?.tier === 'local_only') {
+      return res.status(403).json({ error: 'Hosted AI requires an active subscription. Private local AI remains available.', usage: allowance });
+    }
     res.setHeader('Retry-After', allowance?.minute_remaining === 0 ? '60' : '3600');
     return res.status(429).json({ error: 'Hosted AI usage limit reached. Private local AI remains available.', usage: allowance });
   }
@@ -185,6 +188,9 @@ aiRouter.post('/query', asyncHandler(async (req, res) => {
   if (allowanceResult.error) return res.status(503).json({ error: 'Hosted AI usage controls are not available.' });
   const allowance = Array.isArray(allowanceResult.data) ? allowanceResult.data[0] : allowanceResult.data;
   if (!allowance?.allowed) {
+    if (allowance?.tier === 'local_only') {
+      return res.status(403).json({ error: 'Hosted AI knowledge search requires an active subscription.', usage: allowance });
+    }
     res.setHeader('Retry-After', allowance?.minute_remaining === 0 ? '60' : '3600');
     return res.status(429).json({ error: 'Hosted AI usage limit reached.', usage: allowance });
   }

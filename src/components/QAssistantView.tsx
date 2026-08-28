@@ -27,10 +27,11 @@ import { CategoryScroller } from './CategoryScroller';
 interface QAssistantViewProps {
   onOpenReflection?: () => void;
   onOpenCrisis?: (countryCode?: string) => void;
+  onOpenSubscription?: () => void;
   userId: string;
 }
 
-export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection, onOpenCrisis, userId }) => {
+export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection, onOpenCrisis, onOpenSubscription, userId }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputPrompt, setInputPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -39,6 +40,8 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
   const [savedGuideNotice, setSavedGuideNotice] = useState<string | null>(null);
   const [reflectionPrompt, setReflectionPrompt] = useState(false);
   const [aiProvider, setAiProvider] = useState<'local' | 'hosted'>(() => localStorage.getItem('q_ai_provider') === 'hosted' ? 'hosted' : 'local');
+  const [hasHostedAccess, setHasHostedAccess] = useState(false);
+  const [hostedAccessLoading, setHostedAccessLoading] = useState(true);
   const [modelProgress, setModelProgress] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -60,6 +63,35 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       setMessages(history);
     }
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const loadHostedAccess = async () => {
+      try {
+        const supabase = getSupabaseClient();
+        const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
+        if (!data.session?.access_token) throw new Error('No active session');
+        const response = await fetch('/api/billing/paypal/status', { headers: { Authorization: `Bearer ${data.session.access_token}` } });
+        const result = await response.json();
+        const entitled = response.ok && result.status === 'ACTIVE';
+        if (!active) return;
+        setHasHostedAccess(entitled);
+        if (!entitled) {
+          setAiProvider('local');
+          localStorage.setItem('q_ai_provider', 'local');
+        }
+      } catch {
+        if (!active) return;
+        setHasHostedAccess(false);
+        setAiProvider('local');
+        localStorage.setItem('q_ai_provider', 'local');
+      } finally {
+        if (active) setHostedAccessLoading(false);
+      }
+    };
+    void loadHostedAccess();
+    return () => { active = false; };
+  }, [userId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -233,9 +265,9 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         </div>
 
         <div className="flex items-center gap-2">
-          <select aria-label="AI provider" value={aiProvider} onChange={event => { const provider = event.target.value as 'local' | 'hosted'; setAiProvider(provider); localStorage.setItem('q_ai_provider', provider); }} className="px-2 py-2 rounded-xl bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700" title="Local AI keeps generation on this device">
+          <select aria-label="AI provider" value={aiProvider} onChange={event => { const provider = event.target.value as 'local' | 'hosted'; if (provider === 'hosted' && !hasHostedAccess) { onOpenSubscription?.(); return; } setAiProvider(provider); localStorage.setItem('q_ai_provider', provider); }} className="px-2 py-2 rounded-xl bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700" title="Local AI keeps generation on this device">
             <option value="local">Private local AI</option>
-            <option value="hosted">Hosted AI</option>
+            <option value="hosted" disabled={!hasHostedAccess}>{hasHostedAccess ? 'Hosted AI' : 'Hosted AI — subscribers'}</option>
           </select>
           <button
             onClick={() => setShowMemoryModal(true)}
@@ -290,8 +322,11 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         <strong>{aiProvider === 'local' ? 'Selected: Private local processing.' : 'Selected: Hosted OpenAI processing.'}</strong>{' '}
         {aiProvider === 'local'
           ? (isWebLlmSupported() ? 'Prompts and generation stay in this browser. The first use downloads and caches a model of roughly 900 MB.' : 'Local AI needs a WebGPU-capable browser. Select Hosted AI to use the server instead.')
-          : 'PII-masked prompt, recent chat context, selected profile context, and relevant opted-in memory are sent to Q’s server and OpenAI. Usage limits apply.'}
+          : 'PII-masked prompt, recent chat context, selected profile context, and relevant opted-in memory are sent to Q’s server and OpenAI. Subscriber usage limits apply.'}
         <span className="ml-1 font-semibold">Built with Llama.</span>
+        {!hostedAccessLoading && !hasHostedAccess && onOpenSubscription && (
+          <button type="button" onClick={onOpenSubscription} className="ml-2 font-bold underline underline-offset-2">Subscribe for hosted AI</button>
+        )}
       </div>
 
 

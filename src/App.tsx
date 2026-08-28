@@ -304,7 +304,7 @@ export default function App() {
 
         {/* Main Content Viewport */}
         <main className="flex-1 p-3 sm:p-5 lg:p-6">
-          {activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} />}
+          {activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
           {activeTab === 'guides' && <LifeGuidesView />}
           {activeTab === 'stories' && <LivedExperiencesView />}
           {activeTab === 'journal' && (
