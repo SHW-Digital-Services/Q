@@ -295,8 +295,9 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
 
 
       {/* Main Conversation Canvas */}
-      <div className="pride-edge flex-1 overflow-y-auto space-y-3.5 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        {messages.map((msg) => {
+      <div className="pride-edge min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="h-full space-y-3.5 overflow-y-auto p-3.5 sm:p-4">
+          {messages.map((msg) => {
           const isAI = msg.sender === 'q_ai';
           return (
             <div
@@ -373,16 +374,17 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
               </div>
             </div>
           );
-        })}
+          })}
 
-        {isLoading && (
-          <div className="flex items-center gap-3 text-xs text-purple-800 bg-purple-50 p-3 rounded-2xl border border-purple-200 w-fit font-medium">
-            <QLogo size="sm" className="animate-pulse" alt="Q Intelligence is generating" />
-            <span>{modelProgress || 'Q is synthesizing personalized guidance...'}</span>
-          </div>
-        )}
+          {isLoading && (
+            <div className="flex items-center gap-3 text-xs text-purple-800 bg-purple-50 p-3 rounded-2xl border border-purple-200 w-fit font-medium">
+              <QLogo size="sm" className="animate-pulse" alt="Q Intelligence is generating" />
+              <span>{modelProgress || 'Q is synthesizing personalized guidance...'}</span>
+            </div>
+          )}
 
-        <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Quick Prompt Category Chips */}
