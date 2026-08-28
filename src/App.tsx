@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, FileText, Target, ShieldCheck, Rocket, DollarSign, Megaphone } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { QAssistantView } from './components/QAssistantView';
 import { LifeGuidesView } from './components/LifeGuidesView';
@@ -15,6 +15,7 @@ import { AuthScreen } from './components/AuthScreen';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { LandingPage } from './components/LandingPage';
 import { HelpView } from './components/HelpView';
+import { AdminPanel } from './components/AdminPanel';
 import { getSyncStatus, getSecuritySettings, saveSecuritySettings } from './services/storage';
 import { getSupabaseClient, mapSupabaseUser } from './services/supabase';
 import { SyncStatusState, SecuritySettings, AuthUser } from './types';
@@ -48,6 +49,9 @@ export default function App() {
   const [isSecurityOpen, setIsSecurityOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
+  const [canAccessCrm, setCanAccessCrm] = useState(false);
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [launchEnabled, setLaunchEnabled] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'signup'>('login');
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
@@ -70,6 +74,46 @@ export default function App() {
     if (!params.get('paypal')) return;
     if (!currentUser) return;
     setIsSubscriptionOpen(true);
+  }, [currentUser]);
+
+  // Ask the protected admin endpoint for the signed-in user's effective role.
+  // Visibility is only a convenience; every CRM request remains server-authorised.
+  useEffect(() => {
+    let cancelled = false;
+    if (!currentUser) {
+      setCanAccessCrm(false);
+      setIsAdminPanelOpen(false);
+      return;
+    }
+
+    const checkCrmAccess = async () => {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase?.auth.getSession() ?? { data: { session: null } };
+      const token = data.session?.access_token;
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/v1/admin/me', { headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) throw new Error('Not authorised for CRM access.');
+        const staff = await response.json();
+        const allowed = staff.role === 'staff' || staff.role === 'partner_admin';
+        if (cancelled) return;
+        setCanAccessCrm(allowed);
+        if (allowed) {
+          const launchResponse = await fetch('/api/v1/admin/site-settings/launch');
+          const launch = launchResponse.ok ? await launchResponse.json() : null;
+          if (!cancelled && typeof launch?.enabled === 'boolean') setLaunchEnabled(launch.enabled);
+        }
+      } catch {
+        if (!cancelled) {
+          setCanAccessCrm(false);
+          setIsAdminPanelOpen(false);
+        }
+      }
+    };
+
+    void checkCrmAccess();
+    return () => { cancelled = true; };
   }, [currentUser]);
 
   // Subscribe to Supabase Auth state changes if client configured
@@ -313,6 +357,14 @@ export default function App() {
       {/* Modals */}
       <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
       <button onClick={enableCamouflage} className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] right-4 z-40 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 shadow-md hover:bg-slate-700 sm:bottom-4">Disguise Mode (Alt+M)</button>
+      {canAccessCrm && !isLockActive && (
+        <button type="button" onClick={() => setIsAdminPanelOpen(true)} aria-label="Open staff CRM" title="Open staff CRM" className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] left-4 z-40 rounded-full border border-violet-300/40 bg-slate-900/90 p-3 text-white shadow-xl backdrop-blur transition hover:bg-violet-900 sm:bottom-4">
+          <Settings className="h-5 w-5" />
+        </button>
+      )}
+      {canAccessCrm && isAdminPanelOpen && !isLockActive && (
+        <AdminPanel enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} />
+      )}
       <BackupModal
         isOpen={isBackupOpen}
         onClose={() => setIsBackupOpen(false)}
