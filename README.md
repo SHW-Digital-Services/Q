@@ -1,3 +1,5 @@
+[![Supabase migrations](https://github.com/SHW-Digital-Services/Q/actions/workflows/supabase-migrations.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/supabase-migrations.yml)   [![CodeQL](https://github.com/SHW-Digital-Services/Q/actions/workflows/codeql.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/codeql.yml)   [![Check legal files](https://github.com/SHW-Digital-Services/Q/actions/workflows/check-legal-files.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/check-legal-files.yml)   [![Application CI](https://github.com/SHW-Digital-Services/Q/actions/workflows/ci.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/ci.yml)
+
 # Q Intelligence
 
 Q is a privacy-conscious LGBTQ+ wellbeing, life-guidance, and personal-reflection application built with React, TypeScript, Express, and Supabase.
