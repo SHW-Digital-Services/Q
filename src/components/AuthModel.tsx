@@ -72,7 +72,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     // 1. Authentication requires a configured Supabase project.
     if (!supabase || !envConfig.isConfigured) {
-      setErrorMessage('Supabase authentication is not configured yet. Please add your project credentials.');
+      setErrorMessage('Secure account access is temporarily unavailable. Please contact Q support.');
       return;
     }
 
@@ -165,9 +165,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <QLogo size="sm" />
             <div>
               <h2 className="text-base font-black tracking-tight flex items-center gap-2">
-                Q Supabase Authentication
+                Q Secure Account Access
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-700/80 border border-purple-400/50 text-purple-200">
-                  {envConfig.isConfigured ? 'Supabase Connected' : 'Supabase Required'}
+                  {envConfig.isConfigured ? 'Account service connected' : 'Account service unavailable'}
                 </span>
               </h2>
               <p className="text-xs text-purple-200 font-medium">
@@ -188,7 +188,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs space-y-1">
             <div className="flex items-center gap-1.5 font-bold text-purple-950">
               <Database className="w-4 h-4 text-purple-600 shrink-0" />
-              <span>Supabase Auth Engine</span>
+              <span>Secure Account Access</span>
             </div>
             <p className="text-[11px] text-purple-800">
               Create an account or log in to access your private Q space.
@@ -358,10 +358,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <>
                       <span>
                         {mode === 'signup'
-                          ? 'Create Supabase Account'
+                          ? 'Create Q Account'
                           : mode === 'forgot'
                           ? 'Send Password Reset Email'
-                          : 'Sign In with Supabase'}
+                          : 'Sign In to Q'}
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </>

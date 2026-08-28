@@ -36,7 +36,7 @@ export function getSupabaseClient(): SupabaseClient | null {
     });
     return supabaseInstance;
   } catch (err) {
-    console.error('Failed to initialize Supabase client:', err);
+    console.error('Failed to initialize secure account service:', err);
     return null;
   }
 }

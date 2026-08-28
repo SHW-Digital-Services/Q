@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const acceptanceCopy = [
   ['brand heading', /Q Intelligence & Community/i],
-  ['authentication engine', /Supabase Auth Engine/i],
+  ['authentication engine', /Secure Account Access/i],
   ['privacy reassurance', /100% Private/i],
   ['PIN protection', /PIN Lock Protection/i],
   ['sign-in mode', /^Sign In$/i],

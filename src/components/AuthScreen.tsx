@@ -138,7 +138,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
     // Authentication requires a configured Supabase project.
     if (!supabase || !envConfig.isConfigured) {
-      setErrorMessage('Supabase authentication is not configured yet. Please add your project credentials.');
+      setErrorMessage('Secure account access is temporarily unavailable. Please contact Q support.');
       return;
     }
 
@@ -269,7 +269,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs space-y-1">
             <div className="flex items-center gap-1.5 font-bold text-purple-950">
               <Database className="w-4 h-4 text-purple-600 shrink-0" />
-              <span>Supabase Auth Engine</span>
+              <span>Secure Account Access</span>
             </div>
             <p className="text-[11px] text-purple-800 leading-normal">
               Create an account or log in to access your private Q space.

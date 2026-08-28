@@ -57,7 +57,7 @@ export async function saveMemoryBlob(userId: string, content: string, kind = 'as
 
 export async function deleteMemoryBlob(userId: string, memoryId: string): Promise<void> {
   const supabase = getSupabaseClient();
-  if (!supabase) throw new Error('Supabase is not configured.');
+  if (!supabase) throw new Error('Secure account storage is temporarily unavailable.');
 
   const { error } = await supabase
     .from('memory_entries')

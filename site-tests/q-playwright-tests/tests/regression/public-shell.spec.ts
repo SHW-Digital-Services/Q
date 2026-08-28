@@ -12,7 +12,7 @@ test.describe('Regression - Public Shell', () => {
   test('retains the protected application entry screen', async ({ page }) => {
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByText('Supabase Auth Engine')).toBeVisible();
+    await expect(page.getByText('Secure Account Access')).toBeVisible();
     await expect(page.locator('input[type="email"]').first()).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
   });

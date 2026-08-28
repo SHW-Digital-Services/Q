@@ -109,7 +109,7 @@ async function requireAdmin(req: express.Request, res: express.Response) {
     }
     const serviceSupabase = getServiceSupabase();
     if (!serviceSupabase) {
-      res.status(503).json({ error: 'Supabase admin access is not configured. Please set SUPABASE_SERVICE_ROLE_KEY in environment variables.' });
+      res.status(503).json({ error: 'Administrative account access is temporarily unavailable.' });
       return null;
     }
 
@@ -143,7 +143,7 @@ async function requireStaff(req: express.Request, res: express.Response) {
     const identity = await getAuthenticatedUser(req);
     if (!identity) { res.status(401).json({ error: 'Authentication required.' }); return null; }
     const serviceSupabase = getServiceSupabase();
-    if (!serviceSupabase) { res.status(503).json({ error: 'Supabase staff access is not configured.' }); return null; }
+    if (!serviceSupabase) { res.status(503).json({ error: 'Staff account access is temporarily unavailable.' }); return null; }
     const { data: profile, error } = await serviceSupabase.from('profiles').select('role').eq('id', identity.user.id).maybeSingle();
     if (error) { res.status(500).json({ error: 'Staff role check failed.' }); return null; }
     if (!['staff', 'partner_admin'].includes(profile?.role)) { res.status(403).json({ error: 'Staff access required.' }); return null; }
@@ -656,7 +656,7 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
         .from('password_reset_requests')
         .update({ status: 'failed' })
         .eq('id', request.id);
-      return res.status(400).json({ error: updateError.message || 'Supabase user password update failed.' });
+      return res.status(400).json({ error: updateError.message || 'User password update failed.' });
     }
 
     let recoveryLink: string | undefined;
@@ -725,7 +725,7 @@ adminRouter.post('/direct-password-reset', asyncHandler(async (req, res) => {
 
     if (updateError) {
       console.error('[Admin] Direct updateUserById error:', updateError);
-      return res.status(400).json({ error: updateError.message || 'Supabase password update failed.' });
+      return res.status(400).json({ error: updateError.message || 'Password update failed.' });
     }
 
     let recoveryLink: string | undefined;

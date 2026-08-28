@@ -23,7 +23,7 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onCl
 
     const supabase = getSupabaseClient();
     if (!supabase) {
-      setErrorMessage('Supabase is not configured yet.');
+      setErrorMessage('Secure staff access is temporarily unavailable.');
       setLoading(false);
       return;
     }
@@ -66,7 +66,7 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onCl
               Staff Access
             </div>
             <h2 className="mt-2 text-xl font-bold text-white">Secure CRM sign-in</h2>
-            <p className="mt-1 text-sm text-slate-300">Use your authorised staff account to manage users without opening Supabase.</p>
+            <p className="mt-1 text-sm text-slate-300">Use your authorised staff account to manage users securely within Q.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-2 text-slate-400 transition hover:bg-white/10 hover:text-white">
             <XCircle className="h-5 w-5" />

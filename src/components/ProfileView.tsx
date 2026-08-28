@@ -256,7 +256,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
     const supabase = getSupabaseClient();
     if (!supabase) {
-      setPasswordStatus({ tone: 'error', message: 'Supabase authentication is not configured.' });
+      setPasswordStatus({ tone: 'error', message: 'Secure account access is temporarily unavailable.' });
       return;
     }
 
