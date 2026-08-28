@@ -10,6 +10,14 @@ body {
   overscroll-behavior-y: none;
 }
 
+@media (min-width: 640px) {
+  html,
+  body {
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+  }
+}
+
 button,
 a,
 select,

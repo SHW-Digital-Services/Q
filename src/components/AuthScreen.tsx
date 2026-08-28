@@ -182,7 +182,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-indigo-950 text-white flex flex-col justify-between items-center p-4 sm:p-6 select-none relative overflow-hidden">
+    <div className="relative flex min-h-screen flex-col items-center justify-between overflow-x-hidden bg-gradient-to-br from-slate-900 via-purple-950 to-indigo-950 p-4 text-white select-none sm:p-6">
       {/* Ambient background glow circles */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-indigo-500/15 rounded-full blur-[120px] pointer-events-none" />
