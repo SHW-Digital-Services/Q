@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q Intelligence - Staff Operations</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #03040b;
+            --slide-bg: #06040F;
+            --text-main: #F8FAFC;
+            --text-muted: #CBD5E1;
+            --accent-cyan: #22D3EE;
+            --accent-magenta: #D946EF;
+        }
+
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        #presentation-container {
+            width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            position: relative;
+        }
+
+        .slide {
+            position: absolute;
+            width: 1280px; height: 720px;
+            background-color: var(--slide-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            padding: 60px;
+            display: flex; flex-direction: column; justify-content: center;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.4s ease-in-out, visibility 0.4s;
+            transform: scale(0.95); z-index: 1;
+        }
+        .slide.active { opacity: 1; visibility: visible; transform: scale(1); z-index: 10; }
+
+        /* Background effects */
+        .slide::before, .slide::after {
+            content: ''; position: absolute; border-radius: 50%; pointer-events: none; z-index: 0;
+        }
+        .slide::before {
+            height: 800px; width: 800px; left: -200px; top: -200px;
+            background: radial-gradient(circle, rgba(217, 70, 239, 0.08) 0%, transparent 60%);
+        }
+        .slide::after {
+            height: 900px; width: 900px; right: -300px; bottom: -300px;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.06) 0%, transparent 60%);
+        }
+        .slide > * { position: relative; z-index: 1; }
+
+        h1, h2, h3 { font-family: 'Outfit', sans-serif; font-weight: 600; margin: 0; color: #FFFFFF; }
+        .text-gradient {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        h1 { font-size: 70px; line-height: 1.1; margin-bottom: 20px;}
+        h2 { font-size: 45px; margin-bottom: 40px; }
+        h3 { font-size: 28px; margin-bottom: 15px; }
+        p, li { font-size: 20px; line-height: 1.6; color: var(--text-muted); margin-bottom: 15px;}
+        .subtitle { font-size: 24px; color: #94A3B8; margin-top: 20px; }
+
+        .controls {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 100; display: flex; gap: 20px;
+            background: rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 30px; backdrop-filter: blur(10px);
+        }
+        .controls button { background: none; border: none; color: var(--text-main); font-size: 24px; cursor: pointer; transition: color 0.2s; }
+        .controls button:hover { color: var(--accent-cyan); }
+        .controls button:disabled { color: #333; cursor: not-allowed; }
+        .slide-counter { font-family: 'Outfit', sans-serif; font-size: 18px; display: flex; align-items: center; }
+
+        .slide-logo { position: absolute; bottom: 40px; right: 40px; width: 80px; height: 80px; z-index: 10; }
+        .slide-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+        .center-layout { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; }
+        .three-column { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; }
+        
+        .tile {
+            background-color: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px; padding: 40px; backdrop-filter: blur(10px); height: 100%;
+        }
+        .icon-box { font-size: 40px; margin-bottom: 20px; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        ul.styled-list { list-style: none; padding: 0; }
+        ul.styled-list li { position: relative; padding-left: 40px; margin-bottom: 20px; }
+        ul.styled-list li i { position: absolute; left: 0; top: 4px; color: var(--accent-cyan); font-size: 20px;}
+        
+        code { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-family: monospace; color: var(--accent-cyan); }
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    
+    <!-- Slide 1: Title -->
+    <div class="slide active" id="slide-1">
+        <div class="center-layout">
+            <img src="https://brnhalxydcakutxiregp.supabase.co/storage/v1/object/public/images/Logo.png" alt="Q Logo" style="width: 200px; margin-bottom: 30px;">
+            <h1>Supporting Users <span class="text-gradient">Securely</span></h1>
+            <p class="subtitle">Operational Guidelines and Data Handling for Q Staff</p>
+        </div>
+    </div>
+
+    <!-- Slide 2: Golden Rules -->
+    <div class="slide" id="slide-2">
+        <h2>The Golden Rules of <span class="text-gradient">Q Support</span></h2>
+        <div class="three-column">
+            <div class="tile">
+                <div class="icon-box"><i class="fa-solid fa-user-secret"></i></div>
+                <h3>Never Copy Private Data</h3>
+                <p>Private journal entries, chat logs, moods, or identity information must <strong>never</strong> be copied into our CRM notes, even for debugging.</p>
+            </div>
+            <div class="tile">
+                <div class="icon-box"><i class="fa-solid fa-key"></i></div>
+                <h3>No Passwords</h3>
+                <p>Never ask for, or accept, user passwords or recovery links. We do not use credentials to verify identity over chat.</p>
+            </div>
+            <div class="tile">
+                <div class="icon-box"><i class="fa-solid fa-credit-card"></i></div>
+                <h3>Payment Security</h3>
+                <p>Raw card numbers and CVVs must <strong>never</strong> enter CRM fields. Direct users to the PayPal-hosted tools inside the application.</p>
+            </div>
+        </div>
+        <div class="slide-logo"><img src="https://brnhalxydcakutxiregp.supabase.co/storage/v1/object/public/images/Logo.png" alt="Q Logo"></div>
+    </div>
+
+    <!-- Slide 3: Account Recovery -->
+    <div class="slide" id="slide-3">
+        <h2>Secure <span class="text-gradient">Account Recovery</span></h2>
+        <div class="two-column">
+            <div>
+                <p>When a user cannot log in, staff must follow strict protocols to prevent social engineering attacks.</p>
+                <ul class="styled-list">
+                    <li><i class="fa-solid fa-check"></i> <strong>DO:</strong> Trigger the automated recovery link via the Supabase Auth system to the user's registered email.</li>
+                    <li><i class="fa-solid fa-xmark" style="color: #ef4444;"></i> <strong>DO NOT:</strong> Generate a link and paste it into a support chat or email manually.</li>
+                </ul>
+            </div>
+            <div class="tile" style="text-align: center;">
+                <div class="icon-box"><i class="fa-solid fa-shield-virus"></i></div>
+                <h3>Suspect a Breach?</h3>
+                <p>If you suspect an account is compromised, freeze it immediately via the Admin portal and escalate the ticket.</p>
+            </div>
+        </div>
+        <div class="slide-logo"><img src="https://brnhalxydcakutxiregp.supabase.co/storage/v1/object/public/images/Logo.png" alt="Q Logo"></div>
+    </div>
+
+    <!-- Slide 4: Official Comms -->
+    <div class="slide" id="slide-4">
+        <h2>Official <span class="text-gradient">Communications</span></h2>
+        <div>
+            <p>All external support and security correspondence must follow uniform standards.</p>
+            <ul class="styled-list">
+                <li><i class="fa-solid fa-envelope"></i> <strong>Group Email Only:</strong> All emails to users must be sent from, and directed to, the official group account: <code>office@q-ai.online</code>. Do not use personal staff emails.</li>
+                <li><i class="fa-solid fa-pen-nib"></i> <strong>Mandatory Signature:</strong> Ensure the official Q Intelligence signature is configured and appended to every outgoing email to maintain professional branding and trust.</li>
+            </ul>
+        </div>
+        <div class="slide-logo"><img src="https://brnhalxydcakutxiregp.supabase.co/storage/v1/object/public/images/Logo.png" alt="Q Logo"></div>
+    </div>
+
+    <!-- Slide 5: Escelation -->
+    <div class="slide" id="slide-5">
+        <div class="center-layout">
+            <div class="icon-box"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h2>When in doubt, <span class="text-gradient">Escalate.</span></h2>
+            <p>If a request violates our Security Policy, or if you feel pressured by a user to bypass a protocol,</p>
+            <p>always escalate before taking action.</p>
+            <h3 class="text-gradient" style="margin-top: 30px;">office@q-ai.online</h3>
+        </div>
+        <div class="slide-logo"><img src="https://brnhalxydcakutxiregp.supabase.co/storage/v1/object/public/images/Logo.png" alt="Q Logo"></div>
+    </div>
+
+    <div class="controls">
+        <button id="prevBtn" onclick="changeSlide(-1)" disabled><i class="fa-solid fa-chevron-left"></i></button>
+        <span class="slide-counter" id="slideCounter">1 / 5</span>
+        <button id="nextBtn" onclick="changeSlide(1)"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+</div>
+
+<script>
+    let currentSlide = 0; const slides = document.querySelectorAll('.slide');
+    const prevBtn = document.getElementById('prevBtn'); const nextBtn = document.getElementById('nextBtn');
+    const counter = document.getElementById('slideCounter');
+
+    function updateControls() {
+        prevBtn.disabled = currentSlide === 0; nextBtn.disabled = currentSlide === slides.length - 1;
+        counter.textContent = `${currentSlide + 1} / ${slides.length}`;
+    }
+
+    function changeSlide(direction) {
+        slides[currentSlide].classList.remove('active');
+        currentSlide = Math.max(0, Math.min(currentSlide + direction, slides.length - 1));
+        slides[currentSlide].classList.add('active');
+        updateControls();
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') changeSlide(1);
+        else if (e.key === 'ArrowLeft') changeSlide(-1);
+    });
+
+    function resizePresentation() {
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720) * 0.95;
+        slides.forEach(slide => { slide.style.transform = slide.classList.contains('active') ? `scale(${scale})` : `scale(${scale * 0.95})`; });
+    }
+    window.addEventListener('resize', resizePresentation);
+    updateControls(); setTimeout(resizePresentation, 100);
+</script>
+</body>
+</html>
