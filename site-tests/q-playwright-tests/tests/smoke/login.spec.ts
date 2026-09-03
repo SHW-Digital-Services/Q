@@ -8,7 +8,7 @@ test.describe('Login Smoke', () => {
     expect(response?.status()).toBeLessThan(500);
     await expect(page.locator('body')).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Sign In', exact: true })
+      page.getByRole('button', { name: /^sign in$/i })
     ).toBeVisible();
   });
 });

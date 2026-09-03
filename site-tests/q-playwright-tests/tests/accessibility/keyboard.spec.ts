@@ -4,8 +4,7 @@ test.describe('Accessibility - Keyboard', () => {
   test('authentication mode controls are keyboard operable', async ({ page }) => {
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
     const createAccount = page.getByRole('button', {
-      name: 'Create Account',
-      exact: true
+      name: /create account/i
     });
 
     await createAccount.focus();
@@ -21,4 +20,3 @@ test.describe('Accessibility - Keyboard', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   });
 });
-

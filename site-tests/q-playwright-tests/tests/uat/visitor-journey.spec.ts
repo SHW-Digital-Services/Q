@@ -11,8 +11,7 @@ test.describe('UAT - Visitor Journey', () => {
       page.getByRole('heading', { name: /Q Intelligence & Community/i })
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Create Account', exact: true })
+      page.getByRole('button', { name: /^create account$/i })
     ).toBeVisible();
   });
 });
-

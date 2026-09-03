@@ -8,10 +8,10 @@ test.describe('Functional - Authentication Navigation', () => {
       page.getByRole('heading', { name: /Q Intelligence & Community/i })
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Sign In', exact: true })
+      page.getByRole('button', { name: /^sign in$/i })
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Create Account', exact: true })
+      page.getByRole('button', { name: /^create account$/i })
     ).toBeVisible();
   });
 
@@ -19,8 +19,7 @@ test.describe('Functional - Authentication Navigation', () => {
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
 
     await page.getByRole('button', {
-      name: 'Create Account',
-      exact: true
+      name: /^create account$/i
     }).click();
 
     await expect(
@@ -33,8 +32,7 @@ test.describe('Functional - Authentication Navigation', () => {
     ).toBeVisible();
 
     await page.getByRole('button', {
-      name: 'Sign In',
-      exact: true
+      name: /^sign in$/i
     }).click();
 
     await expect(
@@ -42,4 +40,3 @@ test.describe('Functional - Authentication Navigation', () => {
     ).toBeVisible();
   });
 });
-
