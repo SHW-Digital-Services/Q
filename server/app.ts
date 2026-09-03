@@ -98,7 +98,10 @@ app.get('/api/health/supabase', async (_req, res) => {
   const check = async (path: string) => {
     try {
       const response = await fetch(`${supabaseUrl}${path}`, {
-        headers: { apikey: supabaseAnonKey },
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`
+        },
         signal: controller.signal
       });
       return response.ok ? 'up' : 'down';
@@ -110,7 +113,7 @@ app.get('/api/health/supabase', async (_req, res) => {
   try {
     const [auth, database] = await Promise.all([
       check('/auth/v1/health'),
-      check('/rest/v1/')
+      check('/rest/v1/site_settings?select=key&limit=1')
     ]);
     const isHealthy = auth === 'up' && database === 'up';
     return res.status(isHealthy ? 200 : 503).json({
