@@ -98,10 +98,7 @@ app.get('/api/health/supabase', async (_req, res) => {
   const check = async (path: string) => {
     try {
       const response = await fetch(`${supabaseUrl}${path}`, {
-        headers: {
-          apikey: supabaseAnonKey,
-          Authorization: `Bearer ${supabaseAnonKey}`
-        },
+        headers: { apikey: supabaseAnonKey },
         signal: controller.signal
       });
       return response.ok ? 'up' : 'down';
