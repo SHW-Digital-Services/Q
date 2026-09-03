@@ -71,6 +71,58 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/api/health/supabase', async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+
+  const supabaseUrl = (
+    process.env.VITE_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    ''
+  ).replace(/\/$/, '');
+  const supabaseAnonKey =
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return res.status(503).json({
+      status: 'down',
+      services: { database: 'not_configured', auth: 'not_configured' },
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  const check = async (path: string) => {
+    try {
+      const response = await fetch(`${supabaseUrl}${path}`, {
+        headers: { apikey: supabaseAnonKey },
+        signal: controller.signal
+      });
+      return response.ok ? 'up' : 'down';
+    } catch {
+      return 'down';
+    }
+  };
+
+  try {
+    const [auth, database] = await Promise.all([
+      check('/auth/v1/health'),
+      check('/rest/v1/')
+    ]);
+    const isHealthy = auth === 'up' && database === 'up';
+    return res.status(isHealthy ? 200 : 503).json({
+      status: isHealthy ? 'ok' : 'down',
+      services: { database, auth },
+      timestamp: new Date().toISOString()
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+});
+
 app.use(['/api/billing'], billingRouter);
 app.use(['/api/q-ai', '/api/ai'], aiRouter);
 app.use(['/api/v1/admin', '/api/admin'], adminRouter);

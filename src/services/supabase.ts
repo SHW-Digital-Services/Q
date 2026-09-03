@@ -41,13 +41,38 @@ export function getSupabaseClient(): SupabaseClient | null {
   }
 }
 
+export async function signInWithGoogle() {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error('Secure account access is temporarily unavailable. Please contact Q support.');
+  }
+
+  const redirectTo = new URL('/app', window.location.origin).toString();
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo,
+      queryParams: {
+        prompt: 'select_account'
+      }
+    }
+  });
+
+  if (error) throw error;
+}
+
 // Map Supabase User to App AuthUser
 export function mapSupabaseUser(user: User | null): AuthUser | null {
   if (!user) return null;
   return {
     id: user.id,
     email: user.email || '',
-    name: user.user_metadata?.name || user.email?.split('@')[0] || 'Member',
+    name:
+      user.user_metadata?.name ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.display_name ||
+      user.email?.split('@')[0] ||
+      'Member',
     avatarUrl: user.user_metadata?.avatar_url,
     createdAt: user.created_at
   };

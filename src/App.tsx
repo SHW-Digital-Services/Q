@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings } from 'lucide-react';
+import { ExternalLink, Settings } from 'lucide-react';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { QAssistantView } from './components/QAssistantView';
 import { LifeGuidesView } from './components/LifeGuidesView';
@@ -34,6 +34,21 @@ function isViewAppRequest() {
     window.location.pathname.startsWith('/app/') ||
     searchParams.get('view') === 'app' ||
     searchParams.get('open') === 'q'
+  );
+}
+
+function StatusPageButton() {
+  return (
+    <a
+      href="https://status.q-ai.online"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Open Q Status Page in a new tab"
+      className="fixed left-4 top-4 z-[60] inline-flex items-center gap-1.5 rounded-full border border-purple-300/60 bg-slate-950/90 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur transition hover:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+    >
+      <span>Status Page</span>
+      <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+    </a>
   );
 }
 
@@ -262,11 +277,12 @@ export default function App() {
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
-  if (!isAppRoute) return <><div className="fixed right-4 top-4 z-50"><LanguageSelector /></div><LandingPage /><button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} (Alt+M)</button></>;
+  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector /></div><LandingPage /><button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} (Alt+M)</button></>;
 
   if (!currentUser) {
     return (
       <>
+        <StatusPageButton />
         <div className="fixed right-4 top-4 z-50"><LanguageSelector /></div>
         <AuthScreen
           onUserSignedIn={(user) => setCurrentUser(user)}
@@ -280,6 +296,7 @@ export default function App() {
 
   return (
     <div className="q-app-shell relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 font-sans text-slate-900 antialiased selection:bg-fuchsia-600 selection:text-white">
+      <StatusPageButton />
       {/* Soft Pride-spectrum ambient colour keeps content readable while adding identity. */}
       <div className="pointer-events-none fixed -left-24 top-10 -z-10 h-72 w-72 rounded-full bg-rose-300/25 blur-[90px]" />
       <div className="pointer-events-none fixed -right-28 top-1/3 -z-10 h-80 w-80 rounded-full bg-sky-300/25 blur-[100px]" />
