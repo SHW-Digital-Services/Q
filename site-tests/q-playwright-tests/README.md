@@ -109,9 +109,17 @@ SUBSCRIBER_PASSWORD=replace-with-test-password
 ADMIN_EMAIL=playwright-admin@example.test
 ADMIN_PASSWORD=replace-with-test-password
 
-PAYPAL_CLIENT_ID=your-sandbox-client-id
-PAYPAL_CLIENT_SECRET=your-sandbox-client-secret
-PAYPAL_WEBHOOK_ID=your-sandbox-webhook-id
+PAYPAL_ENV=sandbox
+PAYPAL_SANDBOX_CLIENT_ID=your-sandbox-client-id
+PAYPAL_SANDBOX_CLIENT_SECRET=your-sandbox-client-secret
+PAYPAL_SANDBOX_PLAN_ID_MONTHLY=your-sandbox-monthly-plan-id
+PAYPAL_SANDBOX_PLAN_ID_YEARLY=your-sandbox-yearly-plan-id
+PAYPAL_SANDBOX_WEBHOOK_ID=your-sandbox-webhook-id
+PAYPAL_LIVE_CLIENT_ID=
+PAYPAL_LIVE_CLIENT_SECRET=
+PAYPAL_LIVE_PLAN_ID_MONTHLY=
+PAYPAL_LIVE_PLAN_ID_YEARLY=
+PAYPAL_LIVE_WEBHOOK_ID=
 ```
 
 Use dedicated test users and sandbox services. Do not point state-changing
@@ -326,6 +334,16 @@ Create these repository or protected test-environment secrets:
 - `TEST_SUBSCRIBER_PASSWORD`
 - `TEST_ADMIN_EMAIL`
 - `TEST_ADMIN_PASSWORD`
+- `TEST_PAYPAL_ENV` (`sandbox` for the nightly suite)
+- `TEST_PAYPAL_SANDBOX_CLIENT_ID`
+- `TEST_PAYPAL_SANDBOX_CLIENT_SECRET`
+- `TEST_PAYPAL_SANDBOX_PLAN_ID_MONTHLY`
+- `TEST_PAYPAL_SANDBOX_PLAN_ID_YEARLY`
+- `TEST_PAYPAL_SANDBOX_WEBHOOK_ID`
+
+Scheduled tests should remain on sandbox, so the workflow deliberately does not
+receive live PayPal credentials. Production hosting can keep both
+`PAYPAL_SANDBOX_*` and `PAYPAL_LIVE_*` groups and switch only `PAYPAL_ENV`.
 
 Use test-project values only. The supplied workflows map these secrets to the
 environment-variable names expected by Playwright.

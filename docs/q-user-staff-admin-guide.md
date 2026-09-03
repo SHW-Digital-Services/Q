@@ -503,17 +503,28 @@ VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 VITE_APP_ACCESS_ENABLED=
-PAYPAL_CLIENT_ID=
-PAYPAL_CLIENT_SECRET=
-PAYPAL_ENV=
-PAYPAL_PLAN_ID_MONTHLY=
-PAYPAL_PLAN_ID_YEARLY=
-PAYPAL_WEBHOOK_ID=
+PAYPAL_ENV=sandbox
+PAYPAL_SANDBOX_CLIENT_ID=
+PAYPAL_SANDBOX_CLIENT_SECRET=
+PAYPAL_SANDBOX_PLAN_ID_MONTHLY=
+PAYPAL_SANDBOX_PLAN_ID_YEARLY=
+PAYPAL_SANDBOX_WEBHOOK_ID=
+PAYPAL_LIVE_CLIENT_ID=
+PAYPAL_LIVE_CLIENT_SECRET=
+PAYPAL_LIVE_PLAN_ID_MONTHLY=
+PAYPAL_LIVE_PLAN_ID_YEARLY=
+PAYPAL_LIVE_WEBHOOK_ID=
 OPENAI_API_KEY=
 AI_FREE_MODEL=gpt-5-nano
 AI_PAID_MODEL=gpt-5-mini
 AI_EMBEDDING_MODEL=text-embedding-3-small
 ```
+
+Keep both credential groups configured on the server. Change only `PAYPAL_ENV`
+between `sandbox` and `live`; Q selects the matching credentials, plans, webhook,
+and PayPal API endpoint. Legacy unprefixed PayPal variables remain a migration
+fallback, but cannot support one-variable switching and should be removed after
+both groups are configured. Never expose either client secret in a `VITE_` variable.
 
 `OPENAI_API_KEY` is optional for local-only WebLLM deployments. Without it, explicitly selected hosted AI and hosted vetted-knowledge embedding queries are unavailable. Local AI requires no provider key, but users need WebGPU and must download the cached model assets on first use.
 

@@ -1,13 +1,14 @@
 import 'dotenv/config';
 
 const environment = process.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox';
+const prefix = `PAYPAL_${environment.toUpperCase()}`;
 const baseUrl = environment === 'live'
   ? 'https://api-m.paypal.com'
   : 'https://api-m.sandbox.paypal.com';
 
 const plans = [
-  ['monthly', process.env.PAYPAL_PLAN_ID_MONTHLY],
-  ['yearly', process.env.PAYPAL_PLAN_ID_YEARLY]
+  ['monthly', process.env[`${prefix}_PLAN_ID_MONTHLY`] || process.env.PAYPAL_PLAN_ID_MONTHLY],
+  ['yearly', process.env[`${prefix}_PLAN_ID_YEARLY`] || process.env.PAYPAL_PLAN_ID_YEARLY]
 ];
 
 function fail(message) {
@@ -25,10 +26,10 @@ async function readJson(response) {
 }
 
 async function getAccessToken() {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  const clientId = process.env[`${prefix}_CLIENT_ID`] || process.env.PAYPAL_CLIENT_ID;
+  const clientSecret = process.env[`${prefix}_CLIENT_SECRET`] || process.env.PAYPAL_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    throw new Error('Missing PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET.');
+    throw new Error(`Missing ${prefix}_CLIENT_ID or ${prefix}_CLIENT_SECRET.`);
   }
 
   const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
@@ -52,7 +53,7 @@ async function getAccessToken() {
 
 async function checkPlan(accessToken, name, planId) {
   if (!planId) {
-    fail(`${name}: missing PAYPAL_PLAN_ID_${name.toUpperCase()}`);
+    fail(`${name}: missing ${prefix}_PLAN_ID_${name.toUpperCase()}`);
     return;
   }
 

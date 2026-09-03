@@ -1,6 +1,7 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser, asyncHandler } from '../middleware.js';
+import { getPayPalConfig, getPayPalEnvironment, getPayPalVariableName } from '../paypalConfig.js';
 
 export const billingRouter = express.Router();
 
@@ -19,9 +20,7 @@ function getServiceSupabase() {
 }
 
 export function getPaypalBaseUrl(): string {
-  return process.env.PAYPAL_ENV === 'live'
-    ? 'https://api-m.paypal.com'
-    : 'https://api-m.sandbox.paypal.com';
+  return getPayPalConfig().baseUrl;
 }
 
 async function getIncludedStaffRole(serviceSupabase: ReturnType<typeof getServiceSupabase>, userId: string) {
@@ -31,19 +30,14 @@ async function getIncludedStaffRole(serviceSupabase: ReturnType<typeof getServic
   return data?.role === 'staff' || data?.role === 'partner_admin' ? data.role : null;
 }
 
-function getPaypalEnvironment(): 'live' | 'sandbox' {
-  return process.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox';
-}
-
 function hasInvalidPayPalResource(details: any[]): boolean {
   return details.some((detail) => detail?.issue === 'INVALID_RESOURCE_ID');
 }
 
 export async function getPayPalAccessToken(): Promise<string> {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  const { clientId, clientSecret, environment } = getPayPalConfig();
   if (!clientId || !clientSecret) {
-    throw new Error('PayPal credentials missing. Please set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET in environment variables.');
+    throw new Error(`PayPal ${environment} credentials missing. Please set ${getPayPalVariableName('CLIENT_ID')} and ${getPayPalVariableName('CLIENT_SECRET')}.`);
   }
 
   const paypalBaseUrl = getPaypalBaseUrl();
@@ -149,7 +143,7 @@ async function qualifyReferralAndApplyCredit(db: any, event: any, subscription: 
 }
 
 async function verifyPayPalWebhook(req: express.Request) {
-  const webhookId = process.env.PAYPAL_WEBHOOK_ID!;
+  const webhookId = getPayPalConfig().webhookId!;
   const fields = {
     transmission_id: req.header('paypal-transmission-id'), transmission_time: req.header('paypal-transmission-time'),
     cert_url: req.header('paypal-cert-url'), auth_algo: req.header('paypal-auth-algo'), transmission_sig: req.header('paypal-transmission-sig')
@@ -162,7 +156,7 @@ async function verifyPayPalWebhook(req: express.Request) {
 
 // POST /api/billing/paypal/webhook - PayPal is authoritative for billing state.
 billingRouter.post('/paypal/webhook', asyncHandler(async (req, res) => {
-  if (!process.env.PAYPAL_WEBHOOK_ID) {
+  if (!getPayPalConfig().webhookId) {
     return res.status(503).json({ error: 'PayPal webhook verification is unavailable.' });
   }
   if (!(await verifyPayPalWebhook(req))) return res.status(400).json({ error: 'Invalid PayPal webhook signature.' });
@@ -238,12 +232,11 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
   }
 
   const planName = req.body?.plan === 'yearly' ? 'yearly' : 'monthly';
-  let planId = planName === 'yearly'
-    ? process.env.PAYPAL_PLAN_ID_YEARLY
-    : process.env.PAYPAL_PLAN_ID_MONTHLY;
+  const paypalConfig = getPayPalConfig();
+  let planId = planName === 'yearly' ? paypalConfig.yearlyPlanId : paypalConfig.monthlyPlanId;
 
   if (!planId) {
-    const missingVar = planName === 'yearly' ? 'PAYPAL_PLAN_ID_YEARLY' : 'PAYPAL_PLAN_ID_MONTHLY';
+    const missingVar = getPayPalVariableName(planName === 'yearly' ? 'PLAN_ID_YEARLY' : 'PLAN_ID_MONTHLY');
     return res.status(503).json({ error: `PayPal subscription plan is not configured. Missing environment variable: ${missingVar}` });
   }
 
@@ -305,9 +298,9 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
         .map((detail: any) => `${detail.field ?? 'unknown_field'}: ${detail.issue ?? 'PAYPAL_ERROR'} (${detail.description ?? ''})`)
         .join('; ');
 
-      const environment = getPaypalEnvironment();
+      const environment = getPayPalEnvironment();
       const invalidPlanMessage = hasInvalidPayPalResource(details)
-        ? `PayPal could not find the ${planName} plan ID in the ${environment} environment. Check PAYPAL_PLAN_ID_${planName.toUpperCase()} belongs to the same ${environment} PayPal app/account and that the plan is active.`
+        ? `PayPal could not find the ${planName} plan ID in the ${environment} environment. Check ${getPayPalVariableName(planName === 'yearly' ? 'PLAN_ID_YEARLY' : 'PLAN_ID_MONTHLY')} belongs to the same ${environment} PayPal app/account and that the plan is active.`
         : null;
 
       console.error('[Billing] PayPal rejected subscription:', {
@@ -338,9 +331,10 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
 // GET /api/billing/paypal/plans - public plan availability, synchronized by PayPal webhooks.
 billingRouter.get('/paypal/plans', asyncHandler(async (_req, res) => {
   const serviceSupabase = getServiceSupabase();
+  const paypalConfig = getPayPalConfig();
   const configured = [
-    { key: 'monthly', planId: process.env.PAYPAL_PLAN_ID_MONTHLY },
-    { key: 'yearly', planId: process.env.PAYPAL_PLAN_ID_YEARLY }
+    { key: 'monthly', planId: paypalConfig.monthlyPlanId },
+    { key: 'yearly', planId: paypalConfig.yearlyPlanId }
   ];
   const plans = await Promise.all(configured.filter(plan => plan.planId).map(async plan => {
     try {
