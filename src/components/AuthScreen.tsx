@@ -243,7 +243,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           Q Intelligence & Community
         </h1>
         <p className="text-xs sm:text-sm text-purple-200/90 font-medium max-w-xs mx-auto leading-relaxed">
-          Your confidential, safe LGBTQ+ AI companion, life guides & encrypted journal.
+          Your private LGBTQ+ AI companion, life guides, and browser-stored journal.
         </p>
       </div>
 
@@ -462,7 +462,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-base font-black text-slate-900">Password reset request</h3>
-                <p className="mt-1 text-xs text-slate-500">Send your email to the admin team and they can issue a temporary password for you.</p>
+                <p className="mt-1 text-xs text-slate-500">Send your email to the admin team and they can trigger a single-use recovery email. Staff never see your password or recovery link.</p>
               </div>
               <button
                 type="button"

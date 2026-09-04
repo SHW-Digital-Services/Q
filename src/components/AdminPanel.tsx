@@ -63,17 +63,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [staffMessage, setStaffMessage] = useState<string | null>(null);
   const [paypalApprovalUrl, setPaypalApprovalUrl] = useState<string | null>(null);
   const [manualDiscount, setManualDiscount] = useState({ percent: '', cycles: '' });
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'user', sendInvite: true });
+  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'user' });
   const [addingUser, setAddingUser] = useState(false);
-  const [createdUserPassword, setCreatedUserPassword] = useState<string | null>(null);
   const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
   const [contactReplies, setContactReplies] = useState<Record<string, string>>({});
   const [contactMessage, setContactMessage] = useState<string | null>(null);
 
-  // Direct password reset state
+  // Admin-triggered recovery email state
   const [directEmail, setDirectEmail] = useState('');
   const [directResetting, setDirectResetting] = useState(false);
-  const [directResult, setDirectResult] = useState<{ email: string; tempPassword?: string; recoveryLink?: string } | null>(null);
+  const [directResult, setDirectResult] = useState<{ email: string } | null>(null);
 
   const getAuthHeaders = async () => {
     const supabase = getSupabaseClient();
@@ -296,10 +295,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     try {
       const response = await fetch('/api/v1/admin/crm/users', { method: 'POST', headers: await getAuthHeaders(), body: JSON.stringify(newUser) });
       const data = await parseJsonResponse(response);
-      setNewUser({ name: '', email: '', role: 'user', sendInvite: true });
-      setCreatedUserPassword(data.temporaryPassword ?? null);
+      setNewUser({ name: '', email: '', role: 'user' });
       await Promise.all([loadCrm(), staffRole === 'partner_admin' ? loadStaff() : Promise.resolve()]);
-      setCrmMessage(data.invited ? `Invitation sent to ${data.email}.` : `Account created for ${data.email}. Copy the temporary password now.`);
+      setCrmMessage(`Invitation sent to ${data.email}.`);
     } catch (error: any) { setCrmMessage(error.message || 'Unable to invite user.'); }
     finally { setAddingUser(false); }
   };
@@ -315,9 +313,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       });
       const payload = await parseJsonResponse(response);
       setRequests((current) => current.map((item) => item.id === request.id ? payload.request : item));
-      setRequestMessage(`Temporary password created for ${request.email}: ${payload.tempPassword}`);
+      setRequestMessage(`Recovery email sent to ${request.email}. No credentials are shown or stored in Q.`);
     } catch (error: any) {
-      setRequestMessage(error.message || 'Unable to issue a temporary password.');
+      setRequestMessage(error.message || 'Unable to send the recovery email.');
     } finally {
       setResettingId(null);
     }
@@ -338,14 +336,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         body: JSON.stringify({ email: directEmail.trim() })
       });
       const payload = await parseJsonResponse(response);
-      setDirectResult({
-        email: payload.email,
-        tempPassword: payload.tempPassword,
-        recoveryLink: payload.recoveryLink
-      });
+      setDirectResult({ email: payload.email });
       setDirectEmail('');
     } catch (error: any) {
-      setRequestMessage(error.message || 'Unable to reset password.');
+      setRequestMessage(error.message || 'Unable to send the recovery email.');
     } finally {
       setDirectResetting(false);
     }
@@ -447,9 +441,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             <input value={newUser.name} onChange={(event) => setNewUser({ ...newUser, name: event.target.value })} placeholder="Name" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2"/>
             <input required type="email" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} placeholder="Email address" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2"/>
             {staffRole === 'partner_admin' ? <select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="user">User</option><option value="staff">Staff</option><option value="partner_admin">Admin</option></select> : <input readOnly value="User" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-slate-400"/>}
-            {staffRole === 'partner_admin' && <label className="flex items-center gap-2 text-xs text-slate-300 md:col-span-4"><input type="checkbox" checked={!newUser.sendInvite} onChange={(event) => setNewUser({ ...newUser, sendInvite: !event.target.checked })} className="accent-purple-600"/>Create directly with a temporary password instead of sending an invitation</label>}
-            <button disabled={addingUser} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50 md:col-start-5">{addingUser ? 'Creating…' : newUser.sendInvite ? 'Send invitation' : 'Create account'}</button>
-            {createdUserPassword && <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-100 md:col-span-5"><span>Temporary password: <b className="font-mono">{createdUserPassword}</b></span><button type="button" onClick={() => navigator.clipboard.writeText(createdUserPassword)} className="font-bold">Copy</button></div>}
+            <p className="text-xs text-slate-400 md:col-span-4">Q sends a single-use invitation. Passwords are never created or displayed in the CRM.</p>
+            <button disabled={addingUser} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50 md:col-start-5">{addingUser ? 'Sending…' : 'Send invitation'}</button>
           </form>
 
           <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -526,8 +519,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         {staffRole === 'partner_admin' && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-white">Direct password reset</p>
-              <p className="mt-1 text-sm text-slate-400">Enter any user's email to instantly issue a temporary password and reset link.</p>
+              <p className="text-sm font-semibold text-white">Send account recovery</p>
+              <p className="mt-1 text-sm text-slate-400">Send a single-use recovery email. Q never displays the password or recovery link.</p>
             </div>
           </div>
 
@@ -546,37 +539,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-purple-500 disabled:opacity-60"
             >
               <KeyRound className="h-3.5 w-3.5" />
-              {directResetting ? 'Resetting…' : 'Issue temp password'}
+              {directResetting ? 'Sending…' : 'Send recovery email'}
             </button>
           </form>
 
           {directResult && (
             <div className="mt-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-xs text-emerald-200 space-y-1.5">
-              <p className="font-semibold text-emerald-100">Password reset for {directResult.email}:</p>
-              {directResult.tempPassword && (
-                <div className="flex items-center justify-between gap-2 bg-slate-950/60 p-2 rounded-xl border border-emerald-400/20">
-                  <span className="font-mono text-emerald-300">Temp Password: {directResult.tempPassword}</span>
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard.writeText(directResult.tempPassword!)}
-                    className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 hover:underline"
-                  >
-                    Copy
-                  </button>
-                </div>
-              )}
-              {directResult.recoveryLink && (
-                <div className="flex items-center justify-between gap-2 bg-slate-950/60 p-2 rounded-xl border border-emerald-400/20">
-                  <span className="truncate font-mono text-[11px] text-slate-300">Link: {directResult.recoveryLink}</span>
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard.writeText(directResult.recoveryLink!)}
-                    className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 hover:underline shrink-0"
-                  >
-                    Copy Link
-                  </button>
-                </div>
-              )}
+              <p className="font-semibold text-emerald-100">Recovery email sent to {directResult.email}.</p>
+              <p>The recipient completes the password reset through the email link; no credential is exposed to staff.</p>
             </div>
           )}
         </div>}
@@ -585,7 +555,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-white">Password reset requests</p>
-              <p className="mt-1 text-sm text-slate-400">Review contact requests from the login page and issue a temporary password.</p>
+              <p className="mt-1 text-sm text-slate-400">Review requests from the login page and send a single-use recovery email.</p>
             </div>
             <button
               type="button"
@@ -624,23 +594,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                       className="inline-flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1.5 text-xs font-semibold text-purple-200 transition hover:bg-purple-500/20 disabled:opacity-60 shrink-0"
                     >
                       <KeyRound className="h-3.5 w-3.5" />
-                      {resettingId === request.id ? 'Resetting…' : request.status === 'reset' ? 'Reset again' : 'Reset password'}
+                      {resettingId === request.id ? 'Sending…' : request.status === 'reset' ? 'Send again' : 'Send recovery email'}
                     </button>
                   </div>
-                  {request.tempPassword && (
-                    <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-2.5 text-[11px] text-emerald-200 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono">Temp password: {request.tempPassword}</span>
-                        <button
-                          type="button"
-                          onClick={() => navigator.clipboard.writeText(request.tempPassword)}
-                          className="font-bold text-emerald-400 hover:underline"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

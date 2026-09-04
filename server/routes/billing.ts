@@ -1,6 +1,6 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { getAuthenticatedUser, asyncHandler } from '../middleware.js';
+import { getAuthenticatedUser, asyncHandler, getCanonicalAppUrl, sendOpaqueError } from '../middleware.js';
 import { getPayPalConfig, getPayPalEnvironment, getPayPalVariableName } from '../paypalConfig.js';
 
 export const billingRouter = express.Router();
@@ -59,24 +59,6 @@ export async function getPayPalAccessToken(): Promise<string> {
   const data = await response.json() as { access_token?: string };
   if (!data.access_token) throw new Error('PayPal returned no access token.');
   return data.access_token;
-}
-
-function getAppUrl(req: express.Request): string {
-  if (process.env.APP_URL) {
-    return process.env.APP_URL.replace(/\/+$/, '');
-  }
-  if (process.env.VERCEL_URL) {
-    const url = process.env.VERCEL_URL.startsWith('http')
-      ? process.env.VERCEL_URL
-      : `https://${process.env.VERCEL_URL}`;
-    return url.replace(/\/+$/, '');
-  }
-  const host = (req.headers['x-forwarded-host'] || req.headers.host) as string | undefined;
-  if (host) {
-    const proto = (req.headers['x-forwarded-proto'] as string) || 'https';
-    return `${proto}://${host}`.replace(/\/+$/, '');
-  }
-  return 'http://localhost:3000';
 }
 
 async function savePayPalSubscription(subscription: any, fallbackUserId?: string) {
@@ -267,7 +249,7 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
 
   try {
     const accessToken = await getPayPalAccessToken();
-    const appUrl = getAppUrl(req);
+    const appUrl = getCanonicalAppUrl();
     const paypalBaseUrl = getPaypalBaseUrl();
 
     const paypalResponse = await fetch(`${paypalBaseUrl}/v1/billing/subscriptions`, {
@@ -310,9 +292,9 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
         environment,
         reason: invalidPlanMessage || paypalReason
       });
-      return res.status(502).json({
-        error: 'PayPal could not create subscription.',
-        detail: invalidPlanMessage || paypalReason || data.message || `PayPal status code ${paypalResponse.status}`
+      return sendOpaqueError(req, res, 502, 'PayPal could not create subscription.', 'Billing Create Subscription', {
+        status: paypalResponse.status,
+        reason: invalidPlanMessage || paypalReason || data.message
       });
     }
 
@@ -323,8 +305,7 @@ billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) 
 
     return res.json({ approvalUrl });
   } catch (error: any) {
-    console.error('[Billing] Create subscription failed:', error);
-    return res.status(503).json({ error: error.message || 'PayPal is currently unavailable.' });
+    return sendOpaqueError(req, res, 503, 'PayPal is currently unavailable.', 'Billing Create Subscription', error);
   }
 }));
 
@@ -384,14 +365,16 @@ billingRouter.post('/paypal/complete', asyncHandler(async (req, res) => {
       if (paypalResponse.status === 404 || paypalResponse.status === 400) {
         return res.json({ success: true, pending: true, status: 'APPROVAL_PENDING' });
       }
-      return res.status(502).json({ error: 'Unable to verify PayPal subscription.', detail: data });
+      return sendOpaqueError(req, res, 502, 'Unable to verify PayPal subscription.', 'Billing Complete Subscription', {
+        status: paypalResponse.status,
+        providerMessage: data?.message
+      });
     }
 
     await savePayPalSubscription(data, identity.user.id);
     return res.json({ success: true, pending: false, status: data.status, planId: data.plan_id });
   } catch (error: any) {
-    console.error('[Billing] Complete subscription failed:', error);
-    return res.status(503).json({ error: error.message || 'PayPal subscription verification failed.' });
+    return sendOpaqueError(req, res, 503, 'PayPal subscription verification failed.', 'Billing Complete Subscription', error);
   }
 }));
 

@@ -335,6 +335,8 @@ Authorised Staff and Admin users may process limited customer-operation records 
 
 CRM records must not contain complete card numbers, card security codes, passwords, recovery links, or private journal, chat, mood, and identity content unless strictly necessary for an authorised support or legal purpose.
 
+Staff-assisted account recovery sends a single-use recovery email through the authentication provider. Q does not return a temporary password or recovery action link to staff or in an API response.
+
 PayPal may send verified webhook notifications to Q Intelligence so that product, subscription, payment, refund, failure, and cancellation records remain synchronised. Q Intelligence may also send product, plan, and subscription-management instructions to PayPal at the request of authorised Staff or Admin users. A customer must approve a new chargeable recurring subscription through PayPal.
 
 ---

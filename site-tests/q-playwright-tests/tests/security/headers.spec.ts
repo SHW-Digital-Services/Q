@@ -30,3 +30,22 @@ for (const endpoint of protectedEndpoints) {
   });
 }
 
+const sensitiveEndpoints = [
+  '/api/v1/admin/me',
+  '/api/billing/paypal/status',
+  '/api/referrals/me'
+];
+
+for (const endpoint of sensitiveEndpoints) {
+  test(`Sensitive endpoint ${endpoint} is not cacheable`, async ({ request }) => {
+    const response = await request.get(endpoint);
+    expect(response.headers()['cache-control'] ?? '').toContain('no-store');
+    expect(response.headers()['pragma'] ?? '').toContain('no-cache');
+  });
+}
+
+test('Hosted AI responses are not cacheable', async ({ request }) => {
+  const response = await request.post('/api/q-ai/chat', { data: {} });
+  expect(response.headers()['cache-control'] ?? '').toContain('no-store');
+  expect(response.headers()['pragma'] ?? '').toContain('no-cache');
+});

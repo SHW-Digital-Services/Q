@@ -14,7 +14,7 @@ Q is a privacy-conscious LGBTQ+ wellbeing, life-guidance, and personal-reflectio
 - **Per-user memory:** User-approved memories are stored in Supabase and protected by Row Level Security. Relevant memories are retrieved only for the authenticated user.
 - **Crisis support:** A static, offline-capable country directory provides one-tap emergency, phone, text, and chat actions. Crisis intent is checked before model inference.
 - **Safety controls:** a single discreet Notes mode, privacy lock, and local-data controls are built into the application.
-- **Journaling and mood tracking:** Private local/cloud-backed reflection tools with user controls.
+- **Journaling and mood tracking:** Browser-stored reflection tools plus user-owned Supabase records where the feature explicitly saves to the signed-in account. Browser storage and JSON exports are not encrypted by Q.
 - **Operations:** PayPal subscriptions, staff access controls, and optional Zoho Bigin CRM synchronization.
 
 See [Local AI, memory, and safety](docs/local-ai-memory-safety.md) and the [user, staff, and admin guide](docs/q-user-staff-admin-guide.md) for operational details.

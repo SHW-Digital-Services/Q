@@ -1,6 +1,7 @@
 import express from 'express';
 import 'dotenv/config';
 import path from 'path';
+import { randomUUID } from 'node:crypto';
 import { billingRouter } from './routes/billing.js';
 import { aiRouter } from './routes/ai.js';
 import { legalRouter } from './routes/legal.js';
@@ -20,6 +21,14 @@ app.use((_req, res, next) => {
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=(), payment=(self)'
   );
+  next();
+});
+
+app.use((req, res, next) => {
+  if (/^\/api\/(?:q-ai|ai|billing|v1\/admin|admin|referrals)(?:\/|$)/.test(req.path)) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+  }
   next();
 });
 
@@ -141,12 +150,14 @@ if (process.env.VERCEL !== '1' && process.env.NODE_ENV === 'production') {
 }
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('[Server Uncaught Error]:', err);
+  const requestId = randomUUID();
+  console.error(`[Server Uncaught Error] requestId=${requestId}:`, err instanceof Error ? err.message : err);
   if (!res.headersSent) {
+    res.setHeader('X-Request-Id', requestId);
     if (err?.type === 'entity.too.large' || err?.status === 413) {
       return res.status(413).json({ error: 'Request body is too large.' });
     }
-    res.status(500).json({ error: err?.message || 'An unexpected server error occurred.' });
+    res.status(500).json({ error: 'An unexpected server error occurred.', requestId });
   }
 });
 

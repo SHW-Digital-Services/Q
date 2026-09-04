@@ -1,7 +1,7 @@
 import express from 'express';
 import { randomBytes } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { asyncHandler, getAuthenticatedUser } from '../middleware.js';
+import { asyncHandler, getAuthenticatedUser, getCanonicalAppUrl } from '../middleware.js';
 
 export const referralsRouter = express.Router();
 
@@ -43,7 +43,7 @@ referralsRouter.get('/me', asyncHandler(async (req, res) => {
   ]);
   if (referrals.error || credits.error) throw referrals.error || credits.error;
   const balance = (credits.data ?? []).filter((row:any) => row.status === 'available' || (row.status === 'used' && row.kind === 'redemption')).reduce((sum:number,row:any) => sum + row.amount_minor, 0);
-  const base = `${req.protocol}://${req.get('host')}`;
+  const base = getCanonicalAppUrl();
   return res.json({ code, referralUrl: `${base}/?ref=${code}`, balanceMinor: Math.max(0, balance), currency: 'GBP', referrals: referrals.data, credits: credits.data });
 }));
 
@@ -64,7 +64,7 @@ referralsRouter.post('/invite', asyncHandler(async (req, res) => {
   const result = await ctx.db.from('referrals').insert({ referrer_user_id: ctx.identity.user.id, prospect_email: prospectEmail }).select().single();
   if (result.error?.code === '23505') return res.status(409).json({ error: 'You have already referred that email address.' });
   if (result.error) throw result.error;
-  return res.status(201).json({ referral: result.data, referralUrl: `${req.protocol}://${req.get('host')}/?ref=${code}` });
+  return res.status(201).json({ referral: result.data, referralUrl: `${getCanonicalAppUrl()}/?ref=${code}` });
 }));
 
 referralsRouter.post('/claim', asyncHandler(async (req, res) => {

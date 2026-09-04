@@ -75,9 +75,9 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose, onDat
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-white">
-                Offline Cache & Cross-Platform Sync
+                Local Data Backup
               </h2>
-              <p className="text-xs text-slate-400">Total data ownership and encrypted local backup</p>
+              <p className="text-xs text-slate-400">Portable plaintext JSON backup for local data</p>
             </div>
           </div>
           <button
@@ -100,7 +100,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose, onDat
                   : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
               }`}>
                 <span className={`w-2 h-2 rounded-full ${syncState.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                {syncState.isOnline ? 'Online & Ready to Sync' : 'Offline Mode (Saved Locally)'}
+                {syncState.isOnline ? 'Online • Local data available' : 'Offline • Local data available'}
               </span>
             </div>
 
@@ -108,8 +108,8 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose, onDat
               <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center gap-2">
                 <HardDrive className="w-4 h-4 text-purple-400" />
                 <div>
-                  <div className="text-slate-400 text-[11px]">Last Synced</div>
-                  <div className="font-semibold text-slate-200">{syncState.lastSyncedAt || 'Just now'}</div>
+                  <div className="text-slate-400 text-[11px]">Last reviewed</div>
+                  <div className="font-semibold text-slate-200">{syncState.lastSyncedAt || 'Not reviewed'}</div>
                 </div>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center gap-2">
@@ -127,7 +127,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose, onDat
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-purple-600/80 hover:bg-purple-600 text-white font-medium text-xs transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Syncing to Cloud & Storage...' : 'Force Sync Now'}
+              {isSyncing ? 'Updating local status…' : 'Mark local changes reviewed'}
             </button>
           </div>
 
@@ -137,7 +137,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose, onDat
               <Download className="w-4 h-4 text-purple-400" /> Export Offline Backup JSON
             </h3>
             <p className="text-xs text-slate-400">
-              Download your complete Q profile, life guides, journal reflections, and saved experiences as a portable JSON file.
+              Download supported local Q data as a plaintext JSON file. It is not encrypted by Q; store it only in a secure location you control.
             </p>
             <button
               onClick={handleExport}

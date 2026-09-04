@@ -92,7 +92,7 @@ Authorisation controls are reviewed when new database tables, APIs, or administr
 
 Users are responsible for choosing a strong, unique password and protecting access to their email account and devices.
 
-Q Intelligence may provide password recovery or authorised support-assisted account recovery. Recovery links, temporary credentials, and authentication tokens must be treated as confidential and must not be stored in CRM notes or shared through unauthorised channels.
+Q Intelligence uses single-use recovery emails for password recovery and authorised support-assisted account recovery. Staff and API responses do not receive or display user passwords, recovery links, or authentication tokens.
 
 We may suspend, restrict, or terminate access where we reasonably believe an account has been compromised or presents a security risk.
 
@@ -187,6 +187,8 @@ Monitoring may be used to identify:
 Infrastructure providers may maintain backups and recovery capabilities according to the applicable service plan and configuration.
 
 We take reasonable steps to support service recovery, but do not guarantee uninterrupted availability or recovery of every item of data. Users should retain their own copies of information where the Service provides an export or backup feature and the information is important to them.
+
+The current browser backup feature exports supported local data as plaintext JSON. Q does not encrypt that file or upload it to cloud storage. Users should store exported files only in a secure or encrypted location they control.
 
 ---
 

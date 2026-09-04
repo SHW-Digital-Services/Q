@@ -2,7 +2,7 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { redactPii } from '../../src/services/pii.js';
-import { asyncHandler, getAuthenticatedUser } from '../middleware.js';
+import { asyncHandler, getAuthenticatedUser, sendOpaqueError } from '../middleware.js';
 import { crisisDirectory, globalFallback } from '../../src/data/crisisHelplines.js';
 import { hasCrisisIntent } from '../../src/services/crisisDetection.js';
 
@@ -165,15 +165,10 @@ aiRouter.post('/chat', asyncHandler(async (req, res) => {
     return res.json({ reply, actionItems: [], model, processing: 'hosted', usage: allowance });
   } catch (error) {
     const providerError = getProviderError(error);
-    console.error('[Q-AI Chat Error]:', {
+    return sendOpaqueError(req, res, providerError.status >= 400 && providerError.status < 500 ? 502 : 500, 'An error occurred while generating the response.', 'Q-AI Chat', {
       status: providerError.status,
       model,
       detail: providerError.detail
-    });
-    return res.status(providerError.status >= 400 && providerError.status < 500 ? 502 : 500).json({
-      error: 'An error occurred while generating the response.',
-      detail: providerError.detail,
-      model
     });
   }
 }));
@@ -222,7 +217,6 @@ aiRouter.post('/query', asyncHandler(async (req, res) => {
       category: item.category
     })) });
   } catch (error) {
-    console.error('[Q-AI Query Error]:', error);
-    return res.status(500).json({ error: 'An error occurred while processing the request.' });
+    return sendOpaqueError(req, res, 500, 'An error occurred while processing the request.', 'Q-AI Query', error);
   }
 }));

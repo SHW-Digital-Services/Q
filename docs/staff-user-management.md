@@ -28,9 +28,9 @@ where id = (
 1. Open the Q site.
 2. Open the hidden/admin access button on the landing page.
 3. Sign in with the staff account.
-4. In `Direct password reset`, enter the user's email address.
-5. Click `Issue temp password`.
-6. Give the temporary password or recovery link to the user using your normal secure support channel.
+4. In `Send account recovery`, enter the user's email address.
+5. Click `Send recovery email`.
+6. Tell the user to use the single-use link delivered directly to their email address. Staff must never ask for or handle the resulting password.
 7. Ask the user to sign in and immediately change their password from their profile screen.
 
 ## Staff CRM Flow
@@ -44,7 +44,7 @@ where id = (
    - tasks
    - follow-up reminders
    - owner
-5. Do not store Q passwords, temporary passwords, recovery links, journal content, chat content, mood logs, identity notes, or sensitive support details in Zoho.
+5. Do not store Q passwords, recovery links, journal content, chat content, mood logs, identity notes, or sensitive support details in CRM records.
 
 ## Access Model
 

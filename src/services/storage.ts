@@ -290,7 +290,7 @@ export function getSyncStatus(): SyncStatusState {
     lastSyncedAt: new Date().toLocaleTimeString(),
     pendingSyncCount: 0,
     syncMode: 'auto',
-    cloudConnected: isOnline
+    cloudConnected: false
   });
 }
 
@@ -300,7 +300,7 @@ export function markSynced(): SyncStatusState {
     lastSyncedAt: new Date().toLocaleTimeString(),
     pendingSyncCount: 0,
     syncMode: 'auto',
-    cloudConnected: true
+    cloudConnected: false
   };
   setItem(KEYS.SYNC_STATE, updated);
   return updated;

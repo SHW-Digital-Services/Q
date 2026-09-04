@@ -1,7 +1,6 @@
 import express from 'express';
-import { randomBytes } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { getAuthenticatedUser, asyncHandler } from '../middleware.js';
+import { getAuthenticatedUser, asyncHandler, getCanonicalAppUrl, sendOpaqueError } from '../middleware.js';
 import { buildAnalyticsExport } from '../analyticsEngine.js';
 import { getPayPalAccessToken, getPaypalBaseUrl } from './billing.js';
 
@@ -102,16 +101,6 @@ function mapPasswordResetRequest(row: any): PasswordResetRequest {
     createdAt: row.created_at,
     status: row.status
   };
-}
-
-function generateTemporaryPassword() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
-  const bytes = randomBytes(16);
-  let password = '';
-  for (const byte of bytes) {
-    password += alphabet[byte % alphabet.length];
-  }
-  return password;
 }
 
 async function requireAdmin(req: express.Request, res: express.Response) {
@@ -281,19 +270,14 @@ adminRouter.post('/crm/users', asyncHandler(async (req, res) => {
   const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
   const requestedRole = req.body?.role;
   const role = staffCtx.role === 'partner_admin' && ['user', 'staff', 'partner_admin'].includes(requestedRole) ? requestedRole : 'user';
-  const directCreate = req.body?.sendInvite === false;
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'A valid email address is required.' });
-  if (directCreate && staffCtx.role !== 'partner_admin') return res.status(403).json({ error: 'Only Admins can create accounts without an invitation.' });
-  const redirectTo = `${(process.env.APP_URL || 'https://www.q-ai.online').replace(/\/+$/, '')}/app`;
-  const temporaryPassword = directCreate ? generateTemporaryPassword() : undefined;
-  const authResult = directCreate
-    ? await staffCtx.serviceSupabase.auth.admin.createUser({ email, password: temporaryPassword, email_confirm: true, user_metadata: { name: name || email.split('@')[0], created_by_q_crm: true, must_change_password: true } })
-    : await staffCtx.serviceSupabase.auth.admin.inviteUserByEmail(email, { redirectTo, data: { name: name || email.split('@')[0], invited_by_q_crm: true } });
-  if (authResult.error || !authResult.data?.user) return res.status(400).json({ error: authResult.error?.message || 'Unable to create the user account.' });
+  const redirectTo = `${getCanonicalAppUrl()}/app`;
+  const authResult = await staffCtx.serviceSupabase.auth.admin.inviteUserByEmail(email, { redirectTo, data: { name: name || email.split('@')[0], invited_by_q_crm: true } });
+  if (authResult.error || !authResult.data?.user) return sendOpaqueError(req, res, 400, 'Unable to send the account invitation.', 'Admin Invite User', authResult.error);
   const { error: profileError } = await staffCtx.serviceSupabase.from('profiles').upsert({ id: authResult.data.user.id, preferred_name: name || null, role, crm_status: 'customer' }, { onConflict: 'id' });
   if (profileError) return res.status(500).json({ error: `Invitation sent, but the CRM profile could not be prepared: ${profileError.message}` });
-  await recordCrmActivity(staffCtx.serviceSupabase, authResult.data.user.id, staffCtx.identity.user.id, directCreate ? 'user_created' : 'user_invited', directCreate ? `Account created directly as ${role}` : `User invited as ${role}`, { email, role });
-  return res.status(201).json({ id: authResult.data.user.id, email, name, role, invited: !directCreate, temporaryPassword });
+  await recordCrmActivity(staffCtx.serviceSupabase, authResult.data.user.id, staffCtx.identity.user.id, 'user_invited', `User invited as ${role}`, { email, role });
+  return res.status(201).json({ id: authResult.data.user.id, email, name, role, invited: true });
 }));
 
 async function recordCrmActivity(serviceSupabase: any, userId: string, actorId: string, activityType: string, summary: string, metadata: Record<string, unknown> = {}) {
@@ -395,7 +379,7 @@ adminRouter.post('/crm/users/:id/paypal-subscriptions', asyncHandler(async (req,
   const { data: product, error } = await adminCtx.serviceSupabase.from('crm_products').select('id, name, description, price_minor, currency, paypal_product_id, paypal_plan_id, billing_interval, active').eq('id', req.body?.productId).maybeSingle();
   if (error || !product) return res.status(404).json({ error: 'Subscription product not found.' });
   if (!product.active || product.billing_interval === 'one_time' || !product.paypal_plan_id) return res.status(400).json({ error: 'This product is not an active PayPal subscription plan.' });
-  const appUrl = (process.env.APP_URL || 'https://q-ai.online').replace(/\/+$/, '');
+  const appUrl = getCanonicalAppUrl();
   let selectedPlanId = product.paypal_plan_id;
   if (hasDiscount) {
     if (!product.paypal_product_id) return res.status(400).json({ error: 'The product must be synchronized with PayPal before applying a discount.' });
@@ -594,7 +578,7 @@ adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
 
     if (error) {
       console.error('[Admin] password_reset_requests insert failed:', error);
-      return res.status(500).json({ error: error.message || 'Failed to save the password reset request.' });
+      return sendOpaqueError(req, res, 500, 'Failed to save the password reset request.', 'Admin Password Reset Request', error);
     }
 
     const request: PasswordResetRequest = data ? mapPasswordResetRequest(data) : {
@@ -607,8 +591,7 @@ adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
 
     return res.json({ success: true, request });
   } catch (error: any) {
-    console.error('[Admin] Failed to submit password reset request:', error);
-    return res.status(500).json({ error: error.message || 'Failed to submit request.' });
+    return sendOpaqueError(req, res, 500, 'Failed to submit request.', 'Admin Password Reset Request', error);
   }
 }));
 
@@ -624,13 +607,12 @@ adminRouter.get('/password-reset-requests', asyncHandler(async (req, res) => {
 
     if (error) {
       console.error('[Admin] password_reset_requests select failed:', error);
-      return res.status(500).json({ error: error.message || 'Failed to retrieve reset requests.' });
+      return sendOpaqueError(req, res, 500, 'Failed to retrieve reset requests.', 'Admin List Password Reset Requests', error);
     }
 
     return res.json((data ?? []).map(mapPasswordResetRequest));
   } catch (error: any) {
-    console.error('[Admin] GET password-reset-requests failed:', error);
-    return res.status(500).json({ error: error.message || 'Failed to retrieve reset requests.' });
+    return sendOpaqueError(req, res, 500, 'Failed to retrieve reset requests.', 'Admin List Password Reset Requests', error);
   }
 }));
 
@@ -648,7 +630,7 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
 
     if (requestError) {
       console.error('[Admin] password_reset_requests lookup failed:', requestError);
-      return res.status(500).json({ error: requestError.message || 'Password reset request lookup failed.' });
+      return sendOpaqueError(req, res, 500, 'Password reset request lookup failed.', 'Admin Password Reset Lookup', requestError);
     }
 
     if (!requestRow) {
@@ -656,47 +638,16 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
     }
 
     const request = mapPasswordResetRequest(requestRow);
-    const tempPassword = generateTemporaryPassword();
-    const { data: usersData, error: lookupError } = await serviceSupabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const targetUser = usersData?.users?.find((u: any) => u.email?.toLowerCase() === request.email.toLowerCase());
-
-    if (lookupError) {
-      console.error('[Admin] listUsers error:', lookupError);
-    }
-
-    if (!targetUser?.id) {
-      await serviceSupabase
-        .from('password_reset_requests')
-        .update({ status: 'failed' })
-        .eq('id', request.id);
-      return res.status(404).json({ error: `No registered user found for email: ${request.email}` });
-    }
-
-    const { error: updateError } = await serviceSupabase.auth.admin.updateUserById(targetUser.id, {
-      password: tempPassword,
-      email_confirm: true
+    const { error: recoveryError } = await serviceSupabase.auth.resetPasswordForEmail(request.email, {
+      redirectTo: `${getCanonicalAppUrl()}/app`
     });
 
-    if (updateError) {
-      console.error('[Admin] updateUserById error:', updateError);
+    if (recoveryError) {
       await serviceSupabase
         .from('password_reset_requests')
         .update({ status: 'failed' })
         .eq('id', request.id);
-      return res.status(400).json({ error: updateError.message || 'User password update failed.' });
-    }
-
-    let recoveryLink: string | undefined;
-    try {
-      const { data: linkData } = await serviceSupabase.auth.admin.generateLink({
-        type: 'recovery',
-        email: request.email
-      });
-      if (linkData?.properties?.action_link) {
-        recoveryLink = linkData.properties.action_link;
-      }
-    } catch (linkErr) {
-      console.warn('[Admin] Recovery link generation error:', linkErr);
+      return sendOpaqueError(req, res, 502, 'Unable to send the recovery email.', 'Admin Password Recovery', recoveryError);
     }
 
     const { data: updatedRequest, error: updateRequestError } = await serviceSupabase
@@ -712,13 +663,11 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
 
     return res.json({
       success: true,
-      tempPassword,
-      recoveryLink,
+      recoverySent: true,
       request: updatedRequest ? mapPasswordResetRequest(updatedRequest) : { ...request, status: 'reset' }
     });
   } catch (error: any) {
-    console.error('[Admin] Password reset failed:', error);
-    return res.status(500).json({ error: error.message || 'Unable to reset the password.' });
+    return sendOpaqueError(req, res, 500, 'Unable to send the recovery email.', 'Admin Password Recovery', error);
   }
 }));
 
@@ -733,45 +682,13 @@ adminRouter.post('/direct-password-reset', asyncHandler(async (req, res) => {
       return res.status(400).json({ error: 'Email address is required.' });
     }
 
-    const tempPassword = generateTemporaryPassword();
-    const { data: usersData, error: lookupError } = await serviceSupabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const targetUser = usersData?.users?.find((u: any) => u.email?.toLowerCase() === email);
-
-    if (lookupError) {
-      console.error('[Admin] listUsers error:', lookupError);
-    }
-
-    if (!targetUser?.id) {
-      return res.status(404).json({ error: `No registered user found with email: ${email}` });
-    }
-
-    const { error: updateError } = await serviceSupabase.auth.admin.updateUserById(targetUser.id, {
-      password: tempPassword,
-      email_confirm: true
+    const { error: recoveryError } = await serviceSupabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${getCanonicalAppUrl()}/app`
     });
-
-    if (updateError) {
-      console.error('[Admin] Direct updateUserById error:', updateError);
-      return res.status(400).json({ error: updateError.message || 'Password update failed.' });
-    }
-
-    let recoveryLink: string | undefined;
-    try {
-      const { data: linkData } = await serviceSupabase.auth.admin.generateLink({
-        type: 'recovery',
-        email
-      });
-      if (linkData?.properties?.action_link) {
-        recoveryLink = linkData.properties.action_link;
-      }
-    } catch (linkErr) {
-      console.warn('[Admin] Recovery link generation error:', linkErr);
-    }
-
-    return res.json({ success: true, email, tempPassword, recoveryLink });
+    if (recoveryError) return sendOpaqueError(req, res, 502, 'Unable to send the recovery email.', 'Admin Direct Password Recovery', recoveryError);
+    return res.json({ success: true, email, recoverySent: true });
   } catch (error: any) {
-    console.error('[Admin] Direct password reset failed:', error);
-    return res.status(500).json({ error: error.message || 'Failed to reset password.' });
+    return sendOpaqueError(req, res, 500, 'Unable to send the recovery email.', 'Admin Direct Password Recovery', error);
   }
 }));
 
@@ -790,8 +707,7 @@ adminRouter.get('/provider-insights', asyncHandler(async (req, res) => {
       reportType: 'partner_value_preview'
     });
   } catch (error: any) {
-    console.error('[Admin] Provider insights error:', error);
-    return res.status(500).json({ error: error.message || 'Could not fetch provider metrics.' });
+    return sendOpaqueError(req, res, 500, 'Could not fetch provider metrics.', 'Admin Provider Insights', error);
   }
 }));
 
@@ -808,7 +724,6 @@ adminRouter.get('/data-moat-export', asyncHandler(async (req, res) => {
     if (messagesError || feedbackError) throw messagesError ?? feedbackError;
     return res.json(buildAnalyticsExport(messages ?? [], feedback ?? []));
   } catch (error: any) {
-    console.error('[Admin] Data export error:', error);
-    return res.status(500).json({ error: error.message || 'Aggregate export failed privacy validation.' });
+    return sendOpaqueError(req, res, 500, 'Aggregate export failed privacy validation.', 'Admin Aggregate Export', error);
   }
 }));

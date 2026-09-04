@@ -312,7 +312,7 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
             <BookOpen className="w-5 h-5 text-purple-600" /> Q Private Journal & Mood
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Safe, encrypted local reflections. Track emotional wellbeing and transition milestones offline.
+            Private reflections stored in this browser. Track emotional wellbeing and transition milestones offline.
           </p>
         </div>
 
@@ -344,7 +344,7 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
       <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700">
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-emerald-600" />
-          <span className="font-medium">Encrypted Local Storage • Device only</span>
+          <span className="font-medium">Browser storage • Device only • Not encrypted by Q</span>
         </div>
         <div className="flex items-center gap-4">
           <span>Total Entries: <strong className="text-purple-600">{entries.length}</strong></span>

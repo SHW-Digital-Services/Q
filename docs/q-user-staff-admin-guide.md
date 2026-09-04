@@ -102,8 +102,8 @@ If sign-in fails:
 4. Add a short message if useful.
 5. Submit the request.
 6. Staff will review the request through the Q admin panel.
-7. Staff may provide a temporary password or a recovery link through the support channel.
-8. Sign in and immediately change the password from the profile screen.
+7. Staff can trigger a single-use recovery email sent directly by the authentication provider.
+8. Open the email link and choose a new password. Staff cannot see the link or password.
 
 Do not send your current password to staff. Staff do not need it.
 
@@ -197,11 +197,11 @@ Journal and mood content must not be copied into Zoho Bigin by staff.
 
 1. Open `Profile`.
 2. Choose `Backup and restore`.
-3. Export a backup JSON file if needed.
-4. Store the backup somewhere private and secure.
+3. Export a plaintext backup JSON file if needed. Q does not encrypt this file.
+4. Store the backup in a secure or encrypted location you control.
 5. Use import only with a backup file you trust.
 
-Backup files may contain sensitive personal content.
+Backup files may contain sensitive personal content. The browser backup is local and is not a cloud-sync feature.
 
 ## Security Settings
 
@@ -243,7 +243,7 @@ Staff can:
 
 - sign in to the Q website admin panel
 - view password reset requests
-- issue temporary passwords or recovery links
+- trigger single-use recovery emails without seeing the link or password
 - manage user/customer records in Zoho Bigin
 - add safe, non-sensitive customer notes in Zoho Bigin
 - create follow-up tasks and reminders in Zoho Bigin
@@ -253,7 +253,7 @@ Staff must not:
 - access Supabase dashboard
 - access service-role keys
 - access database tables directly
-- store passwords or reset links in Zoho Bigin
+- store passwords or reset links in CRM records
 - store sensitive user content in Zoho Bigin
 - ask users for their current password
 - change technical configuration
@@ -280,29 +280,28 @@ If access is denied:
 2. Go to `Password reset requests`.
 3. Review the user's email and message.
 4. Check Zoho Bigin for the user by email if customer context is needed.
-5. Click `Reset password`.
-6. Copy the temporary password or recovery link.
-7. Send it to the user using the approved support channel.
-8. Tell the user to sign in and change the password immediately.
-9. Do not paste the temporary password or recovery link into Zoho Bigin notes.
+5. Click `Send recovery email`.
+6. Confirm that Q reports the recovery email was requested.
+7. Tell the user to check their email and use the single-use link.
+8. Never ask the user to send the link or their new password to staff.
 
 Suggested user message:
 
 ```text
-Your Q account password has been reset. Please sign in using the temporary password provided through this secure support channel, then open Profile > Change password and set a new private password immediately.
+A Q account recovery email has been sent to your registered address. Open its single-use link and choose a new private password. Q staff cannot see the link or your password.
 ```
 
-## Direct Password Reset
+## Send Account Recovery
 
-Use direct reset when a user contacts support but did not submit the in-app request.
+Use account recovery when a user contacts support but did not submit the in-app request.
 
 1. Open the Q website admin panel.
-2. Go to `Direct password reset`.
+2. Go to `Send account recovery`.
 3. Enter the user's email address.
-4. Click `Issue temp password`.
-5. If the email exists, the app returns a temporary password and may return a recovery link.
-6. Send the user the reset details through the approved support channel.
-7. Ask the user to change the password immediately after signing in.
+4. Click `Send recovery email`.
+5. Q asks the authentication provider to email a single-use recovery link directly to that address.
+6. No password, token, or action link is returned to staff.
+7. Tell the user to follow the email instructions and never share the link or password.
 
 If the email is not found:
 
@@ -617,8 +616,8 @@ Technical flow:
 4. The backend uses the service-role client to check `public.profiles.role`.
 5. Only `partner_admin` users can access admin operations.
 6. The backend uses `SUPABASE_SERVICE_ROLE_KEY` server-side to call Supabase Admin Auth methods.
-7. Temporary passwords and recovery links are returned to the staff screen.
-8. Staff communicate the reset details through the approved support channel.
+7. The authentication provider sends a single-use recovery link directly to the user's registered email address.
+8. The API and staff screen return only confirmation; they do not expose credentials or recovery tokens.
 
 The service-role key is never sent to the browser.
 
@@ -648,11 +647,11 @@ The WebLLM worker and runtime intentionally create multi-megabyte build assets. 
 2. Create a staff user.
 3. Set the staff user role to `partner_admin`.
 4. Sign in as staff through the Q admin panel.
-5. Use `Direct password reset` for the test user.
-6. Confirm a temporary password is returned.
-7. Sign out.
-8. Sign in as the test user with the temporary password.
-9. Change the test user's password in `Profile`.
+5. Use `Send account recovery` for the test user.
+6. Confirm the API and UI return no temporary password, token, or recovery URL.
+7. Open the recovery email in the isolated test mailbox and use the single-use link.
+8. Choose a new test password.
+9. Confirm the recovery link cannot be reused.
 10. Confirm the old password no longer works.
 
 ## Testing Zoho Bigin Sync
