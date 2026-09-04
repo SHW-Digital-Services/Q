@@ -59,7 +59,7 @@ export async function writeSecurityEvent(db: any, request: Request, event: {
 
 export function createRateLimitMiddleware(getServiceDb: () => any) {
   return async (request: Request, response: Response, next: NextFunction) => {
-    const routeClass = request.path.includes('password-reset') ? 'password-reset'
+    const routeClass = request.path.includes('password-reset') && request.method === 'POST' ? 'password-reset'
       : request.path.includes('contact-requests') ? 'contact'
       : request.path.includes('paypal') ? 'billing'
       : request.path.includes('referral') ? 'referral'
