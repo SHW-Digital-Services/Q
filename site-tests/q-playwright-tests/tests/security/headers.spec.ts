@@ -14,6 +14,13 @@ for (const [header, expected] of requiredHeaders) {
   });
 }
 
+test('Modern browser isolation and CSP headers are present', async ({ request }) => {
+  const headers = (await request.get('/')).headers();
+  expect(headers['content-security-policy'] ?? '').toContain("default-src 'self'");
+  expect(headers['cross-origin-opener-policy'] ?? '').toBe('same-origin');
+  expect(headers['cross-origin-resource-policy'] ?? '').toBe('same-origin');
+});
+
 const protectedEndpoints = [
   '/api/v1/admin/me',
   '/api/v1/admin/staff',

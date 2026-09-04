@@ -1,7 +1,7 @@
 ---
 title: Security Policy
 description: Security Policy for Q Intelligence
-version: 1.1.0
+version: 1.2.0
 effective_date: 26/08/2026
 last_updated: 26/08/2026
 applies_to: https://q-ai.online
@@ -297,6 +297,7 @@ Privacy enquiries: privacy@q-ai.online
 | 1.0.0 | 26/08/2026 | Initial Security Policy. |
 | 1.0.1 | 26/08/2026 | Added native CRM roles, PayPal synchronisation, webhook verification, and staff-assisted payment safeguards. |
 | 1.1.0 | 04/09/2026 | Added permission-scoped staff access, recent AAL2 enforcement for high-risk operations, database-backed throttling, server-only security events, atomic PayPal webhook processing states, and privacy lifecycle controls. |
+| 1.2.0 | 04/09/2026 | Added CSP/HSTS and cross-origin isolation, server-authoritative AI context and model controls, safety telemetry boundaries, dependency/secret/SBOM controls, threat-model documentation, and explicit local-encryption migration status. |
 
 ## 21. Privileged access and security events
 
@@ -313,5 +314,11 @@ Verified PayPal webhooks are atomically claimed before Q performs any billing si
 Authenticated users can request a server-generated account export covering their identity and account-scoped application, CRM, billing, referral, feedback, and audit records. Exports receive request and receipt identifiers. Account deletion requires an exact confirmation phrase and recent AAL2 authentication. Active or unsettled subscriptions place deletion on hold rather than silently discarding financial obligations. Completed deletion removes the Supabase Auth account and data protected by cascading ownership relationships; accountability receipts and processor-task records are retained without the deleted user identifier.
 
 Operational retention rules are represented in the database and a service-role-only purge function removes expired contact requests, password-reset requests, security events, webhook events, and rate-limit buckets. Deployment operations must schedule that purge function and periodically test the result; defining the function alone does not prove that a production schedule is active.
+
+## 24. Browser, AI, and supply-chain hardening
+
+Production responses include a restrictive Content Security Policy, HSTS, same-origin opener/resource policies, and the existing no-store controls for sensitive APIs. The repository now includes an asynchronous WebCrypto AES-GCM/IndexedDB secure-storage module (`src/services/secureStorage.ts`) with PBKDF2-derived keys and no persisted passphrase. Existing synchronous localStorage consumers remain explicitly classified as plaintext until they are migrated to this asynchronous interface; this boundary must not be described as completed encryption.
+
+Hosted AI ignores client-supplied trusted-knowledge text. It retrieves vetted context server-side, wraps retrieved and user content as untrusted data, restricts model IDs through `AI_ALLOWED_MODELS`, supports an `AI_HOSTED_ENABLED=false` kill switch, and records privacy-preserving safety events without prompts or message content. Dependency review, Dependabot, npm audit, Gitleaks, and CycloneDX SBOM generation run through CI. Recovery requires an isolated restore test; provider backup claims alone are not sufficient evidence.
 
 © Scott Harvey-Whittle trading as SHW Digital Services. All rights reserved.

@@ -967,3 +967,17 @@ Signed-in users can download a structured copy of account-scoped information hel
 Account deletion requires recent multi-factor authentication and an explicit confirmation phrase. Q may hold a deletion request while an active or unsettled subscription, payment dispute, fraud investigation, or legal retention duty is resolved. When deletion proceeds, the authentication account and account-owned content are removed or anonymised through database relationships. Limited receipt, security, processor-task, and financial evidence may be retained where necessary for accountability or legal obligations.
 
 Current operational defaults retain password-reset requests for 90 days; contact requests for 365 days; and security and PayPal webhook events for 400 days. Completed privacy-request accountability records may be retained for six years. These periods may be shortened or extended where a documented legal obligation, dispute, safeguarding need, or security investigation applies. Automated purge execution is an operational control and is monitored separately from the application code.
+
+# Browser security and local storage status
+
+Q applies a Content Security Policy, HSTS in production, same-origin isolation headers, and non-cacheable responses for authenticated, administrative, billing, referral, privacy, and hosted-AI routes. These controls reduce accidental disclosure and limit the impact of browser injection, but they cannot make data safe if a device or browser profile is already compromised.
+
+The repository includes an asynchronous WebCrypto AES-GCM and IndexedDB secure-storage module using a passphrase-derived key. The passphrase and derived key are not stored by Q. Existing synchronous localStorage features are still classified as plaintext browser storage until each consumer is migrated to that module. Q therefore does not currently claim that every local journal, mood, profile, or chat record is encrypted at rest. Local browser lock and camouflage controls are privacy features, not cryptographic authentication.
+
+# AI assurance and safety telemetry
+
+Client-supplied text cannot designate a source as trusted knowledge. Hosted Q retrieves vetted context server-side, labels user and retrieved content as untrusted data, restricts configured model identifiers, and supports an operational kill switch. Q records limited safety events such as crisis interception, model rejection, provider failure, and kill-switch activation using request identifiers and technical metadata only; prompts, journal text, chat content, tokens, and passwords are excluded from these events.
+
+# Standards and assurance statement
+
+Q uses UK GDPR/ICO principles, ISO 27001/27701, NIST CSF and AI RMF, OWASP ASVS/API/LLM guidance, CIS Controls, Cyber Essentials, and ISO 42001 as design references. The presence of these controls does not constitute certification, accreditation, independent assurance, or a claim that Q conforms to every requirement. Current implementation status and residual gaps are maintained in the Security Policy and threat model.
