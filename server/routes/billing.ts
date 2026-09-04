@@ -1,7 +1,8 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { getAuthenticatedUser, asyncHandler, getCanonicalAppUrl, sendOpaqueError } from '../middleware.js';
+import { getAuthenticatedUser, asyncHandler, getCanonicalAppUrl, getRequestId, sendOpaqueError } from '../middleware.js';
 import { getPayPalConfig, getPayPalEnvironment, getPayPalVariableName } from '../paypalConfig.js';
+import { requireExactObject } from '../security.js';
 
 export const billingRouter = express.Router();
 
@@ -119,7 +120,7 @@ async function qualifyReferralAndApplyCredit(db: any, event: any, subscription: 
   if (!creditToApply || !event.resource?.id) return;
   const existing = await db.from('referral_credits').select('id').eq('paypal_sale_id', event.resource.id).eq('kind', 'redemption').maybeSingle();
   if (existing.data) return;
-  await paypalApi(`/v1/payments/sale/${encodeURIComponent(event.resource.id)}/refund`, { method: 'POST', headers: { 'PayPal-Request-Id': `q-credit-${event.id}` }, body: JSON.stringify({ amount: { total: (creditToApply / 100).toFixed(2), currency }, description: 'Q referral credit' }) });
+  await paypalApi(`/v1/payments/sale/${encodeURIComponent(event.resource.id)}/refund`, { method: 'POST', headers: { 'PayPal-Request-Id': `q-credit-${event.resource.id}` }, body: JSON.stringify({ amount: { total: (creditToApply / 100).toFixed(2), currency }, description: 'Q referral credit' }) });
   const redemption = await db.from('referral_credits').insert({ user_id: userId, kind: 'redemption', amount_minor: -creditToApply, currency, status: 'used', available_at: now.toISOString(), paypal_sale_id: event.resource.id, note: 'Automatically applied to subscription payment' });
   if (redemption.error && redemption.error.code !== '23505') throw redemption.error;
 }
@@ -145,12 +146,21 @@ billingRouter.post('/paypal/webhook', asyncHandler(async (req, res) => {
   const serviceSupabase = getServiceSupabase();
   if (!serviceSupabase) return res.status(503).json({ error: 'Billing database is unavailable.' });
   const event = req.body;
-  if (!event?.id || !event?.event_type) return res.status(400).json({ error: 'Invalid webhook event.' });
-  const { data: existing } = await serviceSupabase.from('paypal_webhook_events').select('id').eq('id', event.id).maybeSingle();
-  if (existing) return res.json({ received: true, duplicate: true });
+  if (!event?.id || !event?.event_type || typeof event.id !== 'string' || event.id.length > 200 || typeof event.event_type !== 'string' || event.event_type.length > 100) {
+    return res.status(400).json({ error: 'Invalid webhook event.' });
+  }
+  const claimResult = await serviceSupabase.rpc('claim_paypal_webhook', {
+    event_id: event.id,
+    event_name: event.event_type,
+    event_resource_id: typeof event.resource?.id === 'string' ? event.resource.id.slice(0, 200) : null
+  });
+  if (claimResult.error) return sendOpaqueError(req, res, 503, 'Webhook processing is temporarily unavailable.', 'PayPal Webhook Claim', claimResult.error);
+  const claim = Array.isArray(claimResult.data) ? claimResult.data[0] : claimResult.data;
+  if (!claim?.claimed) return res.json({ received: true, duplicate: true, status: claim?.current_status ?? 'unknown' });
 
-  const type = String(event.event_type);
-  const resource = event.resource ?? {};
+  try {
+    const type = String(event.event_type);
+    const resource = event.resource ?? {};
   if (type.startsWith('BILLING.SUBSCRIPTION.')) {
     const subscription = resource.custom_id ? resource : await paypalApi(`/v1/billing/subscriptions/${encodeURIComponent(resource.id)}`);
     await savePayPalSubscription(subscription);
@@ -166,9 +176,12 @@ billingRouter.post('/paypal/webhook', asyncHandler(async (req, res) => {
         const currency = String(amount.currency ?? amount.currency_code ?? 'GBP').toUpperCase();
         await serviceSupabase.from('crm_payments').upsert({ user_id: subscription.custom_id, provider: 'paypal', provider_transaction_id: resource.id, amount_minor: amountMinor, currency, status: type === 'PAYMENT.SALE.COMPLETED' ? 'completed' : 'refunded', payment_type: type === 'PAYMENT.SALE.COMPLETED' ? 'subscription' : 'refund', description: event.summary ?? type, occurred_at: resource.create_time ?? event.create_time ?? new Date().toISOString() }, { onConflict: 'provider,provider_transaction_id' });
         if (type === 'PAYMENT.SALE.COMPLETED') {
-          const founder = await serviceSupabase.from('founder_subscriber_slots').select('*').eq('user_id', subscription.custom_id).in('status', ['reserved','qualified']).maybeSingle();
+          const founder = await serviceSupabase.from('founder_subscriber_slots').select('discount_cycles_remaining').eq('user_id', subscription.custom_id).in('status', ['reserved','qualified']).maybeSingle();
           const founderDiscountActive = Boolean(founder.data && founder.data.discount_cycles_remaining > 0);
-          if (founder.data && founderDiscountActive) await serviceSupabase.from('founder_subscriber_slots').update({ status: 'qualified', qualified_at: founder.data.qualified_at ?? new Date().toISOString(), paypal_subscription_id: subscription.id, discount_cycles_remaining: founder.data.discount_cycles_remaining - 1 }).eq('slot_number', founder.data.slot_number);
+          if (founderDiscountActive) {
+            const applied = await serviceSupabase.rpc('apply_founder_payment', { target_user_id: subscription.custom_id, target_subscription_id: subscription.id, target_sale_id: resource.id });
+            if (applied.error) throw applied.error;
+          }
           await qualifyReferralAndApplyCredit(serviceSupabase, event, subscription, amountMinor, currency, founderDiscountActive);
         }
       }
@@ -192,12 +205,19 @@ billingRouter.post('/paypal/webhook', asyncHandler(async (req, res) => {
       if (!parentProduct) await serviceSupabase.from('crm_products').insert(updates);
     }
   }
-  await serviceSupabase.from('paypal_webhook_events').insert({ id: event.id, event_type: type, resource_id: resource.id ?? null });
-  return res.json({ received: true });
+    const completed = await serviceSupabase.from('paypal_webhook_events').update({ status: 'completed', completed_at: new Date().toISOString(), last_error_code: null }).eq('id', event.id).eq('status', 'processing');
+    if (completed.error) throw completed.error;
+    return res.json({ received: true });
+  } catch (error) {
+    const requestId = getRequestId(req);
+    await serviceSupabase.from('paypal_webhook_events').update({ status: 'failed', failed_at: new Date().toISOString(), last_error_code: requestId }).eq('id', event.id).eq('status', 'processing');
+    return sendOpaqueError(req, res, 503, 'Webhook processing will be retried.', 'PayPal Webhook Processing', error);
+  }
 }));
 
 // POST /api/billing/paypal/create-subscription
 billingRouter.post('/paypal/create-subscription', asyncHandler(async (req, res) => {
+  if (!requireExactObject(req.body, ['plan'])) return res.status(400).json({ error: 'Unexpected request fields.' });
   const identity = await getAuthenticatedUser(req);
   if (!identity) return res.status(401).json({ error: 'Authentication required. Please sign in.' });
 
@@ -337,6 +357,7 @@ billingRouter.get('/paypal/plans', asyncHandler(async (_req, res) => {
 
 // POST /api/billing/paypal/complete
 billingRouter.post('/paypal/complete', asyncHandler(async (req, res) => {
+  if (!requireExactObject(req.body, ['subscriptionId', 'token'])) return res.status(400).json({ error: 'Unexpected request fields.' });
   const identity = await getAuthenticatedUser(req);
   if (!identity) return res.status(401).json({ error: 'Authentication required.' });
 

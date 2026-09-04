@@ -33,7 +33,8 @@ for (const endpoint of protectedEndpoints) {
 const sensitiveEndpoints = [
   '/api/v1/admin/me',
   '/api/billing/paypal/status',
-  '/api/referrals/me'
+  '/api/referrals/me',
+  '/api/privacy/requests'
 ];
 
 for (const endpoint of sensitiveEndpoints) {
@@ -48,4 +49,15 @@ test('Hosted AI responses are not cacheable', async ({ request }) => {
   const response = await request.post('/api/q-ai/chat', { data: {} });
   expect(response.headers()['cache-control'] ?? '').toContain('no-store');
   expect(response.headers()['pragma'] ?? '').toContain('no-cache');
+});
+
+test('Privacy lifecycle endpoints reject anonymous access and are not cacheable', async ({ request }) => {
+  const response = await request.get('/api/privacy/requests');
+  expect(response.status()).toBe(401);
+  expect(response.headers()['cache-control'] ?? '').toContain('no-store');
+});
+
+test('Account deletion requires the exact confirmation schema', async ({ request }) => {
+  const response = await request.post('/api/privacy/deletion-requests', { data: { confirmation: 'delete', unexpected: true } });
+  expect(response.status()).toBe(400);
 });

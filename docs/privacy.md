@@ -959,3 +959,11 @@ When you use the referral programme, Q processes your referral code, the invited
 Q Intelligence displays the selected processing mode before a user sends an AI message. Local mode performs generation in the browser. When a user explicitly selects hosted processing, Q sends the PII-masked prompt, recent chat context, selected profile context, relevant opted-in memory, and necessary technical metadata to Q's server and OpenAI for response generation.
 
 OpenAI states that API inputs and outputs are not used to train its models by default unless the API customer explicitly opts in. Standard abuse-monitoring logs may retain customer content and associated metadata for up to 30 days, subject to approved retention controls and legal requirements. Current OpenAI contractual terms, data-processing terms, retention information, and sub-processors are listed in the Processor Register.
+
+# Account exports, deletion, and retention controls
+
+Signed-in users can download a structured copy of account-scoped information held by Q. The export includes relevant profile, memory, journal, mood, chat, feedback, subscription, CRM, referral, and audit records associated with the account. Local browser backups remain separate plaintext files and are not a complete cloud-account export.
+
+Account deletion requires recent multi-factor authentication and an explicit confirmation phrase. Q may hold a deletion request while an active or unsettled subscription, payment dispute, fraud investigation, or legal retention duty is resolved. When deletion proceeds, the authentication account and account-owned content are removed or anonymised through database relationships. Limited receipt, security, processor-task, and financial evidence may be retained where necessary for accountability or legal obligations.
+
+Current operational defaults retain password-reset requests for 90 days; contact requests for 365 days; and security and PayPal webhook events for 400 days. Completed privacy-request accountability records may be retained for six years. These periods may be shortened or extended where a documented legal obligation, dispute, safeguarding need, or security investigation applies. Automated purge execution is an operational control and is monitored separately from the application code.

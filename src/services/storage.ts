@@ -325,28 +325,37 @@ export function saveSecuritySettings(settings: SecuritySettings): SecuritySettin
 }
 
 // Full Backup JSON Export & Import
-export function exportAppDataJSON(): string {
+export function exportAppDataJSON(userId?: string): string {
   const dump = {
-    version: '1.0.0',
+    version: '2.0.0',
     exportedAt: new Date().toISOString(),
+    accountScope: userId ?? null,
     profile: getMemoryProfile(),
     guides: getLifeGuides(),
     experiences: getLivedExperiences(),
-    journal: getJournalEntries(),
-    moodLogs: getDailyMoodLogs(),
+    journal: getJournalEntries(userId),
+    moodLogs: getDailyMoodLogs(userId),
     chat: getChatHistory()
   };
   return JSON.stringify(dump, null, 2);
 }
 
-export function importAppDataJSON(jsonData: string): boolean {
+export function importAppDataJSON(jsonData: string, userId?: string): boolean {
   try {
+    if (new Blob([jsonData]).size > 2 * 1024 * 1024) return false;
     const parsed = JSON.parse(jsonData);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+    const allowed = new Set(['version', 'exportedAt', 'accountScope', 'profile', 'guides', 'experiences', 'journal', 'moodLogs', 'chat']);
+    if (Object.keys(parsed).some((key) => !allowed.has(key)) || !['1.0.0', '2.0.0'].includes(parsed.version)) return false;
+    if (parsed.version === '2.0.0' && parsed.accountScope && parsed.accountScope !== userId) return false;
+    const arrays = ['guides', 'experiences', 'journal', 'moodLogs', 'chat'] as const;
+    if (arrays.some((key) => parsed[key] !== undefined && (!Array.isArray(parsed[key]) || parsed[key].length > 10000))) return false;
+    if (parsed.profile !== undefined && (!parsed.profile || typeof parsed.profile !== 'object' || Array.isArray(parsed.profile))) return false;
     if (parsed.profile) setItem(KEYS.PROFILE, parsed.profile);
     if (parsed.guides) setItem(KEYS.GUIDES, parsed.guides);
     if (parsed.experiences) setItem(KEYS.EXPERIENCES, parsed.experiences);
-    if (parsed.journal) setItem(KEYS.JOURNAL, parsed.journal);
-    if (parsed.moodLogs) setItem(KEYS.MOOD_LOGS, parsed.moodLogs);
+    if (parsed.journal) setItem(userScopedKey(KEYS.JOURNAL, userId), parsed.journal);
+    if (parsed.moodLogs) setItem(userScopedKey(KEYS.MOOD_LOGS, userId), parsed.moodLogs);
     if (parsed.chat) setItem(KEYS.CHAT, parsed.chat);
     markSynced();
     return true;

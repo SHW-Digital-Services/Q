@@ -5,11 +5,12 @@ import { SyncStatusState } from '../types';
 
 interface BackupModalProps {
   isOpen: boolean;
+  userId?: string;
   onClose: () => void;
   onDataImported: () => void;
 }
 
-export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose, onDataImported }) => {
+export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, userId, onClose, onDataImported }) => {
   const [syncState, setSyncState] = useState<SyncStatusState>(getSyncStatus());
   const [importText, setImportText] = useState('');
   const [importStatus, setImportStatus] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose, onDat
   };
 
   const handleExport = () => {
-    const jsonStr = exportAppDataJSON();
+    const jsonStr = exportAppDataJSON(userId);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -39,7 +40,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose, onDat
 
   const handleImport = () => {
     if (!importText.trim()) return;
-    const success = importAppDataJSON(importText);
+    const success = importAppDataJSON(importText, userId);
     if (success) {
       setImportStatus('Data imported successfully!');
       onDataImported();

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { SecuritySettings } from '../types';
 import { clearSensitiveLocalData, getSecuritySettings, saveSecuritySettings } from '../services/storage';
+import { getSupabaseClient } from '../services/supabase';
 
 interface SecuritySettingsModalProps {
   isOpen: boolean;
@@ -41,6 +42,12 @@ export const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
   const [confirmPattern, setConfirmPattern] = useState<number[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaQrCode, setMfaQrCode] = useState<string | null>(null);
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaVerified, setMfaVerified] = useState(false);
+  const [mfaBusy, setMfaBusy] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -48,6 +55,15 @@ export const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
       setIsEditingCode(false);
       setErrorMessage(null);
       setSuccessNotice(null);
+      const supabase = getSupabaseClient();
+      if (supabase) void Promise.all([
+        supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+        supabase.auth.mfa.listFactors()
+      ]).then(([assurance, factors]) => {
+        setMfaVerified(assurance.data.currentLevel === 'aal2');
+        const enrolled = factors.data?.totp.find((factor) => factor.status === 'verified');
+        if (enrolled) setMfaFactorId(enrolled.id);
+      });
     }
   }, [isOpen]);
 
@@ -198,6 +214,29 @@ export const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
     setTimeout(() => setSuccessNotice(null), 2000);
   };
 
+  const beginMfaEnrollment = async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return setErrorMessage('Sign in before enrolling multi-factor authentication.');
+    setMfaBusy(true); setErrorMessage(null);
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Q Authenticator' });
+    setMfaBusy(false);
+    if (error) return setErrorMessage(error.message);
+    setMfaFactorId(data.id); setMfaQrCode(data.totp.qr_code); setMfaSecret(data.totp.secret);
+  };
+
+  const verifyMfaEnrollment = async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase || !mfaFactorId || !/^\d{6}$/.test(mfaCode)) return setErrorMessage('Enter the current six-digit authenticator code.');
+    setMfaBusy(true); setErrorMessage(null);
+    const challenge = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+    if (challenge.error) { setMfaBusy(false); return setErrorMessage(challenge.error.message); }
+    const verified = await supabase.auth.mfa.verify({ factorId: mfaFactorId, challengeId: challenge.data.id, code: mfaCode });
+    setMfaBusy(false);
+    if (verified.error) return setErrorMessage(verified.error.message);
+    setMfaVerified(true); setMfaQrCode(null); setMfaSecret(null); setMfaCode('');
+    flashSuccess('Authenticator verified. This session now has AAL2 protection.');
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in select-none">
       <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -238,6 +277,23 @@ export const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
               <span>{errorMessage}</span>
             </div>
           )}
+
+          <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-bold text-slate-900">Account multi-factor authentication</div>
+                <p className="text-[11px] text-slate-600">Required for account exports, deletion, billing administration, role changes, and other privileged actions.</p>
+              </div>
+              <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${mfaVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{mfaVerified ? 'AAL2 active' : 'Setup required'}</span>
+            </div>
+            {!mfaVerified && !mfaFactorId && <button type="button" disabled={mfaBusy} onClick={() => void beginMfaEnrollment()} className="w-full rounded-xl bg-indigo-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-60">Set up authenticator app</button>}
+            {mfaFactorId && !mfaVerified && <div className="space-y-3">
+              {mfaQrCode && <img src={mfaQrCode} alt="Authenticator enrolment QR code" className="mx-auto h-40 w-40 rounded-lg bg-white p-2" />}
+              {mfaSecret && <p className="break-all text-[10px] text-slate-600">Manual setup key: <code>{mfaSecret}</code></p>}
+              <label className="block text-xs font-bold text-slate-700">Six-digit code<input value={mfaCode} onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" className="mt-1 w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm" /></label>
+              <button type="button" disabled={mfaBusy || mfaCode.length !== 6} onClick={() => void verifyMfaEnrollment()} className="w-full rounded-xl bg-indigo-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-60">Verify and activate</button>
+            </div>}
+          </div>
 
           {/* 1. Main Lock Status Switch */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">

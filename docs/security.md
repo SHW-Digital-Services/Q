@@ -296,5 +296,22 @@ Privacy enquiries: privacy@q-ai.online
 | --- | --- | --- |
 | 1.0.0 | 26/08/2026 | Initial Security Policy. |
 | 1.0.1 | 26/08/2026 | Added native CRM roles, PayPal synchronisation, webhook verification, and staff-assisted payment safeguards. |
+| 1.1.0 | 04/09/2026 | Added permission-scoped staff access, recent AAL2 enforcement for high-risk operations, database-backed throttling, server-only security events, atomic PayPal webhook processing states, and privacy lifecycle controls. |
+
+## 21. Privileged access and security events
+
+Q applies capability checks in addition to the existing staff and administrator roles. Staff permissions distinguish CRM, support, billing, security-administration, and aggregate-export operations. Partner administrators retain all capabilities. High-impact billing changes, security administration, credential recovery, role changes, and aggregate exports require an `aal2` Supabase session issued within the configured privileged-session window. Supabase MFA must therefore be enabled and enrolled for privileged operators before they use these operations.
+
+Privileged allow and deny decisions are written through the server service role to an append-only `security_events` table. Browser users cannot insert authoritative security events. Event metadata excludes message, prompt, password, token, and email fields. API abuse controls use atomic database counters so limits are shared between application instances. Reverse-proxy trust is disabled unless an exact trusted range is configured.
+
+## 22. Payment event integrity
+
+Verified PayPal webhooks are atomically claimed before Q performs any billing side effect. An event is tracked as `processing`, `completed`, or `failed`; duplicate completed or in-progress deliveries do not run concurrently. Failed events and stale processing claims may be retried, while provider transaction uniqueness and PayPal idempotency keys remain additional safeguards.
+
+## 23. Privacy lifecycle controls
+
+Authenticated users can request a server-generated account export covering their identity and account-scoped application, CRM, billing, referral, feedback, and audit records. Exports receive request and receipt identifiers. Account deletion requires an exact confirmation phrase and recent AAL2 authentication. Active or unsettled subscriptions place deletion on hold rather than silently discarding financial obligations. Completed deletion removes the Supabase Auth account and data protected by cascading ownership relationships; accountability receipts and processor-task records are retained without the deleted user identifier.
+
+Operational retention rules are represented in the database and a service-role-only purge function removes expired contact requests, password-reset requests, security events, webhook events, and rate-limit buckets. Deployment operations must schedule that purge function and periodically test the result; defining the function alone does not prove that a production schedule is active.
 
 © Scott Harvey-Whittle trading as SHW Digital Services. All rights reserved.

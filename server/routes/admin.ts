@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser, asyncHandler, getCanonicalAppUrl, sendOpaqueError } from '../middleware.js';
 import { buildAnalyticsExport } from '../analyticsEngine.js';
 import { getPayPalAccessToken, getPaypalBaseUrl } from './billing.js';
+import { createAdminSecurityMiddleware, requireExactObject } from '../security.js';
 
 export const adminRouter = express.Router();
 
@@ -13,7 +14,7 @@ adminRouter.get('/site-settings/launch', asyncHandler(async (_req, res) => {
   return res.json({ enabled: data?.value === true });
 }));
 
-function getServiceSupabase() {
+export function getServiceSupabase() {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   if (!url || !key) return null;
@@ -32,6 +33,8 @@ interface PasswordResetRequest {
   createdAt: string;
   status: 'pending' | 'reset' | 'failed';
 }
+
+adminRouter.use(createAdminSecurityMiddleware(getServiceSupabase));
 
 async function paypalRequest(path: string, init: RequestInit = {}) {
   const token = await getPayPalAccessToken();
@@ -147,10 +150,10 @@ async function requireStaff(req: express.Request, res: express.Response) {
     if (!identity) { res.status(401).json({ error: 'Authentication required.' }); return null; }
     const serviceSupabase = getServiceSupabase();
     if (!serviceSupabase) { res.status(503).json({ error: 'Staff account access is temporarily unavailable.' }); return null; }
-    const { data: profile, error } = await serviceSupabase.from('profiles').select('role').eq('id', identity.user.id).maybeSingle();
+    const { data: profile, error } = await serviceSupabase.from('profiles').select('role,staff_permissions').eq('id', identity.user.id).maybeSingle();
     if (error) { res.status(500).json({ error: 'Staff role check failed.' }); return null; }
     if (!['staff', 'partner_admin'].includes(profile?.role)) { res.status(403).json({ error: 'Staff access required.' }); return null; }
-    return { identity, serviceSupabase, role: profile.role as 'staff' | 'partner_admin' };
+    return { identity, serviceSupabase, role: profile.role as 'staff' | 'partner_admin', permissions: profile.staff_permissions ?? [] };
   } catch { res.status(401).json({ error: 'Authentication check failed.' }); return null; }
 }
 
@@ -164,7 +167,8 @@ adminRouter.get('/me', asyncHandler(async (req, res) => {
       id: adminCtx.identity.user.id,
       email: adminCtx.identity.user.email
     },
-    role: adminCtx.role
+    role: adminCtx.role,
+    permissions: adminCtx.permissions
   });
 }));
 
@@ -179,7 +183,7 @@ adminRouter.patch('/site-settings/launch', asyncHandler(async (req, res) => {
 adminRouter.get('/staff', asyncHandler(async (req, res) => {
   const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
   const [{ data: profiles, error }, { data: usersData, error: usersError }] = await Promise.all([
-    adminCtx.serviceSupabase.from('profiles').select('id, role, preferred_name, created_at').in('role', ['staff', 'partner_admin']).order('created_at'),
+    adminCtx.serviceSupabase.from('profiles').select('id, role, staff_permissions, preferred_name, created_at').in('role', ['staff', 'partner_admin']).order('created_at'),
     adminCtx.serviceSupabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
   ]);
   if (error || usersError) return res.status(500).json({ error: error?.message || usersError?.message || 'Unable to load staff.' });
@@ -189,6 +193,7 @@ adminRouter.get('/staff', asyncHandler(async (req, res) => {
 
 adminRouter.patch('/users/:id/role', asyncHandler(async (req, res) => {
   const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  if (!requireExactObject(req.body, ['role'])) return res.status(400).json({ error: 'Unexpected request fields.' });
   const role = req.body?.role;
   if (!['user', 'staff', 'partner_admin'].includes(role)) return res.status(400).json({ error: 'Role must be user, staff, or partner_admin.' });
   const targetId = req.params.id;
@@ -204,6 +209,21 @@ adminRouter.patch('/users/:id/role', asyncHandler(async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   await recordCrmActivity(adminCtx.serviceSupabase, targetId, adminCtx.identity.user.id, 'role_changed', `Account role changed from ${current.role} to ${role}`, { previousRole: current.role, role });
   return res.json(data);
+}));
+
+adminRouter.patch('/users/:id/permissions', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  if (!requireExactObject(req.body, ['permissions']) || !Array.isArray(req.body.permissions)) return res.status(400).json({ error: 'permissions must be an array.' });
+  const supported = ['crm.read', 'crm.sensitive', 'crm.write', 'billing.read', 'billing.write', 'support.read', 'support.write', 'security.admin', 'analytics.export'];
+  const permissions = [...new Set(req.body.permissions)];
+  if (permissions.length > supported.length || permissions.some((permission) => typeof permission !== 'string' || !supported.includes(permission))) {
+    return res.status(400).json({ error: 'One or more staff permissions are invalid.' });
+  }
+  const result = await adminCtx.serviceSupabase.from('profiles').update({ staff_permissions: permissions }).eq('id', req.params.id).eq('role', 'staff').select('id,role,staff_permissions').maybeSingle();
+  if (result.error) return sendOpaqueError(req, res, 500, 'Unable to update staff permissions.', 'Admin Staff Permissions', result.error);
+  if (!result.data) return res.status(404).json({ error: 'Staff profile not found.' });
+  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'staff_permissions_changed', 'Staff permissions updated', { permissions });
+  return res.json(result.data);
 }));
 
 adminRouter.get('/crm/users', asyncHandler(async (req, res) => {
@@ -243,8 +263,6 @@ adminRouter.get('/crm/users', asyncHandler(async (req, res) => {
       bannedUntil: user.banned_until ?? null,
       subscription: subscription ? {
         status: subscription.status,
-        planId: subscription.paypal_plan_id,
-        providerId: subscription.paypal_subscription_id,
         currentPeriodEnd: subscription.current_period_end,
         updatedAt: subscription.updated_at
       } : null
@@ -266,6 +284,7 @@ adminRouter.get('/crm/users', asyncHandler(async (req, res) => {
 
 adminRouter.post('/crm/users', asyncHandler(async (req, res) => {
   const staffCtx = await requireStaff(req, res); if (!staffCtx) return;
+  if (!requireExactObject(req.body, ['email', 'name', 'role'])) return res.status(400).json({ error: 'Unexpected request fields.' });
   const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
   const requestedRole = req.body?.role;
@@ -506,6 +525,7 @@ adminRouter.delete('/crm/products/:id', asyncHandler(async (req, res) => {
 }));
 
 adminRouter.post('/contact-requests', asyncHandler(async (req, res) => {
+  if (!requireExactObject(req.body, ['name', 'email', 'category', 'subject', 'message', 'website'])) return res.status(400).json({ error: 'Unexpected request fields.' });
   const name = typeof req.body?.name === 'string' ? req.body.name.trim().slice(0, 120) : '';
   const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const category = ['general', 'account', 'billing', 'privacy', 'technical', 'feedback'].includes(req.body?.category) ? req.body.category : 'general';
@@ -535,6 +555,7 @@ adminRouter.get('/contact-requests', asyncHandler(async (req, res) => {
 }));
 
 adminRouter.patch('/contact-requests/:id', asyncHandler(async (req, res) => {
+  if (!requireExactObject(req.body, ['status', 'responseText'])) return res.status(400).json({ error: 'Unexpected request fields.' });
   const staffCtx = await requireStaff(req, res);
   if (!staffCtx) return;
   const status = ['new', 'in_progress', 'answered', 'closed'].includes(req.body?.status) ? req.body.status : null;
@@ -554,6 +575,7 @@ adminRouter.patch('/contact-requests/:id', asyncHandler(async (req, res) => {
 
 adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
   try {
+    if (!requireExactObject(req.body, ['email', 'message'])) return res.status(400).json({ error: 'Unexpected request fields.' });
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
 
@@ -673,6 +695,7 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
 
 adminRouter.post('/direct-password-reset', asyncHandler(async (req, res) => {
   try {
+    if (!requireExactObject(req.body, ['email'])) return res.status(400).json({ error: 'Unexpected request fields.' });
     const adminCtx = await requireAdmin(req, res);
     if (!adminCtx) return;
     const { serviceSupabase } = adminCtx;

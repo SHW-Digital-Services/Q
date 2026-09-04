@@ -388,6 +388,7 @@ export default function App() {
       )}
       <BackupModal
         isOpen={isBackupOpen}
+        userId={currentUser?.id}
         onClose={() => setIsBackupOpen(false)}
         onDataImported={handleDataImported}
       />

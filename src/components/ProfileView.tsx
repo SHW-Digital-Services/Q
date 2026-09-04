@@ -13,7 +13,8 @@ import {
   Sparkles,
   Gift,
   Copy,
-  UserCircle
+  UserCircle,
+  Trash2
 } from 'lucide-react';
 import { AuthUser, UserMemoryProfile } from '../types';
 import { getMemoryProfile, saveMemoryProfile } from '../services/storage';
@@ -91,12 +92,47 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [referral, setReferral] = useState<any>(null);
   const [referralEmail, setReferralEmail] = useState('');
   const [referralStatus, setReferralStatus] = useState<string | null>(null);
+  const [privacyAction, setPrivacyAction] = useState<string | null>(null);
 
   const authHeaders = async () => {
     const supabase = getSupabaseClient();
     const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
     if (!data.session?.access_token) throw new Error('Please sign in again.');
     return { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` };
+  };
+
+  const exportAccountData = async () => {
+    setPrivacyAction('Preparing your account export…');
+    try {
+      const response = await fetch('/api/privacy/export', { method: 'POST', headers: await authHeaders(), body: '{}' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to export account data.');
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `Q_Account_Export_${new Date().toISOString().slice(0, 10)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setPrivacyAction(`Export completed. Receipt: ${data.receiptId}`);
+    } catch (error: any) {
+      setPrivacyAction(error.message || 'Unable to export account data.');
+    }
+  };
+
+  const requestAccountDeletion = async () => {
+    const confirmation = window.prompt('This permanently deletes your Q account and account-scoped content. Type DELETE MY Q ACCOUNT to continue.');
+    if (confirmation !== 'DELETE MY Q ACCOUNT') return;
+    setPrivacyAction('Checking and processing your deletion request…');
+    try {
+      const response = await fetch('/api/privacy/deletion-requests', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ confirmation }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || data.reason || 'Unable to delete the account.');
+      setPrivacyAction(`Account deletion completed. Receipt: ${data.receiptId}`);
+      onSignOut();
+    } catch (error: any) {
+      setPrivacyAction(error.message || 'Unable to delete the account.');
+    }
   };
 
   const loadReferrals = async () => {
@@ -577,6 +613,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </button>
               <button
                 type="button"
+                onClick={() => void exportAccountData()}
+                className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+              >
+                <span>Export all account data</span>
+                <Download className="h-4 w-4 text-slate-500" />
+              </button>
+              <button
+                type="button"
                 onClick={onOpenSubscription}
                 className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-xs font-bold text-slate-700 transition hover:bg-slate-100"
               >
@@ -599,6 +643,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <span>Sign out</span>
                 <LogOut className="h-4 w-4" />
               </button>
+              <button
+                type="button"
+                onClick={() => void requestAccountDeletion()}
+                className="flex w-full items-center justify-between rounded-xl border border-rose-300 bg-white px-3 py-2.5 text-left text-xs font-bold text-rose-700 transition hover:bg-rose-50"
+              >
+                <span>Delete my account</span>
+                <Trash2 className="h-4 w-4" />
+              </button>
+              {privacyAction && <p role="status" className="text-xs leading-relaxed text-slate-600">{privacyAction}</p>}
             </div>
           </div>
         </aside>

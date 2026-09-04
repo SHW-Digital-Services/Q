@@ -6,12 +6,25 @@ import { billingRouter } from './routes/billing.js';
 import { aiRouter } from './routes/ai.js';
 import { legalRouter } from './routes/legal.js';
 import { adminRouter } from './routes/admin.js';
+import { getServiceSupabase } from './routes/admin.js';
 import { referralsRouter } from './routes/referrals.js';
+import { createRateLimitMiddleware } from './security.js';
+import { privacyRouter } from './routes/privacy.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
 app.disable('x-powered-by');
+
+const trustedProxy = process.env.TRUSTED_PROXY?.trim();
+if (trustedProxy) {
+  if (!/^(loopback|linklocal|uniquelocal|\d{1,3}(?:\.\d{1,3}){3}(?:\/\d{1,2})?)$/.test(trustedProxy)) {
+    throw new Error('TRUSTED_PROXY must be a named local range or a single IPv4/CIDR value.');
+  }
+  app.set('trust proxy', trustedProxy);
+} else {
+  app.set('trust proxy', false);
+}
 
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -25,12 +38,14 @@ app.use((_req, res, next) => {
 });
 
 app.use((req, res, next) => {
-  if (/^\/api\/(?:q-ai|ai|billing|v1\/admin|admin|referrals)(?:\/|$)/.test(req.path)) {
+  if (/^\/api\/(?:q-ai|ai|billing|v1\/admin|admin|referrals|privacy)(?:\/|$)/.test(req.path)) {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Pragma', 'no-cache');
   }
   next();
 });
+
+app.use('/api', createRateLimitMiddleware(getServiceSupabase));
 
 app.use((req, _res, next) => {
   const candidates = [
@@ -136,6 +151,7 @@ app.use(['/api/billing'], billingRouter);
 app.use(['/api/q-ai', '/api/ai'], aiRouter);
 app.use(['/api/v1/admin', '/api/admin'], adminRouter);
 app.use('/api/referrals', referralsRouter);
+app.use('/api/privacy', privacyRouter);
 app.use('/legal', legalRouter);
 
 app.use(['/api', '/api/*', '/legal', '/legal/*'], (req, res) => {

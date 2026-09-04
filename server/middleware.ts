@@ -9,8 +9,12 @@ export const asyncHandler = (fn: RequestHandler): RequestHandler => {
 };
 
 export function getRequestId(request: Request): string {
+  const assigned = (request as Request & { qRequestId?: string }).qRequestId;
+  if (assigned) return assigned;
   const existing = request.header('x-request-id');
-  return existing && /^[A-Za-z0-9._-]{1,100}$/.test(existing) ? existing : randomUUID();
+  const requestId = existing && /^[A-Za-z0-9._-]{1,100}$/.test(existing) ? existing : randomUUID();
+  (request as Request & { qRequestId?: string }).qRequestId = requestId;
+  return requestId;
 }
 
 export function sendOpaqueError(

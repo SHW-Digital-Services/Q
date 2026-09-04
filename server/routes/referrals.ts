@@ -2,6 +2,7 @@ import express from 'express';
 import { randomBytes } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { asyncHandler, getAuthenticatedUser, getCanonicalAppUrl } from '../middleware.js';
+import { requireExactObject } from '../security.js';
 
 export const referralsRouter = express.Router();
 
@@ -48,6 +49,7 @@ referralsRouter.get('/me', asyncHandler(async (req, res) => {
 }));
 
 referralsRouter.post('/invite', asyncHandler(async (req, res) => {
+  if (!requireExactObject(req.body, ['email'])) return res.status(400).json({ error: 'Unexpected request fields.' });
   const ctx = await context(req, res); if (!ctx) return;
   const prospectEmail = String(req.body?.email || '').trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(prospectEmail)) return res.status(400).json({ error: 'Enter a valid email address.' });
@@ -68,6 +70,7 @@ referralsRouter.post('/invite', asyncHandler(async (req, res) => {
 }));
 
 referralsRouter.post('/claim', asyncHandler(async (req, res) => {
+  if (!requireExactObject(req.body, ['code'])) return res.status(400).json({ error: 'Unexpected request fields.' });
   const ctx = await context(req, res); if (!ctx) return;
   const code = String(req.body?.code || '').trim().toUpperCase();
   if (!code) return res.status(400).json({ error: 'Referral code is required.' });
