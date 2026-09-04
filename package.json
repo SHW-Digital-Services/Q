@@ -9,6 +9,7 @@
     "start": "node dist/server.cjs",
     "check:openai": "node scripts/check-openai-chat.mjs",
     "check:paypal": "node scripts/check-paypal-plans.mjs",
+    "check:ai-safety": "tsx scripts/check-ai-safety.ts",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },

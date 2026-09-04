@@ -86,7 +86,7 @@ function getProviderError(error: any) {
   };
 }
 
-function buildChatPrompt(body: any, serverTrustedItems: any[] = []) {
+export function buildChatPrompt(body: any, serverTrustedItems: any[] = []) {
   const message = typeof body?.message === 'string' ? redactPii(body.message).trim() : '';
   const history = Array.isArray(body?.history) ? body.history.slice(-6) : [];
   const userProfile = body?.userProfile && typeof body.userProfile === 'object' ? body.userProfile : {};

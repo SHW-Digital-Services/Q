@@ -321,4 +321,6 @@ Production responses include a restrictive Content Security Policy, HSTS, same-o
 
 Hosted AI ignores client-supplied trusted-knowledge text. It retrieves vetted context server-side, wraps retrieved and user content as untrusted data, restricts model IDs through `AI_ALLOWED_MODELS`, supports an `AI_HOSTED_ENABLED=false` kill switch, and records privacy-preserving safety events without prompts or message content. Dependency review, Dependabot, npm audit, Gitleaks, and CycloneDX SBOM generation run through CI. Recovery requires an isolated restore test; provider backup claims alone are not sufficient evidence.
 
+Operational owners should use the [Q administrator periodic checklist](admin-checklist.md) for recurring access reviews, MFA checks, retention verification, AI-safety checks, dependency review, restore drills, and incident response.
+
 © Scott Harvey-Whittle trading as SHW Digital Services. All rights reserved.
