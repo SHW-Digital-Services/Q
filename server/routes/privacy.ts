@@ -8,7 +8,7 @@ export const privacyRouter = express.Router();
 const USER_TABLES = [
   'profiles', 'memory_entries', 'journal_entries', 'daily_mood_logs', 'chat_messages',
   'subscriptions', 'crm_notes', 'crm_tasks', 'crm_payments',
-  'crm_entitlements', 'crm_activities', 'referral_codes', 'referrals', 'referral_credits',
+  'crm_entitlements', 'crm_activities', 'crm_communications', 'referral_codes', 'referrals', 'referral_credits',
   'audit_logs', 'premium_continuity'
 ] as const;
 

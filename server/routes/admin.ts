@@ -297,6 +297,8 @@ adminRouter.post('/crm/users', asyncHandler(async (req, res) => {
   const { error: profileError } = await staffCtx.serviceSupabase.from('profiles').upsert({ id: authResult.data.user.id, preferred_name: name || null, role, crm_status: 'customer' }, { onConflict: 'id' });
   if (profileError) return res.status(500).json({ error: `Invitation sent, but the CRM profile could not be prepared: ${profileError.message}` });
   await recordCrmActivity(staffCtx.serviceSupabase, authResult.data.user.id, staffCtx.identity.user.id, 'user_invited', `User invited as ${role}`, { email, role });
+  const invitationLog = await recordCrmCommunication(staffCtx.serviceSupabase, { userId: authResult.data.user.id, direction: 'outbound', channel: 'email', status: 'sent', recipientEmail: email, subject: 'Q account invitation', body: 'A Q account invitation was sent through the authentication provider.', actorId: staffCtx.identity.user.id, metadata: { source: 'crm_invitation', role } });
+  if (invitationLog.error) console.error('[Admin] Failed to record invitation communication:', invitationLog.error);
   return res.status(201).json({ id: authResult.data.user.id, email, name, role, invited: true });
 }));
 
@@ -304,12 +306,33 @@ async function recordCrmActivity(serviceSupabase: any, userId: string, actorId: 
   await serviceSupabase.from('crm_activities').insert({ user_id: userId, actor_id: actorId, activity_type: activityType, summary, metadata });
 }
 
+async function recordCrmCommunication(serviceSupabase: any, communication: {
+  userId?: string | null; contactRequestId?: string | null; direction: 'inbound' | 'outbound';
+  channel?: 'email' | 'phone' | 'chat' | 'other'; status?: 'logged' | 'draft' | 'sent' | 'failed';
+  senderEmail?: string | null; recipientEmail?: string | null; subject?: string | null; body: string;
+  actorId?: string | null; metadata?: Record<string, unknown>;
+}) {
+  return serviceSupabase.from('crm_communications').insert({
+    user_id: communication.userId ?? null,
+    contact_request_id: communication.contactRequestId ?? null,
+    direction: communication.direction,
+    channel: communication.channel ?? 'email',
+    status: communication.status ?? 'logged',
+    sender_email: communication.senderEmail ?? null,
+    recipient_email: communication.recipientEmail ?? null,
+    subject: communication.subject ?? null,
+    body: communication.body,
+    actor_id: communication.actorId ?? null,
+    metadata: communication.metadata ?? {}
+  });
+}
+
 adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
   const adminCtx = await requireStaff(req, res);
   if (!adminCtx) return;
   const { serviceSupabase } = adminCtx;
   const userId = req.params.id;
-  const [{ data: authData, error: authError }, profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult, referralCreditsResult] = await Promise.all([
+  const [{ data: authData, error: authError }, profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult, communicationsResult, referralCreditsResult] = await Promise.all([
     serviceSupabase.auth.admin.getUserById(userId),
     serviceSupabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     serviceSupabase.from('subscriptions').select('*').eq('user_id', userId).maybeSingle(),
@@ -320,10 +343,11 @@ adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
     adminCtx.role === 'partner_admin'
       ? serviceSupabase.from('crm_activities').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100)
       : Promise.resolve({ data: [], error: null }),
+    serviceSupabase.from('crm_communications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
     serviceSupabase.from('referral_credits').select('*').eq('user_id', userId).order('created_at', { ascending: false })
   ]);
   if (authError || !authData?.user) return res.status(404).json({ error: 'Customer not found.' });
-  const databaseError = [profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult, referralCreditsResult].find((result: any) => result.error)?.error;
+  const databaseError = [profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult, communicationsResult, referralCreditsResult].find((result: any) => result.error)?.error;
   if (databaseError) return res.status(500).json({ error: databaseError.message });
   const user = authData.user;
   return res.json({
@@ -331,7 +355,7 @@ adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
     profile: profileResult.data,
     subscription: subscriptionResult.data,
     notes: notesResult.data ?? [], tasks: tasksResult.data ?? [], payments: paymentsResult.data ?? [],
-    entitlements: entitlementsResult.data ?? [], activities: activitiesResult.data ?? [], referralCredits: referralCreditsResult.data ?? []
+    entitlements: entitlementsResult.data ?? [], activities: activitiesResult.data ?? [], communications: communicationsResult.data ?? [], referralCredits: referralCreditsResult.data ?? []
   });
 }));
 
@@ -544,6 +568,8 @@ adminRouter.post('/contact-requests', asyncHandler(async (req, res) => {
   if (recent.data?.length) return res.status(429).json({ error: 'A request from this email was recently received. Please wait five minutes before sending another.' });
   const { data, error } = await serviceSupabase.from('contact_requests').insert({ name: name || null, email, category, subject, message }).select('id,created_at').single();
   if (error) return res.status(500).json({ error: 'Unable to save your support request.' });
+  const communication = await recordCrmCommunication(serviceSupabase, { contactRequestId: data.id, direction: 'inbound', channel: 'email', senderEmail: email, recipientEmail: process.env.SUPPORT_EMAIL || null, subject, body: message, metadata: { category, name: name || null } });
+  if (communication.error) console.error('[Admin] Failed to record inbound CRM communication:', communication.error);
   return res.status(201).json({ success: true, request: data });
 }));
 
@@ -553,6 +579,31 @@ adminRouter.get('/contact-requests', asyncHandler(async (req, res) => {
   const { data, error } = await staffCtx.serviceSupabase.from('contact_requests').select('*').order('created_at', { ascending: false }).limit(200);
   if (error) return res.status(500).json({ error: 'Unable to load contact requests.' });
   return res.json(data ?? []);
+}));
+
+adminRouter.get('/communications', asyncHandler(async (req, res) => {
+  const staffCtx = await requireStaff(req, res);
+  if (!staffCtx) return;
+  const requestedLimit = Number.parseInt(String(req.query.limit ?? '250'), 10);
+  const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 500) : 250;
+  const { data, error } = await staffCtx.serviceSupabase.from('crm_communications').select('*').order('created_at', { ascending: false }).limit(limit);
+  if (error) return res.status(500).json({ error: 'Unable to load CRM communications.' });
+  return res.json(data ?? []);
+}));
+
+adminRouter.post('/communications', asyncHandler(async (req, res) => {
+  const staffCtx = await requireStaff(req, res);
+  if (!staffCtx) return;
+  if (!requireExactObject(req.body, ['userId', 'contactRequestId', 'channel', 'status', 'senderEmail', 'recipientEmail', 'subject', 'body'])) return res.status(400).json({ error: 'Unexpected request fields.' });
+  const body = typeof req.body?.body === 'string' ? req.body.body.trim() : '';
+  const channel = req.body?.channel;
+  const status = req.body?.status;
+  if (!body || body.length > 5000) return res.status(400).json({ error: 'Message body must be between 1 and 5,000 characters.' });
+  if (!['email', 'phone', 'chat', 'other'].includes(channel)) return res.status(400).json({ error: 'Unsupported communication channel.' });
+  if (!['logged', 'draft', 'sent', 'failed'].includes(status)) return res.status(400).json({ error: 'Unsupported communication status.' });
+  const result = await recordCrmCommunication(staffCtx.serviceSupabase, { userId: req.body?.userId || null, contactRequestId: req.body?.contactRequestId || null, direction: 'outbound', channel, status, senderEmail: req.body?.senderEmail || null, recipientEmail: req.body?.recipientEmail || null, subject: req.body?.subject || null, body, actorId: staffCtx.identity.user.id, metadata: { manuallyLogged: true } });
+  if (result.error) return res.status(500).json({ error: 'Unable to log the outbound communication.' });
+  return res.status(201).json(result.data?.[0] ?? { success: true });
 }));
 
 adminRouter.patch('/contact-requests/:id', asyncHandler(async (req, res) => {
@@ -571,6 +622,13 @@ adminRouter.patch('/contact-requests/:id', asyncHandler(async (req, res) => {
   }
   const { data, error } = await staffCtx.serviceSupabase.from('contact_requests').update(updates).eq('id', req.params.id).select('*').single();
   if (error) return res.status(500).json({ error: 'Unable to update the contact request.' });
+  if (status === 'answered' && responseText) {
+    const existing = await staffCtx.serviceSupabase.from('crm_communications').select('id').eq('contact_request_id', req.params.id).eq('direction', 'outbound').eq('body', responseText).limit(1);
+    if (!existing.error && !existing.data?.length) {
+      const logged = await recordCrmCommunication(staffCtx.serviceSupabase, { contactRequestId: req.params.id, direction: 'outbound', channel: 'email', status: 'sent', senderEmail: process.env.SUPPORT_EMAIL || null, recipientEmail: data.email, subject: `Re: ${data.subject}`, body: responseText, actorId: staffCtx.identity.user.id, metadata: { source: 'contact_request_reply' } });
+      if (logged.error) console.error('[Admin] Failed to record outbound CRM communication:', logged.error);
+    }
+  }
   return res.json(data);
 }));
 
@@ -683,6 +741,8 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
     if (updateRequestError) {
       console.error('[Admin] password_reset_requests status update failed:', updateRequestError);
     }
+    const recoveryLog = await recordCrmCommunication(serviceSupabase, { direction: 'outbound', channel: 'email', status: 'sent', recipientEmail: request.email, subject: 'Q account recovery', body: 'A single-use Q account recovery email was sent through the authentication provider.', actorId: adminCtx.identity.user.id, metadata: { source: 'password_reset_request', requestId: request.id } });
+    if (recoveryLog.error) console.error('[Admin] Failed to record recovery communication:', recoveryLog.error);
 
     return res.json({
       success: true,
@@ -710,6 +770,8 @@ adminRouter.post('/direct-password-reset', asyncHandler(async (req, res) => {
       redirectTo: `${getCanonicalAppUrl()}/app`
     });
     if (recoveryError) return sendOpaqueError(req, res, 502, 'Unable to send the recovery email.', 'Admin Direct Password Recovery', recoveryError);
+    const recoveryLog = await recordCrmCommunication(serviceSupabase, { direction: 'outbound', channel: 'email', status: 'sent', recipientEmail: email, subject: 'Q account recovery', body: 'A single-use Q account recovery email was sent through the authentication provider.', actorId: adminCtx.identity.user.id, metadata: { source: 'direct_password_reset' } });
+    if (recoveryLog.error) console.error('[Admin] Failed to record direct recovery communication:', recoveryLog.error);
     return res.json({ success: true, email, recoverySent: true });
   } catch (error: any) {
     return sendOpaqueError(req, res, 500, 'Unable to send the recovery email.', 'Admin Direct Password Recovery', error);
