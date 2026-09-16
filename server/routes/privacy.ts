@@ -9,7 +9,7 @@ const USER_TABLES = [
   'profiles', 'memory_entries', 'journal_entries', 'daily_mood_logs', 'chat_messages',
   'subscriptions', 'crm_notes', 'crm_tasks', 'crm_payments',
   'crm_entitlements', 'crm_activities', 'referral_codes', 'referrals', 'referral_credits',
-  'audit_logs'
+  'audit_logs', 'premium_continuity'
 ] as const;
 
 async function privacyContext(req: express.Request, res: express.Response) {

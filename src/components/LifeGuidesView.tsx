@@ -34,8 +34,10 @@ import {
   toggleGuideBookmark
 } from '../services/storage';
 import { CategoryScroller } from './CategoryScroller';
+import { usePremium } from '../contexts/PremiumContext';
 
 export const LifeGuidesView: React.FC = () => {
+  const { userId } = usePremium();
   const [guides, setGuides] = useState<LifeGuide[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,6 +50,9 @@ export const LifeGuidesView: React.FC = () => {
 
   useEffect(() => {
     setGuides(getLifeGuides());
+    const refresh = () => setGuides(getLifeGuides());
+    window.addEventListener('q-cloud-applied', refresh);
+    return () => window.removeEventListener('q-cloud-applied', refresh);
   }, []);
 
   const handleStepToggle = (guideId: string, stepId: string) => {
@@ -80,7 +85,7 @@ export const LifeGuidesView: React.FC = () => {
       lastReadAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    const updated = saveLifeGuide(updatedGuide);
+    const updated = saveLifeGuide(updatedGuide, userId);
     setGuides(updated);
   };
 
@@ -115,7 +120,7 @@ export const LifeGuidesView: React.FC = () => {
         isBookmarked: false
       };
 
-      const updated = saveLifeGuide(newGuide);
+      const updated = saveLifeGuide(newGuide, userId);
       setGuides(updated);
       setGenTopic('');
       setShowGeneratorModal(false);
@@ -137,7 +142,7 @@ export const LifeGuidesView: React.FC = () => {
         readProgressPct: 0,
         isBookmarked: false
       };
-      const updated = saveLifeGuide(fallbackGuide);
+      const updated = saveLifeGuide(fallbackGuide, userId);
       setGuides(updated);
       setGenTopic('');
       setShowGeneratorModal(false);

@@ -45,9 +45,10 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
   const [modelProgress, setModelProgress] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { const refresh = () => setMessages(getChatHistory(userId)); window.addEventListener('q-cloud-applied', refresh); return () => window.removeEventListener('q-cloud-applied', refresh); }, [userId]);
 
   useEffect(() => {
-    const history = getChatHistory();
+    const history = getChatHistory(userId);
     if (history.length === 0) {
       // Initial Q welcome message
       const welcomeMsg: ChatMessage = {
@@ -58,7 +59,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         category: 'Welcome'
       };
       setMessages([welcomeMsg]);
-      saveChatMessage(welcomeMsg);
+      saveChatMessage(welcomeMsg, userId);
     } else {
       setMessages(history);
     }
@@ -110,7 +111,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
 
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
-    saveChatMessage(userMsg);
+    saveChatMessage(userMsg, userId);
     setInputPrompt('');
     setIsLoading(true);
 
@@ -118,7 +119,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
     if (hasCrisisIntent(query)) {
       const supportMsg: ChatMessage = { id: `q-safe-${Date.now()}`, sender: 'q_ai', text: "It sounds like you're going through a really difficult time. Support is available right now.", timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
       setMessages(current => [...current, supportMsg]);
-      saveChatMessage(supportMsg);
+      saveChatMessage(supportMsg, userId);
       onOpenCrisis?.(countryCode);
       setIsLoading(false);
       return;
@@ -179,7 +180,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       if (data.isCrisis && data.action === 'TRIGGER_CRISIS_MODAL') onOpenCrisis?.(data.country);
 
       setMessages((prev) => [...prev, aiMsg]);
-      saveChatMessage(aiMsg);
+      saveChatMessage(aiMsg, userId);
       if (profile.optInMemory) {
         void saveMemoryBlob(userId, query, 'user_context').catch((memoryError) => {
           console.warn('[Q Memory] Response persistence unavailable:', memoryError);
@@ -198,7 +199,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, fallbackMsg]);
-      saveChatMessage(fallbackMsg);
+      saveChatMessage(fallbackMsg, userId);
       if (/\b(stress|stressed|anxious|anxiety|overwhelmed|panic|dysphoria|depressed|depression|burnout|unsafe|coming out|health concern|workplace conflict|grief|trauma)\b/i.test(query)) {
         setReflectionPrompt(true);
       }
@@ -222,13 +223,13 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       savedOffline: true,
       updatedAt: new Date().toISOString()
     };
-    saveLifeGuide(newGuide);
+    saveLifeGuide(newGuide, userId);
     setSavedGuideNotice('Saved to your offline Q Life Guides!');
     setTimeout(() => setSavedGuideNotice(null), 2500);
   };
 
   const handleClearHistory = () => {
-    clearChatHistory();
+    clearChatHistory(userId);
     const resetMsg: ChatMessage = {
       id: `msg-reset-${Date.now()}`,
       sender: 'q_ai',
@@ -236,7 +237,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     setMessages([resetMsg]);
-    saveChatMessage(resetMsg);
+    saveChatMessage(resetMsg, userId);
   };
 
   const quickPrompts = [

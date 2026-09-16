@@ -24,6 +24,7 @@ import { JournalEntry } from '../types';
 import { getJournalEntries, saveJournalEntry, deleteJournalEntry } from '../services/storage';
 import { deleteMemoryBlob, getMemoryBlobs, MemoryBlob } from '../services/memory';
 import { MoodTracker } from './MoodTracker';
+import { JournalInsights } from './JournalInsights';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface JournalViewProps {
@@ -37,6 +38,7 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
   const [memoryBlobs, setMemoryBlobs] = useState<MemoryBlob[]>([]);
   const [memoryError, setMemoryError] = useState<string | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
+  useEffect(() => { const refresh = () => setEntries(getJournalEntries(userId)); window.addEventListener('q-cloud-applied', refresh); return () => window.removeEventListener('q-cloud-applied', refresh); }, [userId]);
 
   // New Entry Form State
   const [title, setTitle] = useState('');
@@ -339,6 +341,7 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
 
       {/* Daily Mood Tracker Widget */}
       <MoodTracker onAskQSupport={onAskQSupport} userId={userId} />
+      <JournalInsights />
 
       {/* Mood Summary Header */}
       <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700">

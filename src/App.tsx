@@ -23,6 +23,10 @@ import { FakeNotesApp } from './components/FakeNotesApp';
 import { useCamouflage } from './hooks/useCamouflage';
 import { LanguageSelector } from './components/LanguageSelector';
 import { useLanguage } from './contexts/LanguageContext';
+import { PremiumProvider } from './contexts/PremiumContext';
+import { ContinuityProvider, ContinuitySettings } from './contexts/ContinuityContext';
+import { GuidedProgrammes } from './components/GuidedProgrammes';
+import { setStorageUser } from './services/storage';
 
 
 function isViewAppRequest() {
@@ -173,6 +177,7 @@ export default function App() {
     if (!supabase) return;
 
     const applySession = (session: { user?: any; expires_at?: number } | null) => {
+      setStorageUser(session?.user?.id);
       if (session?.user) {
         setCurrentUser(mapSupabaseUser(session.user));
         setSessionExpiresAt(session.expires_at ? session.expires_at * 1000 : null);
@@ -318,7 +323,7 @@ export default function App() {
         <StatusPageButton />
         <div className="fixed right-4 top-4 z-50"><LanguageSelector /></div>
         <AuthScreen
-          onUserSignedIn={(user) => setCurrentUser(user)}
+          onUserSignedIn={(user) => { setStorageUser(user.id); setCurrentUser(user); }}
           onOpenCrisis={() => setIsCrisisOpen(true)}
         />
         <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
@@ -328,6 +333,7 @@ export default function App() {
   }
 
   return (
+    <PremiumProvider key={currentUser.id} userId={currentUser.id} upgrade={() => setIsSubscriptionOpen(true)}><ContinuityProvider>
     <div className="q-app-shell relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 font-sans text-slate-900 antialiased selection:bg-fuchsia-600 selection:text-white">
       <StatusPageButton />
       {previewActive && <div className="relative z-50 mt-14 flex items-center justify-center gap-4 bg-amber-100 px-4 py-3 text-sm text-amber-950"><span>Admin preview: Public site {launchEnabled ? 'live' : 'on waitlist'}</span><button type="button" onClick={() => setPreviewUserId(null)} className="font-bold underline">Exit preview</button></div>}
@@ -360,7 +366,7 @@ export default function App() {
         {/* Main Content Viewport */}
         <main className="flex-1 p-3 sm:p-5 lg:p-6">
           {activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
-          {activeTab === 'guides' && <LifeGuidesView />}
+          {activeTab === 'guides' && <><GuidedProgrammes /><LifeGuidesView /></>}
           {activeTab === 'stories' && <LivedExperiencesView />}
           {activeTab === 'journal' && (
             <JournalView
@@ -370,6 +376,7 @@ export default function App() {
               }}
             />
           )}
+          {activeTab === 'profile' && <ContinuitySettings />}
           {activeTab === 'profile' && (
             <ProfileView
               currentUser={currentUser}
@@ -441,5 +448,6 @@ export default function App() {
       />
       <SubscriptionModal isOpen={isSubscriptionOpen} onClose={() => setIsSubscriptionOpen(false)} />
     </div>
+    </ContinuityProvider></PremiumProvider>
   );
 }

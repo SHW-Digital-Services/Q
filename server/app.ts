@@ -10,6 +10,7 @@ import { getServiceSupabase } from './routes/admin.js';
 import { referralsRouter } from './routes/referrals.js';
 import { createRateLimitMiddleware } from './security.js';
 import { privacyRouter } from './routes/privacy.js';
+import { premiumRouter } from './routes/premium.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -88,7 +89,7 @@ app.use((req, res, next) => {
     return next();
   }
   express.json({
-    limit: '32kb',
+    limit: req.path.startsWith('/api/premium/') ? '1mb' : '32kb',
     verify: (request, _response, buffer) => {
       (request as express.Request & { rawBody?: string }).rawBody = buffer.toString('utf8');
     }
@@ -156,6 +157,7 @@ app.use(['/api/q-ai', '/api/ai'], aiRouter);
 app.use(['/api/v1/admin', '/api/admin'], adminRouter);
 app.use('/api/referrals', referralsRouter);
 app.use('/api/privacy', privacyRouter);
+app.use('/api/premium', premiumRouter);
 app.use('/legal', legalRouter);
 
 app.use(['/api', '/api/*', '/legal', '/legal/*'], (req, res) => {

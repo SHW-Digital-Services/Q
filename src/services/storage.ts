@@ -26,6 +26,11 @@ const KEYS = {
   SECURITY: 'q_security_settings_v1'
 };
 
+let storageUser: string | undefined;
+export function setStorageUser(userId?: string) { storageUser = userId; }
+const scopedGlobals = new Set([KEYS.GUIDES, KEYS.CHAT]);
+function scoped(key: string) { return storageUser && scopedGlobals.has(key) ? `${key}:${storageUser}` : key; }
+
 function userScopedKey(key: string, userId?: string): string {
   return userId ? `${key}:${userId}` : key;
 }
@@ -33,7 +38,7 @@ function userScopedKey(key: string, userId?: string): string {
 // Helper safely accessing localStorage
 function getItem<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(scoped(key));
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch (err) {
     console.warn(`[Q Storage] Error reading key ${key}:`, err);
@@ -43,7 +48,8 @@ function getItem<T>(key: string, fallback: T): T {
 
 function setItem<T>(key: string, value: T): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem(scoped(key), JSON.stringify(value));
+    window.dispatchEvent(new CustomEvent('q-local-change', {detail:{key:scoped(key)}}));
   } catch (err) {
     console.warn(`[Q Storage] Error writing key ${key}:`, err);
   }
@@ -64,12 +70,12 @@ export function saveMemoryProfile(profile: UserMemoryProfile): UserMemoryProfile
 }
 
 // Life Guides
-export function getLifeGuides(): LifeGuide[] {
-  return getItem<LifeGuide[]>(KEYS.GUIDES, INITIAL_LIFE_GUIDES);
+export function getLifeGuides(userId?: string): LifeGuide[] {
+  return getItem<LifeGuide[]>(userScopedKey(KEYS.GUIDES, userId), INITIAL_LIFE_GUIDES);
 }
 
-export function saveLifeGuide(guide: LifeGuide): LifeGuide[] {
-  const current = getLifeGuides();
+export function saveLifeGuide(guide: LifeGuide, userId?: string): LifeGuide[] {
+  const current = getLifeGuides(userId);
   const idx = current.findIndex((g) => g.id === guide.id);
   let updated: LifeGuide[];
   if (idx >= 0) {
@@ -78,7 +84,7 @@ export function saveLifeGuide(guide: LifeGuide): LifeGuide[] {
   } else {
     updated = [{ ...guide, updatedAt: new Date().toISOString() }, ...current];
   }
-  setItem(KEYS.GUIDES, updated);
+  setItem(userScopedKey(KEYS.GUIDES, userId), updated);
   recordPendingSync();
   return updated;
 }
@@ -248,24 +254,25 @@ export function getPastWeekMoodLogs(userId?: string): DailyMoodLog[] {
 }
 
 // Chat Messages
-export function getChatHistory(): ChatMessage[] {
-  return getItem<ChatMessage[]>(KEYS.CHAT, []);
+export function getChatHistory(userId?: string): ChatMessage[] {
+  return getItem<ChatMessage[]>(userScopedKey(KEYS.CHAT, userId), []);
 }
 
-export function saveChatMessage(msg: ChatMessage): ChatMessage[] {
-  const current = getChatHistory();
+export function saveChatMessage(msg: ChatMessage, userId?: string): ChatMessage[] {
+  const current = getChatHistory(userId);
   const updated = [...current, msg];
-  setItem(KEYS.CHAT, updated);
+  setItem(userScopedKey(KEYS.CHAT, userId), updated);
   return updated;
 }
 
-export function clearChatHistory(): void {
-  localStorage.removeItem(KEYS.CHAT);
+export function clearChatHistory(userId?: string): void {
+  setItem(userScopedKey(KEYS.CHAT, userId), []);
 }
 
 /** Removes locally stored personal content while preserving device security settings. */
 export function clearSensitiveLocalData(): void {
-  const sensitivePrefixes = [KEYS.PROFILE, KEYS.JOURNAL, KEYS.CHAT, KEYS.MOOD_LOGS, 'q_memory_'];
+  window.dispatchEvent(new Event('q-local-cleared'));
+  const sensitivePrefixes = [KEYS.PROFILE, KEYS.JOURNAL, KEYS.CHAT, KEYS.MOOD_LOGS, KEYS.GUIDES, 'q_memory_', 'q_programmes_v1', 'q_continuity_v1', 'q_continuity_recovery'];
   for (let index = localStorage.length - 1; index >= 0; index--) {
     const key = localStorage.key(index);
     if (key && sensitivePrefixes.some(prefix => key === prefix || key.startsWith(`${prefix}:`))) localStorage.removeItem(key);
@@ -335,7 +342,8 @@ export function exportAppDataJSON(userId?: string): string {
     experiences: getLivedExperiences(),
     journal: getJournalEntries(userId),
     moodLogs: getDailyMoodLogs(userId),
-    chat: getChatHistory()
+    chat: getChatHistory(),
+    programmes: getItem<unknown[]>(`q_programmes_v1:${userId}`, [])
   };
   return JSON.stringify(dump, null, 2);
 }
@@ -345,10 +353,10 @@ export function importAppDataJSON(jsonData: string, userId?: string): boolean {
     if (new Blob([jsonData]).size > 2 * 1024 * 1024) return false;
     const parsed = JSON.parse(jsonData);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
-    const allowed = new Set(['version', 'exportedAt', 'accountScope', 'profile', 'guides', 'experiences', 'journal', 'moodLogs', 'chat']);
+    const allowed = new Set(['version', 'exportedAt', 'accountScope', 'profile', 'guides', 'experiences', 'journal', 'moodLogs', 'chat', 'programmes']);
     if (Object.keys(parsed).some((key) => !allowed.has(key)) || !['1.0.0', '2.0.0'].includes(parsed.version)) return false;
     if (parsed.version === '2.0.0' && parsed.accountScope && parsed.accountScope !== userId) return false;
-    const arrays = ['guides', 'experiences', 'journal', 'moodLogs', 'chat'] as const;
+    const arrays = ['guides', 'experiences', 'journal', 'moodLogs', 'chat', 'programmes'] as const;
     if (arrays.some((key) => parsed[key] !== undefined && (!Array.isArray(parsed[key]) || parsed[key].length > 10000))) return false;
     if (parsed.profile !== undefined && (!parsed.profile || typeof parsed.profile !== 'object' || Array.isArray(parsed.profile))) return false;
     if (parsed.profile) setItem(KEYS.PROFILE, parsed.profile);
@@ -357,6 +365,7 @@ export function importAppDataJSON(jsonData: string, userId?: string): boolean {
     if (parsed.journal) setItem(userScopedKey(KEYS.JOURNAL, userId), parsed.journal);
     if (parsed.moodLogs) setItem(userScopedKey(KEYS.MOOD_LOGS, userId), parsed.moodLogs);
     if (parsed.chat) setItem(KEYS.CHAT, parsed.chat);
+    if (parsed.programmes && userId) setItem(`q_programmes_v1:${userId}`, parsed.programmes);
     markSynced();
     return true;
   } catch (err) {

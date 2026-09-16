@@ -87,6 +87,7 @@ export const MoodTracker: React.FC<MoodTrackerProps> = ({ onAskQSupport, userId 
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isExpanded, setIsExpanded] = useState(true);
   const [savedNotice, setSavedNotice] = useState(false);
+  useEffect(() => { window.addEventListener('q-cloud-applied', loadMoodData); return () => window.removeEventListener('q-cloud-applied', loadMoodData); }, [userId]);
 
   useEffect(() => {
     loadMoodData();

@@ -154,7 +154,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 space-y-5 text-slate-900">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 space-y-5 text-slate-900">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-black flex items-center gap-2"><CreditCard className="w-5 h-5 text-purple-600" /> Q Subscription</h2>
@@ -163,6 +163,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
         </div>
 
+        <div className="rounded-xl bg-violet-50 p-4 text-sm"><h3 className="font-bold">Included with Premium</h3><ul className="mt-2 list-disc space-y-1 pl-5"><li>Hosted AI conversations and knowledge search, with usage limits</li><li>Guided programmes with saved progress and reflections</li><li>Advanced journal insights over 30 days, 90 days or a year</li><li>Opt-in cross-device continuity for selected content</li></ul><p className="mt-3 text-xs text-slate-600">Basic journaling, local AI, Life Guides, privacy controls and crisis resources remain free.</p></div>
         {!includedAccess && <div className="grid gap-3 sm:grid-cols-2">
           {[
             {
