@@ -119,7 +119,7 @@ export function createAdminSecurityMiddleware(getServiceDb: () => any) {
       await writeSecurityEvent(db, request, { actorId: identity.user.id, action: capability, outcome: 'denied' });
       return response.status(403).json({ error: 'This staff permission is required.' });
     }
-    if (SENSITIVE_CAPABILITIES.has(capability) && !hasRecentAal2(request)) {
+    if (profile.role !== 'partner_admin' && SENSITIVE_CAPABILITIES.has(capability) && !hasRecentAal2(request)) {
       await writeSecurityEvent(db, request, { actorId: identity.user.id, action: capability, outcome: 'denied', metadata: { reason: 'aal2_required' } });
       return response.status(403).json({ error: 'Recent multi-factor authentication is required.', code: 'AAL2_REQUIRED' });
     }

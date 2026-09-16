@@ -20,6 +20,12 @@ async function privacyContext(req: express.Request, res: express.Response) {
   return { identity, db };
 }
 
+async function canPerformPrivacyAction(req: express.Request, ctx: NonNullable<Awaited<ReturnType<typeof privacyContext>>>) {
+  if (hasRecentAal2(req)) return true;
+  const { data, error } = await ctx.db.from('profiles').select('role').eq('id', ctx.identity.user.id).maybeSingle();
+  return !error && data?.role === 'partner_admin';
+}
+
 privacyRouter.get('/requests', asyncHandler(async (req, res) => {
   const ctx = await privacyContext(req, res); if (!ctx) return;
   const result = await ctx.db.from('privacy_requests').select('id,request_type,status,requested_at,completed_at,hold_reason,receipt_id,error_code').eq('user_id', ctx.identity.user.id).order('requested_at', { ascending: false }).limit(50);
@@ -30,7 +36,7 @@ privacyRouter.get('/requests', asyncHandler(async (req, res) => {
 privacyRouter.post('/export', asyncHandler(async (req, res) => {
   if (!requireExactObject(req.body ?? {}, [])) return res.status(400).json({ error: 'Unexpected request fields.' });
   const ctx = await privacyContext(req, res); if (!ctx) return;
-  if (!hasRecentAal2(req)) return res.status(403).json({ error: 'Recent multi-factor authentication is required.', code: 'AAL2_REQUIRED' });
+  if (!await canPerformPrivacyAction(req, ctx)) return res.status(403).json({ error: 'Recent multi-factor authentication is required.', code: 'AAL2_REQUIRED' });
   const created = await ctx.db.from('privacy_requests').insert({ user_id: ctx.identity.user.id, request_type: 'export', status: 'processing' }).select('id,receipt_id,requested_at').single();
   if (created.error) return sendOpaqueError(req, res, 503, 'Unable to start the data export.', 'Privacy Export Start', created.error);
   try {
@@ -73,7 +79,7 @@ privacyRouter.post('/deletion-requests', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Type DELETE MY Q ACCOUNT to confirm.' });
   }
   const ctx = await privacyContext(req, res); if (!ctx) return;
-  if (!hasRecentAal2(req)) return res.status(403).json({ error: 'Recent multi-factor authentication is required.', code: 'AAL2_REQUIRED' });
+  if (!await canPerformPrivacyAction(req, ctx)) return res.status(403).json({ error: 'Recent multi-factor authentication is required.', code: 'AAL2_REQUIRED' });
   const created = await ctx.db.from('privacy_requests').insert({ user_id: ctx.identity.user.id, request_type: 'deletion', status: 'processing' }).select('id,receipt_id,requested_at').single();
   if (created.error) return sendOpaqueError(req, res, 503, 'Unable to start account deletion.', 'Privacy Deletion Start', created.error);
   const subscription = await ctx.db.from('subscriptions').select('status').eq('user_id', ctx.identity.user.id).in('status', ['ACTIVE', 'APPROVAL_PENDING', 'SUSPENDED']).limit(1).maybeSingle();
