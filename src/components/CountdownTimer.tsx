@@ -35,15 +35,11 @@ function getCountdown(target: Date): CountdownState {
 
 const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate }) => {
   const [countdown, setCountdown] = useState<CountdownState>(() => getCountdown(targetDate));
-  const [isLive, setIsLive] = useState<boolean>(countdown.expired);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       const nextCountdown = getCountdown(targetDate);
       setCountdown(nextCountdown);
-      if (nextCountdown.expired) {
-        setIsLive(true);
-      }
     }, 1000);
     return () => window.clearInterval(intervalId);
   }, [targetDate]);
@@ -74,12 +70,12 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate }) => {
       </div>
       <div
         className={`mt-4 rounded-3xl border px-4 py-4 text-sm text-center font-semibold transition-all duration-500 ${
-          isLive
+          countdown.expired
             ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100 shadow-inner shadow-emerald-500/20 opacity-100 translate-y-0'
             : 'border-transparent bg-transparent text-transparent opacity-0 -translate-y-3'
         }`}
       >
-        Launch is live now in the UK.
+        Join the waitlist for updates. Public access opens when Q is ready.
       </div>
     </div>
   );

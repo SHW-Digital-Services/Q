@@ -6,6 +6,7 @@ interface AdminPanelProps {
   enabled: boolean;
   onToggle: (value: boolean) => void;
   onClose: () => void;
+  onPreview: () => Promise<void>;
 }
 
 interface CrmUser {
@@ -37,7 +38,8 @@ interface ContactRequest {
   status: 'new' | 'in_progress' | 'answered' | 'closed'; response_text: string | null; created_at: string;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose, onPreview }) => {
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [requests, setRequests] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [requestMessage, setRequestMessage] = useState<string | null>(null);
@@ -388,21 +390,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         {staffRole === 'partner_admin' && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-white">Enable new launch landing page</p>
-              <p className="mt-1 text-sm text-slate-400">When on, visitors see the launch-style landing page. When off, the waitlist landing page is shown.</p>
+              <p className="text-sm font-semibold text-white">Live site</p>
+              <p className="mt-1 text-sm text-slate-400">When on, the public can access the site. When off, visitors can only see the waitlist.</p>
             </div>
             <button
               type="button"
+              role="switch"
+              aria-label="Live site"
+              aria-checked={enabled}
               onClick={() => void updateLaunch(!enabled)}
               className={`relative inline-flex h-7 w-14 items-center rounded-full transition ${enabled ? 'bg-purple-600' : 'bg-slate-700'}`}
             >
               <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${enabled ? 'translate-x-7' : 'translate-x-1'}`} />
             </button>
           </div>
+          <button type="button" disabled={previewLoading} onClick={async () => {
+            setPreviewLoading(true);
+            try { await onPreview(); }
+            catch (error: any) { setCrmMessage(error.message || 'Unable to preview the site.'); }
+            finally { setPreviewLoading(false); }
+          }} className="mt-4 rounded-xl bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-500 disabled:opacity-50">{previewLoading ? 'Opening preview...' : 'Preview Site'}</button>
+          <p className="mt-2 text-xs text-slate-400">Preview in this tab without changing public access. Refreshing or signing out ends the preview.</p>
         </div>}
 
         {staffRole === 'partner_admin' && <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
-          Current status: {enabled ? 'New launch landing page enabled' : 'Waitlist landing page enabled'}
+          Current status: {enabled ? 'Live site enabled' : 'Waitlist enabled'}
         </div>}
 
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">

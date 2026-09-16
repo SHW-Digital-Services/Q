@@ -70,10 +70,44 @@ export default function App() {
   const [canAccessCrm, setCanAccessCrm] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [launchEnabled, setLaunchEnabled] = useState(false);
+  const [previewUserId, setPreviewUserId] = useState<string | null>(null);
+
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'signup'>('login');
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
-  const isAppRoute = isViewAppRequest();
+  const previewActive = !!currentUser && previewUserId === currentUser.id;
+  const isAppRoute = previewActive || (launchEnabled && isViewAppRequest());
+
+  useEffect(() => {
+    let cancelled = false;
+    const refreshLaunch = async () => {
+      try {
+        const response = await fetch('/api/v1/admin/site-settings/launch', { cache: 'no-store' });
+        const data = response.ok ? await response.json() : null;
+        if (!cancelled) setLaunchEnabled(data?.enabled === true);
+      } catch {
+        if (!cancelled) setLaunchEnabled(false);
+      }
+    };
+    void refreshLaunch();
+    const timer = window.setInterval(refreshLaunch, 15_000);
+    window.addEventListener('focus', refreshLaunch);
+    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener('focus', refreshLaunch); };
+  }, []);
+
+  const startPreview = async () => {
+    const supabase = getSupabaseClient();
+    const { data } = await supabase?.auth.getSession() ?? { data: { session: null } };
+    const token = data.session?.access_token;
+    if (!token) throw new Error('Sign in as an Admin to preview the site.');
+    const response = await fetch('/api/v1/admin/me', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+    const staff = response.ok ? await response.json() : null;
+    if (staff?.role !== 'partner_admin') throw new Error('Only an Admin can preview the site.');
+    const { data: latest } = await supabase!.auth.getSession();
+    if (latest.session?.user.id !== staff.user.id) throw new Error('Your session changed. Please try again.');
+    setPreviewUserId(staff.user.id);
+    setIsAdminPanelOpen(false);
+  };
   const { isMasked, enableCamouflage, disableCamouflage } = useCamouflage();
 
   useEffect(() => {
@@ -99,6 +133,7 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     if (!currentUser) {
+      setPreviewUserId(null);
       setCanAccessCrm(false);
       setIsAdminPanelOpen(false);
       return;
@@ -117,13 +152,11 @@ export default function App() {
         const allowed = staff.role === 'staff' || staff.role === 'partner_admin';
         if (cancelled) return;
         setCanAccessCrm(allowed);
-        if (allowed) {
-          const launchResponse = await fetch('/api/v1/admin/site-settings/launch');
-          const launch = launchResponse.ok ? await launchResponse.json() : null;
-          if (!cancelled && typeof launch?.enabled === 'boolean') setLaunchEnabled(launch.enabled);
-        }
+        if (staff.role !== 'partner_admin') setPreviewUserId(null);
+
       } catch {
         if (!cancelled) {
+          setPreviewUserId(null);
           setCanAccessCrm(false);
           setIsAdminPanelOpen(false);
         }
@@ -277,7 +310,7 @@ export default function App() {
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
-  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector /></div><LandingPage /><button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} (Alt+M)</button></>;
+  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} onPreview={startPreview} /><button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} (Alt+M)</button></>;
 
   if (!currentUser) {
     return (
@@ -297,6 +330,7 @@ export default function App() {
   return (
     <div className="q-app-shell relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 font-sans text-slate-900 antialiased selection:bg-fuchsia-600 selection:text-white">
       <StatusPageButton />
+      {previewActive && <div className="relative z-50 mt-14 flex items-center justify-center gap-4 bg-amber-100 px-4 py-3 text-sm text-amber-950"><span>Admin preview: Public site {launchEnabled ? 'live' : 'on waitlist'}</span><button type="button" onClick={() => setPreviewUserId(null)} className="font-bold underline">Exit preview</button></div>}
       {/* Soft Pride-spectrum ambient colour keeps content readable while adding identity. */}
       <div className="pointer-events-none fixed -left-24 top-10 -z-10 h-72 w-72 rounded-full bg-rose-300/25 blur-[90px]" />
       <div className="pointer-events-none fixed -right-28 top-1/3 -z-10 h-80 w-80 rounded-full bg-sky-300/25 blur-[100px]" />
@@ -384,7 +418,7 @@ export default function App() {
         </button>
       )}
       {canAccessCrm && isAdminPanelOpen && !isLockActive && (
-        <AdminPanel enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} />
+        <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} />
       )}
       <BackupModal
         isOpen={isBackupOpen}

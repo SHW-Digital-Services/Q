@@ -1,4 +1,4 @@
-import React, { FormEvent, useEffect, useState } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { ArrowRight, LockKeyhole, ShieldCheck, Sparkles, HeartHandshake, Mail, UserRound, Settings } from 'lucide-react';
 import CountdownTimer from './CountdownTimer';
 import { QLogo } from './QLogo';
@@ -9,10 +9,6 @@ import { AdminPanel } from './AdminPanel';
 
 // 1 November is outside British Summer Time, so 09:00 UK time is 09:00 UTC.
 export const Q_LAUNCH_DATE = new Date('2026-11-01T09:00:00Z');
-
-function isLaunchLandingEnabled() {
-  return Date.now() >= Q_LAUNCH_DATE.getTime();
-}
 
 const LaunchLandingPage: React.FC = () => {
   return (
@@ -228,36 +224,16 @@ export const WaitlistLandingPage: React.FC = () => {
   );
 };
 
-export const LandingPage: React.FC = () => {
-  const [launchEnabled, setLaunchEnabled] = useState(() => isLaunchLandingEnabled());
+interface LandingPageProps {
+  launchEnabled: boolean;
+  onToggleLaunch: (enabled: boolean) => void;
+  onPreview: () => Promise<void>;
+}
+
+export const LandingPage: React.FC<LandingPageProps> = ({ launchEnabled, onToggleLaunch, onPreview }) => {
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/v1/admin/site-settings/launch')
-      .then((response) => response.json())
-      .then((data) => { if (data.enabled === true) setLaunchEnabled(true); })
-      .catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
-    if (launchEnabled) return;
-    const timer = window.setInterval(() => {
-      if (Date.now() >= Q_LAUNCH_DATE.getTime()) {
-        setLaunchEnabled(true);
-      }
-    }, 30_000);
-    return () => window.clearInterval(timer);
-  }, [launchEnabled]);
-
-  const handleAdminGranted = () => {
-    setAdminPanelOpen(true);
-  };
-
-  const handleToggleLaunch = (value: boolean) => {
-    const effectiveValue = Date.now() >= Q_LAUNCH_DATE.getTime() || value;
-    setLaunchEnabled(effectiveValue);
-  };
+  const handleAdminGranted = () => setAdminPanelOpen(true);
 
   return (
     <>
@@ -278,7 +254,8 @@ export const LandingPage: React.FC = () => {
       {adminPanelOpen && (
         <AdminPanel
           enabled={launchEnabled}
-          onToggle={handleToggleLaunch}
+          onToggle={onToggleLaunch}
+          onPreview={onPreview}
           onClose={() => setAdminPanelOpen(false)}
         />
       )}

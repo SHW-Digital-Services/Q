@@ -8,6 +8,7 @@ import { createAdminSecurityMiddleware, requireExactObject } from '../security.j
 export const adminRouter = express.Router();
 
 adminRouter.get('/site-settings/launch', asyncHandler(async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const serviceSupabase = getServiceSupabase();
   if (!serviceSupabase) return res.json({ enabled: false });
   const { data } = await serviceSupabase.from('site_settings').select('value').eq('key', 'launch_override').maybeSingle();
