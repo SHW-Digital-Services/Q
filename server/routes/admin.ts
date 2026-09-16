@@ -397,7 +397,10 @@ adminRouter.post('/crm/users/:id/tasks', asyncHandler(async (req, res) => {
   const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
   const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
   if (!title) return res.status(400).json({ error: 'Task title is required.' });
-  const { data, error } = await adminCtx.serviceSupabase.from('crm_tasks').insert({ user_id: req.params.id, title, description: req.body?.description || null, priority: req.body?.priority || 'normal', due_at: req.body?.dueAt || null, assigned_to: adminCtx.identity.user.id, created_by: adminCtx.identity.user.id }).select().single();
+  const status = ['open', 'in_progress', 'completed', 'cancelled'].includes(req.body?.status) ? req.body.status : 'open';
+  const priority = ['low', 'normal', 'high', 'urgent'].includes(req.body?.priority) ? req.body.priority : 'normal';
+  const assignedTo = typeof req.body?.assignedTo === 'string' && req.body.assignedTo.trim() ? req.body.assignedTo.trim() : adminCtx.identity.user.id;
+  const { data, error } = await adminCtx.serviceSupabase.from('crm_tasks').insert({ user_id: req.params.id, title, description: req.body?.description || null, status, priority, starts_at: req.body?.startAt || null, due_at: req.body?.dueAt || null, assigned_to: assignedTo, created_by: adminCtx.identity.user.id }).select().single();
   if (error) return res.status(500).json({ error: error.message });
   await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'task_created', `Task created: ${title}`);
   return res.status(201).json(data);
