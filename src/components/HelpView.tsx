@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { FormEvent, useMemo, useState } from 'react';
 import {
   BookOpen,
   Bot,
@@ -12,6 +12,7 @@ import {
   Lock,
   Notebook,
   Search,
+  Send,
   Share2,
   Shield,
   Smartphone,
@@ -92,12 +93,36 @@ export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubs
   const { language, t } = useLanguage();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
+  const [contact, setContact] = useState({ name: '', email: '', category: 'general', subject: '', message: '', website: '' });
+  const [contactState, setContactState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [contactMessage, setContactMessage] = useState('');
   const normalizedQuery = query.trim().toLowerCase();
   const visibleArticles = useMemo(() => helpArticles.filter(article => {
     const categoryMatches = category === 'All' || article.category === category;
     const queryMatches = !normalizedQuery || [article.title, article.summary, article.category, ...article.steps].join(' ').toLowerCase().includes(normalizedQuery);
     return categoryMatches && queryMatches;
   }), [category, normalizedQuery]);
+
+  const submitContactRequest = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setContactState('sending');
+    setContactMessage('');
+    try {
+      const response = await fetch('/api/v1/admin/contact-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contact)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'We could not send your message. Please try again.');
+      setContactState('sent');
+      setContactMessage('Thanks — your message has been sent to the Q support team.');
+      setContact({ name: '', email: '', category: 'general', subject: '', message: '', website: '' });
+    } catch (error) {
+      setContactState('error');
+      setContactMessage(error instanceof Error ? error.message : 'We could not send your message. Please try again.');
+    }
+  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 pb-6">
@@ -127,6 +152,27 @@ export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubs
         {onNavigate && <button onClick={() => onNavigate('journal')} className="min-h-20 rounded-2xl bg-indigo-50 p-3 text-left text-xs font-bold text-indigo-800 transition hover:bg-indigo-100 active:scale-[.98]"><Notebook className="mb-2 h-5 w-5" />{t('openJournal')}</button>}
         {onOpenSubscription && <button onClick={onOpenSubscription} className="min-h-20 rounded-2xl bg-rose-50 p-3 text-left text-xs font-bold text-rose-800 transition hover:bg-rose-100 active:scale-[.98]"><CreditCard className="mb-2 h-5 w-5" />{t('subscriptionHelp')}</button>}
         <button onClick={onOpenCrisis} className="min-h-20 rounded-2xl bg-red-50 p-3 text-left text-xs font-bold text-red-800 transition hover:bg-red-100 active:scale-[.98]"><HeartHandshake className="mb-2 h-5 w-5" />{t('support247')}</button>
+      </section>
+
+      <section className="pride-card pride-edge rounded-3xl p-5 sm:p-7" aria-labelledby="contact-q-heading">
+        <div className="flex items-start gap-3">
+          <span className="rounded-xl bg-violet-100 p-2.5 text-violet-700"><Send className="h-5 w-5" /></span>
+          <div><h2 id="contact-q-heading" className="text-lg font-black text-slate-950">Contact Q</h2><p className="mt-1 text-sm leading-relaxed text-slate-600">Send a question or feedback to the Q support team. Your request is added to our staff CRM for follow-up.</p></div>
+        </div>
+        <form onSubmit={submitContactRequest} className="mt-5 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-semibold text-slate-700">Name <span className="font-normal text-slate-400">(optional)</span><input value={contact.name} onChange={event => setContact({ ...contact, name: event.target.value })} maxLength={120} autoComplete="name" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-normal outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200" /></label>
+            <label className="text-sm font-semibold text-slate-700">Email address<input required type="email" value={contact.email} onChange={event => setContact({ ...contact, email: event.target.value })} maxLength={320} autoComplete="email" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-normal outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200" /></label>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-[.7fr_1.3fr]">
+            <label className="text-sm font-semibold text-slate-700">Topic<select value={contact.category} onChange={event => setContact({ ...contact, category: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-normal outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200"><option value="general">General</option><option value="account">Account</option><option value="billing">Billing</option><option value="privacy">Privacy</option><option value="technical">Technical issue</option><option value="feedback">Feedback</option></select></label>
+            <label className="text-sm font-semibold text-slate-700">Subject<input required minLength={3} maxLength={160} value={contact.subject} onChange={event => setContact({ ...contact, subject: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-normal outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200" /></label>
+          </div>
+          <label className="text-sm font-semibold text-slate-700">Message<textarea required minLength={10} maxLength={5000} rows={5} value={contact.message} onChange={event => setContact({ ...contact, message: event.target.value })} className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-3 font-normal outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200" /></label>
+          <label aria-hidden="true" className="absolute -left-[10000px] h-px w-px overflow-hidden"><span>Website</span><input tabIndex={-1} autoComplete="off" value={contact.website} onChange={event => setContact({ ...contact, website: event.target.value })} /></label>
+          <div className="flex flex-wrap items-center gap-3"><button type="submit" disabled={contactState === 'sending'} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-bold text-white shadow-md shadow-violet-500/20 transition hover:bg-violet-800 disabled:cursor-wait disabled:opacity-60"><Send className="h-4 w-4" />{contactState === 'sending' ? 'Sending…' : 'Send message'}</button>{contactMessage && <p role={contactState === 'error' ? 'alert' : 'status'} className={`text-sm ${contactState === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>{contactMessage}</p>}</div>
+          <p className="text-xs leading-relaxed text-slate-500">Do not include passwords, payment details, emergency information or someone else’s confidential information. For immediate danger, use the crisis-support option above.</p>
+        </form>
       </section>
 
       {language !== 'en' && <p className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">{t('englishNotice')}</p>}
