@@ -1,9 +1,9 @@
 ---
 title: Cookie Policy
 description: Cookie Policy for Q Intelligence
-version: 1.0.1
+version: 1.1.0
 effective_date: 02/08/2026
-last_updated: 17/08/2026
+last_updated: 16/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -139,6 +139,14 @@ Each third-party provider operates under its own privacy and cookie policies.
 
 We encourage you to review those policies for additional information.
 
+## 5.1 Brevo Email Tracking and Hosted Pages
+
+Q uses **Brevo (formerly Sendinblue)** for marketing and community-update emails. Brevo supports small tracking images (pixels) and personalised links that can measure email opens and link clicks. Where enabled, these may record engagement times and technical information associated with an email or device. Email tracking can operate without a conventional browser cookie; website cookie settings may therefore not control it in your email application.
+
+Consent to receive emails is separate from any consent required for non-essential tracking. Where applicable law requires it, tracking must not occur before the relevant consent has been obtained. You may withdraw tracking consent through the email's available controls or contact **privacy@q-ai.online**. You can separately stop marketing and community-update emails using their unsubscribe link. Blocking remote images in your email application may limit pixel loading but does not necessarily prevent tracked-link measurement.
+
+Email delivery, bounce and unsubscribe records are distinct from optional engagement tracking. Using Brevo to send emails does not itself mean that a Brevo website tracker is installed on Q. If you follow a link to a Brevo-hosted subscription or preference page, the information and controls presented on that page also apply. Any non-essential Brevo website tracking introduced on Q must be disclosed and subject to the applicable consent requirements before use.
+
 ---
 
 # 6. Managing Cookies
@@ -217,6 +225,7 @@ Support: office@q-ai.online
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.1.0 | 16/09/2026 | Added Brevo email pixels, tracked links, hosted-page context and separate consent choices. |
 | 1.0.0 | 02/08/2026 | Initial release. |
 
 ---

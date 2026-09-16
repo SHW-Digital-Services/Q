@@ -9,6 +9,8 @@ Q is a privacy-conscious LGBTQ+ wellbeing, life-guidance, and personal-reflectio
 
 ## Key features
 
+- **Premium programmes, insights and continuity:** Self-paced guided programmes, mood/tag insights, and opt-in cross-device snapshots with conflict protection. See [premium features and deployment](docs/premium-features.md).
+
 - **Private local AI:** WebLLM runs Llama 3.2 1B in a Web Worker using WebGPU. After the initial model download, generation can run without sending prompts to an AI API.
 - **Optional hosted AI:** Users can explicitly select the server-hosted OpenAI provider when local WebGPU is unavailable or unsuitable. Client-side PII masking is applied before hosted requests.
 - **Per-user memory:** User-approved memories are stored in Supabase and protected by Row Level Security. Relevant memories are retrieved only for the authenticated user.

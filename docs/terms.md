@@ -1,9 +1,9 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.2.0
+version: 1.3.0
 effective_date: 02/08/2026
-last_updated: 28/08/2026
+last_updated: 16/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -424,6 +424,7 @@ The Service integrates with third-party providers including, but not limited to:
 - WebLLM and model-distribution services;
 - PayPal;
 - Zoho Bigin;
+- Brevo (formerly Sendinblue), for optional marketing and community-update emails;
 - email delivery providers;
 - cloud hosting providers;
 - analytics providers.
@@ -503,7 +504,7 @@ Nothing in these Terms prevents either party from seeking urgent injunctive or e
 
 # 34. Electronic Communications
 
-By creating an account or using the Service, you consent to receiving electronic communications relating to:
+We communicate electronically with you where necessary to administer the Service, including communications relating to:
 
 - your account;
 - subscriptions;
@@ -513,7 +514,9 @@ By creating an account or using the Service, you consent to receiving electronic
 - service announcements;
 - policy updates.
 
-Where required by law, marketing communications will only be sent with the appropriate consent or another lawful basis, and you may opt out of those communications at any time.
+Optional marketing, newsletters and community-update emails are managed through Brevo (formerly Sendinblue) and sent where you have opted in or specifically requested them. Accepting these Terms, creating an account or purchasing a subscription does not by itself constitute marketing consent. Permission for launch or waitlist updates is limited to the communications described when it was collected.
+
+You can stop optional emails through their unsubscribe link or by contacting privacy@q-ai.online, without closing your account. Necessary security, billing and service notices may still be sent. Marketing consent is separate from any required consent to non-essential email tracking. The Privacy Policy, Cookie Policy and Processor Register explain the relevant processing and choices.
 
 ---
 
@@ -593,6 +596,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.3.0 | 16/09/2026 | Added Brevo and distinguished optional marketing/community emails from necessary service notices. |
 | 1.2.0 | 28/08/2026 | Added hosted-processing, OpenAI, and usage-limit disclosures. |
 | 1.1.0 | 26/08/2026 | Added local AI, memory, safety, CRM, and subscription disclosures. |
 | 1.0.1 | 17/08/2026 | Added Zoho Bigin to third-party service disclosures. |
@@ -608,7 +612,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 **Operator:** Scott Harvey-Whittle trading as SHW Digital Services  
 **Availability:** Worldwide  
 **Governing Law:** England & Wales  
-**Current Version:** 1.2.0
+**Current Version:** 1.3.0
 
 ---
 

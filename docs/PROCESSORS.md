@@ -1,9 +1,9 @@
 ---
 title: Processor Register
 description: Sub-processor and Processor Register for Q Intelligence
-version: 1.2.0
+version: 1.3.0
 effective_date: 02/08/2026
-last_updated: 28/08/2026
+last_updated: 16/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 jurisdiction: Worldwide
@@ -26,6 +26,7 @@ This register supports transparency under applicable data protection legislation
 | Supabase | Authentication, PostgreSQL database, object storage, user sessions | Account information, authentication data, uploaded files, application data |
 | OpenAI | Optional hosted AI model processing explicitly selected by the user | PII-masked prompts, recent chat context, selected profile context, relevant opted-in memory, AI responses, and technical usage metadata |
 | PayPal | Subscription billing and payment processing | Billing information, payment identifiers, transaction records |
+| Brevo (formerly Sendinblue) | Optional marketing emails, newsletters and community updates; mailing-list and unsubscribe management | Email address, name if supplied, communication choices, consent/source records, email content, delivery/bounce/complaint records, suppression status; open/click and associated technical data where tracking is enabled and lawfully permitted |
 
 WebLLM performs inference on the user's device and is not used by Q as a processor of prompts on Q's behalf. A user's browser contacts model-distribution infrastructure to download the WebLLM runtime and model assets; those services may process ordinary network metadata under their own policies.
 
@@ -38,6 +39,24 @@ Current governing and transparency documents:
 - OpenAI Data Processing Addendum (effective 1 January 2026): https://openai.com/policies/data-processing-addendum/
 - OpenAI Sub-processor List: https://openai.com/policies/sub-processor-list/
 - OpenAI API data controls: https://platform.openai.com/docs/models/default-usage-policies-by-endpoint
+
+---
+
+## 2.1 Brevo Email Communications
+
+Q acts as controller for its marketing and community mailing lists. Brevo processes mailing data on Q's instructions under the applicable Brevo data-processing agreement. Its exact contracting entity and applicable terms depend on Q's Brevo account agreement; the brand name alone does not determine the contracting entity.
+
+Brevo's published storage information describes database hosting in the European Union. This is not a guarantee that all support access, sub-processing or onward processing occurs solely in the EU. The applicable agreement, selected services, sub-processor arrangements and legally required international-transfer safeguards govern those activities.
+
+Q limits campaign data to the purposes described in Privacy Policy section 16. Private journal entries, chat content, mood logs and programme reflections are not campaign-list data. Optional marketing consent, any required tracking consent, and unsubscribe/suppression records must be managed separately from account authentication and billing communications.
+
+Provider references:
+
+- Brevo Privacy Policy: https://www.brevo.com/legal/privacypolicy/
+- Brevo Terms of Service, including its DPA: https://www.brevo.com/legal/termsofuse/
+- Brevo DPA location guidance: https://help.brevo.com/hc/en-us/articles/15403782599570-Where-can-I-find-the-Data-Processing-Agreement-DPA
+- Brevo data storage information: https://help.brevo.com/hc/en-us/articles/360001005510-Data-storage-location
+- Brevo email tracking and consent controls: https://help.brevo.com/hc/en-us/articles/37114679474706-About-email-tracking-pixels-and-the-CNIL-recommendation-in-Brevo
 
 ---
 
@@ -147,6 +166,7 @@ This Register should be read together with:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.3.0 | 16/09/2026 | Added Brevo marketing/community email processing, data categories and provider references. |
 | 1.2.0 | 28/08/2026 | Added current OpenAI API terms, DPA, retention, and sub-processor disclosures. |
 | 1.1.0 | 26/08/2026 | Added local and hosted AI processing disclosures. |
 

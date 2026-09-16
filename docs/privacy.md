@@ -1,9 +1,9 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.2.0
+version: 1.3.0
 effective_date: 02/08/2026
-last_updated: 28/08/2026
+last_updated: 16/09/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -318,6 +318,8 @@ We may retain records of:
 
 These records help us improve our products and maintain customer support history.
 
+For optional marketing and community-update emails, we use **Brevo (formerly Sendinblue)**. Mailing-list records may include your email address, name if supplied, the updates you requested, subscription status, consent source and date, and unsubscribe or objection records. Brevo also processes message content and delivery information, such as send times, delivery failures and spam complaints, to operate the mailing service. Where email engagement tracking is enabled and lawfully permitted, it may also process opens, link clicks, timestamps and associated technical information. Section 16 explains your choices.
+
 ---
 
 ## 5.12 Native CRM and Customer Operations Data
@@ -508,6 +510,7 @@ Current providers include:
 | Supabase | Authentication, database, storage |
 | OpenAI | Optional hosted AI processing selected by the user |
 | PayPal | Payment processing |
+| Brevo (formerly Sendinblue) | Optional marketing emails, newsletters and community updates; mailing-list, delivery and unsubscribe management |
 | Email providers | Transactional email delivery |
 | Cloud hosting providers | Infrastructure and security |
 | Analytics providers | Performance and usage monitoring |
@@ -630,7 +633,7 @@ Where applicable law grants rights relating to automated decision-making, users 
 
 ---
 
-# 16. Service Communications
+# 16. Service, Marketing and Community Communications
 
 We may send communications relating to:
 
@@ -638,15 +641,29 @@ We may send communications relating to:
 - password resets
 - billing
 - subscription changes
-- product updates
+- changes needed to use your existing service
 - maintenance
 - outages
 - legal notices
 - policy changes
 
-These communications are considered necessary for operation of the Service.
+We distinguish necessary account, security, billing and service notices from optional newsletters, promotions and community updates. A message is not treated as necessary simply because it concerns Q or is sent using a transactional email tool.
 
-Marketing communications, where provided, may be opted out of at any time.
+## 16.1 Optional Emails Through Brevo
+
+We use **Brevo (formerly Sendinblue)** to manage and deliver optional marketing and community-update emails. Q remains responsible for deciding why these contact details are used; Brevo processes the mailing data on our behalf under the applicable data-processing terms. See the Processor Register for provider information.
+
+We send these optional emails where you have opted in or specifically requested them. Creating an account, buying a subscription or accepting our Terms does not by itself enrol you in general marketing. If you requested launch or waitlist updates, we use that permission for the updates described when you joined, rather than treating it as permission for unrelated campaigns.
+
+You can unsubscribe through the link in a marketing or community-update email, or contact **privacy@q-ai.online**. You do not need to close your Q account or pay a fee to stop marketing. You have the right to object to the use of your personal data for direct marketing at any time, including related profiling; we will stop using it for that purpose. Withdrawing marketing consent does not affect earlier lawful processing or necessary service notices.
+
+We limit marketing-list data to contact details, communication choices and relevant delivery/consent records. Private journals, chat content, mood logs and programme reflections must not be uploaded to Brevo for campaigns. We do not use those records, or inferred sexual orientation or health information, to target marketing. Joining a Q mailing list is not treated as a declaration of your identity or health status.
+
+## 16.2 Email Measurement
+
+Brevo supports tracking pixels and personalised links to measure email opens and clicks. Where enabled, these may record whether and when an email was opened or a link was clicked, together with technical information such as IP address and email-client or device details. This information may be used to assess campaign engagement. Delivery and bounce records are distinct from open/click tracking.
+
+Consent to receive emails does not by itself constitute consent to non-essential device tracking. Where applicable law requires consent for that tracking, it must be obtained separately before tracking occurs. You may withdraw any tracking consent through the controls provided with the email, where available, or by contacting **privacy@q-ai.online**. Website cookie choices do not necessarily control tracking inside an email application. See the Cookie Policy for further information.
 
 ---
 
@@ -707,6 +724,14 @@ Authentication records, audit logs, and security events may be retained for an a
 
 ---
 
+## 17.6 Mailing Lists and Suppression Records
+
+We keep active mailing-list information while it is needed to provide the updates you requested and review it for continued relevance. On unsubscribe or objection, we stop using your details for those campaigns. We may retain the minimum email address or equivalent identifier, opt-out date and suppression status needed to honour your choice and prevent accidental re-enrolment, together with proportionate consent evidence where needed for accountability or legal claims. Suppression records are not used to send marketing.
+
+Requests for access, correction or deletion of mailing-list data can be sent to **privacy@q-ai.online**. These requests cover relevant Brevo records as well as records held directly by Q. Deleting app data is not a substitute for managing a separate mailing-list subscription; you can use the email unsubscribe link or ask us to handle both. Retained provider logs and backups remain subject to the applicable contractual retention and deletion arrangements.
+
+---
+
 # 18. Your Privacy Rights
 
 Depending on your location and applicable law, you may have one or more of the following rights.
@@ -764,6 +789,8 @@ You may request that we temporarily restrict processing in certain circumstances
 ## 18.5 Right to Object
 
 Where processing is based on legitimate interests, you may object if you believe your rights outweigh our legitimate interests.
+
+Your right to object to processing for direct marketing is absolute: we will stop that marketing processing when you object. This includes profiling related to direct marketing.
 
 ---
 
@@ -945,6 +972,7 @@ This Privacy Policy should be read together with the Terms of Service,Cookie Pol
 
 Version   Date         Summary
 
+1.3.0     16/09/2026   Added Brevo marketing/community email, consent, tracking, suppression and rights disclosures.
 1.2.0     28/08/2026   Added hosted AI processing and current processor disclosures.
 1.1.0     26/08/2026   Added local AI, memory, safety, CRM, and subscription disclosures.
 1.0.0     02/08/2026   Initial release.
@@ -981,3 +1009,10 @@ Client-supplied text cannot designate a source as trusted knowledge. Hosted Q re
 # Standards and assurance statement
 
 Q uses UK GDPR/ICO principles, ISO 27001/27701, NIST CSF and AI RMF, OWASP ASVS/API/LLM guidance, CIS Controls, Cyber Essentials, and ISO 42001 as design references. The presence of these controls does not constitute certification, accreditation, independent assurance, or a claim that Q conforms to every requirement. Current implementation status and residual gaps are maintained in the Security Policy and threat model.
+# Premium reflection and continuity features
+
+Guided programme progress and optional reflections are saved in account-scoped browser storage. Advanced journal insights send the dates, mood ratings and tags within the selected reporting period to Q for calculation. Journal prose is not included in these insight requests and the calculation does not use an external AI provider.
+
+Cross-device continuity is optional on each device. You choose whether to upload journal entries, mood check-ins, saved guides, chat history, programme progress/reflections, and language/appearance preferences. Selected data is stored in your Q account in Supabase and retrieved through authenticated, account-authorised Q endpoints. This feature is not end-to-end encrypted. Browser data, recovery copies and exported files remain plaintext. Passwords and device-lock settings are not included.
+
+Pausing or deselecting continuity does not delete an existing cloud copy. Profile provides cloud export and deletion, including after premium access ends. Pause continuity on other devices before deleting a cloud copy to prevent re-upload. Account deletion also deletes the continuity record. A device retains a local recovery snapshot when cloud data replaces selected local data; it can be exported in Profile and is removed by the local-data clearing control.
