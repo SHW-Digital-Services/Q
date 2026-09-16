@@ -406,6 +406,24 @@ adminRouter.post('/crm/users/:id/tasks', asyncHandler(async (req, res) => {
   return res.status(201).json(data);
 }));
 
+adminRouter.patch('/crm/users/:id/tasks/:taskId', asyncHandler(async (req, res) => {
+  const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
+  const updates: Record<string, unknown> = {};
+  if (typeof req.body?.title === 'string' && req.body.title.trim()) updates.title = req.body.title.trim();
+  if (typeof req.body?.description === 'string') updates.description = req.body.description.trim() || null;
+  if (['open', 'in_progress', 'completed', 'cancelled'].includes(req.body?.status)) updates.status = req.body.status;
+  if (['low', 'normal', 'high', 'urgent'].includes(req.body?.priority)) updates.priority = req.body.priority;
+  if (req.body?.startAt !== undefined) updates.starts_at = req.body.startAt || null;
+  if (req.body?.dueAt !== undefined) updates.due_at = req.body.dueAt || null;
+  if (req.body?.assignedTo !== undefined) updates.assigned_to = req.body.assignedTo || null;
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'No valid task changes supplied.' });
+  updates.updated_at = new Date().toISOString();
+  const { data, error } = await adminCtx.serviceSupabase.from('crm_tasks').update(updates).eq('id', req.params.taskId).eq('user_id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: 'Unable to update the task.' });
+  await recordCrmActivity(adminCtx.serviceSupabase, req.params.id, adminCtx.identity.user.id, 'task_updated', `Task updated: ${data.title}`);
+  return res.json(data);
+}));
+
 adminRouter.post('/crm/users/:id/entitlements', asyncHandler(async (req, res) => {
   const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
   const productId = typeof req.body?.productId === 'string' ? req.body.productId : '';
