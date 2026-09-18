@@ -22,7 +22,7 @@ export async function generateLocalReply(prompt: string, recentHistory: Array<{ 
   if (!isWebLlmSupported()) {
     throw new Error('WebGPU is unavailable in this browser. Use current Chrome or Edge with graphics acceleration enabled.');
   }
-  const adapter = await (navigator as Navigator & { gpu: any }).gpu.requestAdapter({ powerPreference: 'high-performance' });
+  const adapter = await (navigator as Navigator & { gpu: any }).gpu.requestAdapter();
   if (!adapter) {
     throw new Error('WebGPU is present but no compatible GPU adapter was found. Update the graphics driver or try another browser/device.');
   }

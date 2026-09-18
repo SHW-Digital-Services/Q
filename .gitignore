@@ -7,3 +7,6 @@ coverage/
 .env*
 !.env.example
 sbom.cdx.json
+
+.vercel
+.env*
