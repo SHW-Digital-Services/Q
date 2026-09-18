@@ -190,12 +190,16 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         setReflectionPrompt(true);
       }
     } catch (err: any) {
-      const errorMessage = err?.message || 'Q chat service unavailable.';
+      const errorMessage = err?.message || (aiProvider === 'local'
+        ? 'Private local AI could not load in this browser. Check WebGPU support and model-download access.'
+        : 'Q chat service unavailable.');
       console.warn('[Q Client] Server call failed:', errorMessage);
       const fallbackMsg: ChatMessage = {
         id: `q-off-${Date.now()}`,
         sender: 'q_ai',
-        text: `Q could not generate a live AI response right now.\n\nReason: ${errorMessage}\n\nPlease try again in a moment. If this keeps happening, the server AI provider or API key needs checking.`,
+        text: aiProvider === 'local'
+          ? `Q could not generate a private local AI response right now.\n\nReason: ${errorMessage}\n\nTry Hosted AI if you have access, or check that this browser supports WebGPU.`
+          : `Q could not generate a live AI response right now.\n\nReason: ${errorMessage}\n\nPlease try again in a moment. If this keeps happening, the server AI provider or API key needs checking.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, fallbackMsg]);
