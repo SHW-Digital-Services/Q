@@ -190,7 +190,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         setReflectionPrompt(true);
       }
     } catch (err: any) {
-      const errorMessage = err?.message || (aiProvider === 'local'
+      const errorMessage = err?.message || (err?.name ? `${err.name}${err?.cause ? `: ${String(err.cause)}` : ''}` : '') || (aiProvider === 'local'
         ? 'Private local AI could not load in this browser. Check WebGPU support and model-download access.'
         : 'Q chat service unavailable.');
       console.warn('[Q Client] Server call failed:', errorMessage);
