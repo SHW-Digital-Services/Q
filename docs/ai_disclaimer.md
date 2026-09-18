@@ -1,9 +1,9 @@
 ---
 title: AI Disclaimer
 description: AI Disclaimer for Q Intelligence
-version: 1.1.0
+version: 1.2.0
 effective_date: 02/08/2026
-last_updated: 26/08/2026
+last_updated: 18/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -21,6 +21,34 @@ It should be read together with the:
 - Acceptable Use Policy
 
 By using AI features, you acknowledge and accept the limitations described in this document.
+
+## Medical and Crisis Disclaimer
+
+### Not a Clinical Service
+
+Q Intelligence is a self-help and guidance tool. It is not a clinical treatment service, a medical device, or a substitute for professional medical advice, diagnosis, or psychiatric care. The platform's features, including AI conversations, life guides, and mood tracking, are intended for personal reflection and organisational purposes only.
+
+### Mood Tracking and Premium Insights
+
+Journaling summaries and premium journal insights describe recorded patterns based solely on the data you choose to enter. They cannot diagnose a medical or mental health condition, establish the cause of a mood change, or represent your overall wellbeing on days you did not record.
+
+### Emergency and Crisis Support
+
+Q Intelligence is not an emergency responder and does not provide a staffed helpline. The platform does not actively monitor your inputs for emergencies. While the application checks for crisis-related language and can signpost you to country-specific support directories, it cannot guarantee the detection of a crisis. If you are experiencing a mental health emergency, contact emergency services (such as 999 in the UK) or a dedicated helpline immediately.
+
+## Privacy and Data Security Disclaimer
+
+### Local AI and Network Usage
+
+While Q Intelligence offers a "local AI" processing mode, this does not mean the application operates entirely offline. Core functions such as account authentication, selected cloud continuity features, and any hosted AI processing you choose to enable require active network services and internet connections.
+
+### Discretion Limits and Device Storage
+
+Features such as the Notes interface and the app-lock PIN are designed to reduce casual on-screen exposure. However, setting an app PIN does not encrypt the content stored on your device. Using these features does not erase your device's browser history, downloads, or network traffic records.
+
+### Cloud Continuity and Hosted Processing Risks
+
+If you opt into premium cloud continuity, your data is backed up to Q's cloud servers, but these backups are not end-to-end encrypted. If you explicitly select hosted AI processing, your conversation context is sent to OpenAI. Q applies personal-information masking and sanitisation controls to these requests, but absolute anonymity cannot be guaranteed, particularly if free-text journal entries or chat prompts contain identifiable details.
 
 ---
 
@@ -197,6 +225,7 @@ This AI Disclaimer should be read together with:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.2.0 | 18/09/2026 | Added medical, crisis-support, local-processing, discretion and cloud-continuity disclosures. |
 | 1.0.0 | 02/08/2026 | Initial release. |
 
 ---

@@ -27,6 +27,7 @@ import { PremiumProvider } from './contexts/PremiumContext';
 import { ContinuityProvider, ContinuitySettings } from './contexts/ContinuityContext';
 import { GuidedProgrammes } from './components/GuidedProgrammes';
 import { setStorageUser } from './services/storage';
+import { LegalFooter } from './components/LegalFooter';
 
 
 function isViewAppRequest() {
@@ -447,6 +448,7 @@ export default function App() {
         initialMode={authInitialMode}
       />
       <SubscriptionModal isOpen={isSubscriptionOpen} onClose={() => setIsSubscriptionOpen(false)} />
+      <LegalFooter />
     </div>
     </ContinuityProvider></PremiumProvider>
   );
