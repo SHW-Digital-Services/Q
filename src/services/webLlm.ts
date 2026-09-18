@@ -12,7 +12,7 @@ export async function loadWebLlm(onProgress?: (report: InitProgressReport) => vo
   if (!enginePromise) {
     enginePromise = import('@mlc-ai/web-llm').then(({ CreateWebWorkerMLCEngine }) => {
       const worker = new Worker(new URL('../workers/webllm.worker.ts', import.meta.url), { type: 'module' });
-      return CreateWebWorkerMLCEngine(worker, WEBLLM_MODEL, { initProgressCallback: report => onProgress?.(report), logLevel: 'WARN' }, { context_window_size: 4096 });
+      return CreateWebWorkerMLCEngine(worker, WEBLLM_MODEL, { initProgressCallback: report => onProgress?.(report), logLevel: 'WARN' }, { context_window_size: 2048 });
     }).catch(error => { enginePromise = null; throw error; });
   }
   return enginePromise;
