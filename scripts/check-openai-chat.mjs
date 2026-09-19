@@ -2,16 +2,17 @@ import 'dotenv/config';
 import OpenAI from 'openai';
 
 const model = process.env.AI_FREE_MODEL || 'gpt-5-nano';
+const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY;
 
 function fail(message) {
   console.error(message);
   process.exitCode = 1;
 }
 
-if (!process.env.OPENAI_API_KEY) {
-  fail('Missing OPENAI_API_KEY.');
+if (!apiKey) {
+  fail('Missing OPENAI_API_KEY. OPEN_AI_KEY is also accepted for backwards compatibility.');
 } else {
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new OpenAI({ apiKey });
 
   try {
     console.log(`Checking OpenAI chat model: ${model}`);

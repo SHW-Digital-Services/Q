@@ -30,9 +30,10 @@ export function checkCrisisTrigger(message: string, countryCode = 'GB') {
 }
 
 function getOpenAIClient() {
-  if (!process.env.OPENAI_API_KEY) return null;
+  const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY;
+  if (!apiKey) return null;
   try {
-    return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    return new OpenAI({ apiKey });
   } catch (err) {
     console.warn('[AI] OpenAI init warning:', err);
     return null;
