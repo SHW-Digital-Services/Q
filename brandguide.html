@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q Intelligence - Brand Guidelines</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        q: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6', // Primary Purple
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                            950: '#020617', // Q dark shell
+                        },
+                        neutral: {
+                            850: '#1f2937', 
+                        },
+                        accent: {
+                            cyan: '#0ea5e9', // Q sky accent
+                            teal: '#10b981', // Q green accent
+                            pink: '#db2777', // Q Pride-spectrum accent
+                            indigo: '#4f46e5',
+                            warning: '#f59e0b',
+                            error: '#ef4444'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(139, 92, 246, 0.4)', // Purple glow
+                        'glow-cyan': '0 0 15px rgba(6, 182, 212, 0.4)',
+                    },
+                    backgroundImage: {
+                        'cosmic-gradient': 'linear-gradient(135deg, #020617 0%, #1e1235 48%, #082f49 100%)',
+                        'button-gradient': 'linear-gradient(110deg, #e11d48 0%, #f97316 18%, #eab308 34%, #10b981 50%, #0ea5e9 66%, #7c3aed 82%, #db2777 100%)',
+                        'text-gradient': 'linear-gradient(90deg, #f9a8d4 0%, #c4b5fd 50%, #7dd3fc 100%)'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; scroll-behavior: smooth; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        
+        .color-swatch {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .color-swatch:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-link {
+            position: relative;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: #8b5cf6;
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Sidebar active state */
+        .sidebar-item.active {
+            background-color: #f5f3ff;
+            color: #7c3aed;
+            border-left: 3px solid #7c3aed;
+            font-weight: 600;
+        }
+
+        /* Glassmorphism helpers for dark mode previews */
+        .glass-panel {
+            background: rgba(15, 9, 31, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .pride-topline { position: relative; }
+        .pride-topline::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto;
+            height: 4px;
+            background: linear-gradient(90deg, #e11d48, #f97316, #eab308, #10b981, #0ea5e9, #7c3aed, #db2777);
+        }
+
+        .pride-spectrum { background: linear-gradient(110deg, #e11d48 0%, #f97316 18%, #eab308 34%, #10b981 50%, #0ea5e9 66%, #7c3aed 82%, #db2777 100%); }
+    </style>
+</head>
+<body class="pride-topline bg-[#f8f7ff] text-slate-800 antialiased flex flex-col md:flex-row min-h-screen">
+
+    <!-- Mobile Header -->
+    <header class="md:hidden bg-white border-b border-slate-200 p-4 sticky top-0 z-50 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-q-950 flex items-center justify-center shadow-glow overflow-hidden">
+                    <img src="public/logo.png" alt="Q Intelligence logo" class="w-full h-full object-contain">
+            </div>
+            <span class="font-display font-bold text-lg tracking-tight">Q Intelligence</span>
+        </div>
+        <button id="mobile-menu-btn" class="p-2 text-slate-500 hover:text-q-600 focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col h-screen sticky top-0 overflow-y-auto shrink-0 transition-transform transform -translate-x-full md:translate-x-0 absolute md:relative z-40 shadow-lg md:shadow-none">
+        <div class="p-6 border-b border-slate-100 flex flex-col gap-3">
+            <div class="flex items-center gap-3">
+                 <div class="w-10 h-10 rounded-full bg-q-950 flex items-center justify-center shadow-glow overflow-hidden shrink-0">
+                    <img src="public/logo.png" alt="Q Intelligence logo" class="w-full h-full object-contain">
+                    <!-- Fallback if image fails -->
+                    <span class="text-white font-display font-bold" style="display: none;">Q</span>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-lg tracking-tight leading-none text-slate-900">Q Intelligence</h1>
+                </div>
+            </div>
+            <span class="text-xs font-mono text-q-600 uppercase tracking-widest bg-q-50 px-2 py-1 rounded inline-block w-max">Q brand system</span>
+        </div>
+
+        <nav class="p-4 space-y-1 flex-1">
+            <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-4">Brand Strategy</p>
+            <a href="#mission" class="sidebar-item block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors active" onclick="closeMobileMenu()">Mission & Values</a>
+            <a href="#voice" class="sidebar-item block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" onclick="closeMobileMenu()">Tone of Voice</a>
+            
+            <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-6">Visual Identity</p>
+            <a href="#logo" class="sidebar-item block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" onclick="closeMobileMenu()">Logo System</a>
+            <a href="#colors" class="sidebar-item block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" onclick="closeMobileMenu()">Color Palette</a>
+            <a href="#typography" class="sidebar-item block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" onclick="closeMobileMenu()">Typography</a>
+            <a href="#iconography" class="sidebar-item block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" onclick="closeMobileMenu()">Iconography</a>
+            
+            <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-6">UI Components</p>
+            <a href="#components" class="sidebar-item block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" onclick="closeMobileMenu()">Buttons & Inputs</a>
+            <a href="#components" class="sidebar-item block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" onclick="closeMobileMenu()">Cards & Panels</a>
+            
+            <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-6">Application Specs</p>
+            <a href="#tech" class="sidebar-item block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors" onclick="closeMobileMenu()">Tech Stack & UI</a>
+        </nav>
+        
+        <div class="p-4 border-t border-slate-100 text-xs text-slate-400 text-center">
+            &copy; 2026 Q Intelligence
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 bg-slate-50 overflow-y-auto">
+        <!-- Hero Section (Cosmic Theme) -->
+        <div class="bg-cosmic-gradient relative overflow-hidden">
+            <!-- Decorative particles -->
+            <div class="absolute inset-0 opacity-30 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4=')]"></div>
+            
+            <div class="max-w-5xl mx-auto px-6 py-20 md:py-32 relative z-10 text-center space-y-6">
+                <div class="inline-block px-3 py-1 bg-white/10 border border-white/20 text-fuchsia-200 rounded-full text-sm font-medium tracking-wide mb-4 backdrop-blur-sm">Q Intelligence</div>
+                <h1 class="text-5xl md:text-7xl font-bold font-display text-white tracking-tight">Private support.<br/><span class="text-transparent bg-clip-text bg-text-gradient">Made for real life.</span></h1>
+                <p class="text-xl text-slate-300 font-light leading-relaxed max-w-2xl mx-auto">
+                    The visual and verbal system for Q: an affirming, privacy-aware AI companion and practical wellbeing space for LGBTQ+ people and allies.
+                </p>
+            </div>
+        </div>
+
+        <div class="max-w-5xl mx-auto px-6 py-12 md:py-20 space-y-32">
+
+            <!-- Mission & Values -->
+            <section id="mission" class="scroll-mt-24">
+                <div class="border-b border-slate-200 pb-4 mb-8">
+                    <h2 class="text-3xl font-bold font-display text-slate-900">Mission & Values</h2>
+                    <p class="text-slate-500 mt-2">The foundation of every design decision we make.</p>
+                </div>
+                
+                <div class="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-slate-100 mb-8 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-q-100 to-transparent rounded-full -mr-32 -mt-32 opacity-50"></div>
+                    <h3 class="text-2xl font-bold font-display text-q-900 mb-6">Our Mission</h3>
+                    <p class="text-xl text-slate-700 leading-relaxed font-medium">
+                        "Your private space for LGBTQ+ wellbeing and personal reflection. We provide intelligent support, safe conversations, resources, and guidance for LGBTQ+ individuals and allies."
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="w-14 h-14 bg-q-950 rounded-full flex items-center justify-center overflow-hidden mb-6">
+                            <img src="public/logo.png" alt="Q Intelligence logo" class="w-full h-full object-contain">
+                            <span class="text-white font-display font-bold" style="display: none;">Q</span>
+                        </div>
+                        <h4 class="font-bold font-display text-lg text-slate-900 mb-3">Secure & Private</h4>
+                        <p class="text-slate-600 leading-relaxed">Privacy is part of the product experience: clear controls, high-privacy defaults, local AI where available, and honest boundaries about cloud features.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="w-14 h-14 bg-accent-pink/10 rounded-full flex items-center justify-center text-accent-pink mb-6">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                        </div>
+                        <h4 class="font-bold font-display text-lg text-slate-900 mb-3">Built with Empathy</h4>
+                        <p class="text-slate-600 leading-relaxed">Our intelligence features exist to support, not dictate. Responses must always be compassionate, supportive, and culturally competent regarding LGBTQ+ issues.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="w-14 h-14 bg-accent-cyan/10 rounded-full flex items-center justify-center text-accent-cyan mb-6">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        </div>
+                        <h4 class="font-bold font-display text-lg text-slate-900 mb-3">Connected Community</h4>
+                        <p class="text-slate-600 leading-relaxed">While private, we also facilitate connection to peer knowledge and safe, inclusive community resources when the user is ready.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tone of Voice -->
+            <section id="voice" class="scroll-mt-24">
+                <div class="border-b border-slate-200 pb-4 mb-8">
+                    <h2 class="text-3xl font-bold font-display text-slate-900">Tone of Voice</h2>
+                    <p class="text-slate-500 mt-2">How we speak to our users in UI copy, marketing, and AI responses.</p>
+                </div>
+
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                        <div class="p-10">
+                            <h4 class="text-q-600 font-display font-bold text-xl mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-full bg-q-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </span>
+                                We Are
+                            </h4>
+                            <ul class="space-y-4 text-slate-600">
+                                <li class="flex items-start gap-3"><span class="font-bold text-slate-900 block w-24 shrink-0">Welcoming:</span> <span>"I'm here for you—always." Creating a non-judgmental space.</span></li>
+                                <li class="flex items-start gap-3"><span class="font-bold text-slate-900 block w-24 shrink-0">Clear:</span> <span>Direct, simple language. Navigating identity can be complex; our UI shouldn't be.</span></li>
+                                <li class="flex items-start gap-3"><span class="font-bold text-slate-900 block w-24 shrink-0">Affirming:</span> <span>Validating user experiences and identities without reservation.</span></li>
+                                <li class="flex items-start gap-3"><span class="font-bold text-slate-900 block w-24 shrink-0">Protective:</span> <span>Explain privacy choices plainly without promising that every feature is offline or end-to-end encrypted.</span></li>
+                            </ul>
+                        </div>
+                        <div class="p-10 bg-slate-50/50">
+                            <h4 class="text-slate-400 font-display font-bold text-xl mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </span>
+                                We Are Not
+                            </h4>
+                            <ul class="space-y-4 text-slate-600">
+                                <li class="flex items-start gap-3"><span class="font-bold text-slate-900 block w-24 shrink-0">Clinical/Cold:</span> <span>Avoid overly medicalized or detached language.</span></li>
+                                <li class="flex items-start gap-3"><span class="font-bold text-slate-900 block w-24 shrink-0">Presumptive:</span> <span>Never assume a user's pronouns, identity, or journey stage.</span></li>
+                                <li class="flex items-start gap-3"><span class="font-bold text-slate-900 block w-24 shrink-0">Pushy:</span> <span>Never force disclosure or push users toward resources they aren't ready for.</span></li>
+                                <li class="flex items-start gap-3"><span class="font-bold text-slate-900 block w-24 shrink-0">Diagnostic:</span> <span>The AI never diagnoses; it only observes, reflects, and supports.</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Logo -->
+            <section id="logo" class="scroll-mt-24">
+                <div class="border-b border-slate-200 pb-4 mb-8">
+                    <h2 class="text-3xl font-bold font-display text-slate-900">Logo & Assets</h2>
+                    <p class="text-slate-500 mt-2">The glossy Q mark, Pride-spectrum energy, and calm product surfaces.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Primary Logo Dark -->
+                    <div class="bg-cosmic-gradient rounded-3xl p-12 flex flex-col items-center justify-center min-h-[400px] relative overflow-hidden shadow-lg">
+                        <div class="relative z-10 flex flex-col items-center gap-6">
+                            <div class="w-32 h-32 rounded-full overflow-hidden shadow-[0_0_40px_rgba(139,92,246,0.4)]">
+                                <img src="public/logo.png" alt="Q Intelligence logo" class="w-full h-full object-contain">
+                            </div>
+                            <h2 class="font-display font-bold text-4xl text-white tracking-tight">Q Intelligence</h2>
+                        </div>
+                        <p class="absolute bottom-6 text-sm text-blue-200/60 font-mono">Primary Lockup (Dark Background)</p>
+                    </div>
+
+                    <!-- Mark Only Light -->
+                    <div class="bg-white rounded-3xl border border-slate-200 p-12 flex flex-col items-center justify-center min-h-[400px] shadow-sm">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-q-950 rounded-full flex items-center justify-center overflow-hidden">
+                                <img src="public/logo.png" alt="Q Intelligence logo" class="w-full h-full object-contain">
+                                <span class="text-white font-display font-bold" style="display: none;">Q</span>
+                            </div>
+                            <span class="font-display font-bold text-2xl text-slate-900 tracking-tight">Q Intelligence</span>
+                        </div>
+                        <p class="mt-auto pt-8 text-sm text-slate-400 font-mono">In-App Header / Light Mode</p>
+                    </div>
+                </div>
+
+                <!-- Cosmic Render Details -->
+                <div class="mt-8 bg-slate-900 rounded-3xl p-8 flex flex-col md:flex-row gap-8 items-center text-slate-300">
+                    <div class="w-32 h-32 shrink-0">
+                         <img src="public/logo.png" alt="Q Intelligence logo" class="w-full h-full object-contain">
+                    </div>
+                    <div>
+                        <h4 class="text-white font-display font-bold text-xl mb-2">The "Cosmic Q" Render</h4>
+                        <p class="text-sm leading-relaxed mb-4">
+                            The primary logomark is a 3D, glossy 'Q' containing a cosmic nebula effect. It represents the infinite possibilities of self-discovery, fluidity, and the depth of inner reflection. 
+                        </p>
+                        <ul class="text-sm space-y-1 list-disc list-inside text-slate-400">
+                            <li><strong>Colors:</strong> Deep indigo base with vibrant magenta, cyan, and gold nebula swirls.</li>
+                            <li><strong>Texture:</strong> High-gloss glass/liquid appearance with specular highlights.</li>
+                            <li><strong>Usage:</strong> Best used on dark backgrounds (`#0F091F`) with `mix-blend-mode: screen` or `lighten` to allow the black background of the render to drop out.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Colors -->
+            <section id="colors" class="scroll-mt-24">
+                <div class="border-b border-slate-200 pb-4 mb-8">
+                    <h2 class="text-3xl font-bold font-display text-slate-900">Color Palette</h2>
+                    <p class="text-slate-500 mt-2">Derived from the cosmic logo and clean UI mockups.</p>
+                </div>
+
+                <!-- App UI Colors (Light Mode) -->
+                <h3 class="font-display font-bold text-xl mb-4">UI Base Colors (Light Mode)</h3>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12">
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                        <div class="h-24 bg-white"></div>
+                        <div class="p-4 bg-white border-t border-slate-50">
+                            <p class="font-bold text-slate-900">White</p>
+                            <p class="font-mono text-xs text-slate-500 uppercase">#ffffff</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Cards & Panels</p>
+                        </div>
+                    </div>
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                        <div class="h-24 bg-[#f8fafc]"></div>
+                        <div class="p-4 bg-white">
+                            <p class="font-bold text-slate-900">App Background</p>
+                            <p class="font-mono text-xs text-slate-500 uppercase">#f8fafc</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Main layout bg</p>
+                        </div>
+                    </div>
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                        <div class="h-24 bg-[#f5f3ff]"></div>
+                        <div class="p-4 bg-white">
+                            <p class="font-bold text-slate-900">Q-50 (Tint)</p>
+                            <p class="font-mono text-xs text-slate-500 uppercase">#f5f3ff</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Chat bubbles, Active states</p>
+                        </div>
+                    </div>
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                        <div class="h-24 bg-slate-500"></div>
+                        <div class="p-4 bg-white">
+                            <p class="font-bold text-slate-900">Text Secondary</p>
+                            <p class="font-mono text-xs text-slate-500 uppercase">#64748b</p>
+                        </div>
+                    </div>
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                        <div class="h-24 bg-[#0F091F]"></div>
+                        <div class="p-4 bg-white">
+                            <p class="font-bold text-slate-900">Text Primary</p>
+                            <p class="font-mono text-xs text-slate-500 uppercase">#0F091F</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Headers, base text</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Brand Accents -->
+                <h3 class="font-display font-bold text-xl mb-4">Brand Accents (The Nebula)</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                        <div class="h-24 bg-[#7c3aed]"></div>
+                        <div class="p-4 bg-white">
+                            <p class="font-bold text-slate-900">Primary Purple</p>
+                            <p class="font-mono text-xs text-slate-500 uppercase">#7c3aed</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Links, active tabs, icons</p>
+                        </div>
+                    </div>
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                        <div class="h-24 bg-[#06b6d4]"></div>
+                        <div class="p-4 bg-white">
+                            <p class="font-bold text-slate-900">Cyan</p>
+                            <p class="font-mono text-xs text-slate-500 uppercase">#06b6d4</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Logo highlight, UI accents</p>
+                        </div>
+                    </div>
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                        <div class="h-24 bg-[#ec4899]"></div>
+                        <div class="p-4 bg-white">
+                            <p class="font-bold text-slate-900">Magenta</p>
+                            <p class="font-mono text-xs text-slate-500 uppercase">#ec4899</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Logo highlight, UI accents</p>
+                        </div>
+                    </div>
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                        <div class="h-24 bg-gradient-to-r from-amber-500 via-pink-500 to-purple-500"></div>
+                        <div class="p-4 bg-white">
+                            <p class="font-bold text-slate-900">Pride-spectrum action gradient</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Premium CTA buttons</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Semantic Colors -->
+                <h3 class="font-display font-bold text-xl mb-4">Semantic</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200 flex items-center p-4 gap-4 bg-white">
+                        <div class="w-10 h-10 rounded-full bg-[#10b981] shrink-0"></div>
+                        <div>
+                            <p class="font-bold text-slate-900 text-sm">Active/Secure</p>
+                            <p class="font-mono text-xs text-slate-500 uppercase">#10b981</p>
+                        </div>
+                    </div>
+                    <div class="color-swatch rounded-2xl overflow-hidden shadow-sm border border-slate-200 flex items-center p-4 gap-4 bg-white">
+                        <div class="w-10 h-10 rounded-full bg-[#ef4444] shrink-0"></div>
+                        <div>
+                            <p class="font-bold text-slate-900 text-sm">Helpline/Alert</p>
+                            <p class="font-mono text-xs text-slate-500 uppercase">#ef4444</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Typography -->
+            <section id="typography" class="scroll-mt-24">
+                <div class="border-b border-slate-200 pb-4 mb-8">
+                    <h2 class="text-3xl font-bold font-display text-slate-900">Typography</h2>
+                    <p class="text-slate-500 mt-2">Inter-led system typography keeps Q warm, direct, and legible across the app.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-12">
+                    <!-- Display Font -->
+                    <div>
+                        <div class="mb-4 flex items-baseline gap-4">
+                            <h3 class="text-3xl font-display font-bold">Inter — display</h3>
+                            <span class="text-xs font-mono bg-q-50 px-2 py-1 rounded text-q-600 border border-q-100">Display & Headers</span>
+                        </div>
+                        <p class="text-slate-600 mb-8 leading-relaxed">Used for the main brand name, large section headers, and promotional content. Its rounded geometric shapes reflect the circular nature of the logo.</p>
+                        
+                        <div class="space-y-8 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <div>
+                                <p class="text-xs text-slate-400 font-mono mb-2">H1 - Bold 48px/3rem</p>
+                                <h1 class="font-display font-bold text-5xl text-q-950 tracking-tight">Q Intelligence</h1>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-400 font-mono mb-2">H2 - Semibold 30px/1.875rem</p>
+                                <h2 class="font-display font-semibold text-3xl text-q-950 tracking-tight">Welcome back</h2>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-400 font-mono mb-2">H3 - Medium 24px/1.5rem</p>
+                                <h3 class="font-display font-medium text-2xl text-q-950">Your private space</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UI Font -->
+                    <div>
+                        <div class="mb-4 flex items-baseline gap-4">
+                            <h3 class="text-3xl font-sans font-medium">Inter — interface</h3>
+                            <span class="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">Body & UI</span>
+                        </div>
+                        <p class="text-slate-600 mb-8 leading-relaxed">A clean, modern sans-serif with excellent legibility for chat interfaces, journaling, and navigational elements. Replaces standard system fonts.</p>
+                        
+                        <div class="space-y-8 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <div>
+                                <p class="text-xs text-slate-400 font-mono mb-2">Chat Bubble - Regular 16px</p>
+                                <p class="font-sans text-base text-slate-800 leading-relaxed bg-q-50 p-4 rounded-2xl rounded-tl-none inline-block">Hi, I'm Q. I'm here for you—always.</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-400 font-mono mb-2">Body Text - Regular 15px</p>
+                                <p class="font-sans text-[15px] text-slate-600 leading-normal">Local AI can run on compatible devices. Hosted AI and search are clearly identified when they use online services.</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-400 font-mono mb-2">UI Small / Tabs - Medium 14px</p>
+                                <div class="flex gap-4">
+                                    <span class="font-sans font-medium text-sm text-q-600 border-b-2 border-q-600 pb-1">Q Intelligence</span>
+                                    <span class="font-sans font-medium text-sm text-slate-600 pb-1">Life Guides</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+             <!-- Iconography -->
+             <section id="iconography" class="scroll-mt-24">
+                <div class="border-b border-slate-200 pb-4 mb-8">
+                    <h2 class="text-3xl font-bold font-display text-slate-900">Iconography</h2>
+                    <p class="text-slate-500 mt-2">Soft, rounded stroke icons. 1.5px to 2px stroke width. Unfilled by default.</p>
+                </div>
+
+                <div class="bg-white p-10 rounded-3xl border border-slate-100 shadow-sm">
+                    <div class="grid grid-cols-3 md:grid-cols-6 gap-8 justify-items-center">
+                        <!-- Privacy/Shield -->
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="p-4 bg-q-50 rounded-2xl text-q-500"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg></div>
+                            <span class="text-xs font-medium text-slate-600">Privacy</span>
+                        </div>
+                        <!-- Local AI/Chip -->
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="p-4 bg-q-50 rounded-2xl text-q-500"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg></div>
+                            <span class="text-xs font-medium text-slate-600">Local AI</span>
+                        </div>
+                        <!-- Memory/Lock -->
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="p-4 bg-pink-50 rounded-2xl text-pink-500"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
+                            <span class="text-xs font-medium text-slate-600">Memory</span>
+                        </div>
+                        <!-- Journal/Book -->
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="p-4 bg-indigo-50 rounded-2xl text-indigo-500"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg></div>
+                            <span class="text-xs font-medium text-slate-600">Journal</span>
+                        </div>
+                        <!-- Bookmark -->
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="p-4 bg-rose-50 rounded-2xl text-rose-500"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg></div>
+                            <span class="text-xs font-medium text-slate-600">Guides</span>
+                        </div>
+                         <!-- Helpline/Phone -->
+                         <div class="flex flex-col items-center gap-3">
+                            <div class="p-4 bg-red-50 rounded-2xl text-red-500"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg></div>
+                            <span class="text-xs font-medium text-slate-600">Helpline</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- UI Components (Based on Mockup) -->
+            <section id="components" class="scroll-mt-24">
+                <div class="border-b border-slate-200 pb-4 mb-8">
+                    <h2 class="text-3xl font-bold font-display text-slate-900">UI Components</h2>
+                    <p class="text-slate-500 mt-2">Pill-shaped buttons, glass-like gradients, and soft cards.</p>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-10">
+                    
+                    <!-- Buttons & Navigation -->
+                    <div class="space-y-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <h3 class="font-display font-bold text-lg mb-6">Buttons</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-2">Subscribe / Premium CTA</p>
+                                    <button class="bg-button-gradient hover:opacity-90 text-white font-medium py-2.5 px-6 rounded-full shadow-sm transition-opacity outline-none border-none">
+                                        Subscribe
+                                    </button>
+                                </div>
+                                
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-2">Helpline Action</p>
+                                    <button class="bg-white text-red-500 border border-red-200 hover:bg-red-50 font-medium py-2.5 px-6 rounded-full transition-colors outline-none flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                        24/7 Helpline
+                                    </button>
+                                </div>
+
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-2">Chat Suggestion Pills</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button class="bg-white text-q-600 border border-q-200 hover:bg-q-50 text-sm py-2 px-4 rounded-full transition-colors outline-none flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                                            I need support right now
+                                        </button>
+                                        <button class="bg-white text-q-600 border border-q-200 hover:bg-q-50 text-sm py-2 px-4 rounded-full transition-colors outline-none flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                            Help me understand myself
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <h3 class="font-display font-bold text-lg mb-6">Chat Input Bar</h3>
+                            
+                            <div class="border border-slate-200 rounded-full p-2 flex items-center bg-white shadow-sm focus-within:ring-2 focus-within:ring-q-100 focus-within:border-q-300 transition-all">
+                                <button class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full text-slate-700 text-sm font-medium hover:bg-slate-200">
+                                    <svg class="w-4 h-4 text-q-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                    PII Shield
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                                <input type="text" placeholder="Ask Q anything..." class="flex-1 px-4 py-2 outline-none text-slate-800 placeholder-slate-400 bg-transparent">
+                                <button class="w-10 h-10 rounded-full bg-button-gradient flex items-center justify-center text-white shrink-0 hover:opacity-90 transition-opacity">
+                                    <svg class="w-5 h-5 -ml-1 mt-1 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                </button>
+                            </div>
+                            <p class="text-center text-xs text-slate-400 mt-3">Q may make mistakes. Check important info.</p>
+                        </div>
+                    </div>
+
+                    <!-- Layout Cards -->
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow group">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 bg-q-50 rounded-2xl flex items-center justify-center text-q-500">
+                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-900">Your private space</h4>
+                                    <p class="text-sm text-slate-500">This is your space. You're in<br/>control of what stays here.</p>
+                                </div>
+                            </div>
+                            <svg class="w-5 h-5 text-slate-300 group-hover:text-q-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow group">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 bg-q-50 rounded-2xl flex items-center justify-center text-q-500">
+                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-900">Local AI</h4>
+                                    <p class="text-sm text-slate-500">All processing happens<br/>on your device.</p>
+                                    <div class="flex items-center gap-1.5 mt-2">
+                                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                        <span class="text-xs text-emerald-600 font-medium">Active</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <svg class="w-5 h-5 text-slate-300 group-hover:text-q-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow group">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-500">
+                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-900">Memory controls</h4>
+                                    <p class="text-sm text-slate-500">You decide what Q remembers<br/>—or forgets.</p>
+                                </div>
+                            </div>
+                            <svg class="w-5 h-5 text-slate-300 group-hover:text-q-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tech Specs -->
+            <section id="tech" class="scroll-mt-24 mb-20">
+                <div class="border-b border-slate-200 pb-4 mb-8">
+                    <h2 class="text-3xl font-bold font-display text-slate-900">Application Architecture</h2>
+                    <p class="text-slate-500 mt-2">Based on the Q Intelligence repository structure.</p>
+                </div>
+
+                <div class="bg-q-950 text-slate-300 rounded-3xl p-8 md:p-10 font-mono text-sm shadow-xl overflow-x-auto relative overflow-hidden">
+                    <!-- Subtle background logo -->
+                    <div class="absolute -right-20 -bottom-20 w-96 h-96 opacity-10 pointer-events-none">
+                        <img src="public/logo.png" alt="" class="w-full h-full object-contain">
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-10 relative z-10">
+                        <div>
+                            <h4 class="text-white font-sans font-bold mb-4 text-base border-b border-white/10 pb-2">Frontend (React / Vite)</h4>
+                            <ul class="space-y-3">
+                                <li class="flex gap-2"><span class="text-q-400 w-24">Framework:</span> React 18+ (TSX)</li>
+                                <li class="flex gap-2"><span class="text-q-400 w-24">Styling:</span> Tailwind CSS v3</li>
+                                <li class="flex gap-2"><span class="text-q-400 w-24">State:</span> React Context</li>
+                                <li class="flex gap-2"><span class="text-q-400 w-24">Navigation:</span> Authenticated SPA views</li>
+                            </ul>
+                            
+                            <h4 class="text-white font-sans font-bold mt-8 mb-4 text-base border-b border-white/10 pb-2">AI Integration</h4>
+                            <ul class="space-y-3">
+                                <li class="flex gap-2"><span class="text-accent-cyan w-24">Local AI:</span> WebLLM (In-browser)</li>
+                                <li class="flex gap-2"><span class="text-accent-cyan w-24">Memory:</span> Vector search</li>
+                                <li class="flex gap-2"><span class="text-accent-cyan w-24">Safety:</span> Prompt injection guards</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h4 class="text-white font-sans font-bold mb-4 text-base border-b border-white/10 pb-2">Backend (Supabase)</h4>
+                            <ul class="space-y-3">
+                                <li class="flex gap-2"><span class="text-accent-pink w-24">Auth:</span> Supabase Auth</li>
+                                <li class="flex gap-2"><span class="text-accent-pink w-24">Database:</span> PostgreSQL</li>
+                                <li class="flex gap-2"><span class="text-accent-pink w-24">Security:</span> Strict RLS Policies</li>
+                                <li class="flex gap-2"><span class="text-accent-pink w-24">Server:</span> Express / Node.js</li>
+                            </ul>
+
+                            <h4 class="text-white font-sans font-bold mt-8 mb-4 text-base border-b border-white/10 pb-2">Testing & DevOps</h4>
+                            <ul class="space-y-3">
+                                <li class="flex gap-2"><span class="text-emerald-400 w-24">E2E:</span> Playwright</li>
+                                <li class="flex gap-2"><span class="text-emerald-400 w-24">CI/CD:</span> GitHub Actions</li>
+                                <li class="flex gap-2"><span class="text-emerald-400 w-24">Hosting:</span> Vercel</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // Simple mobile menu toggle
+        const btn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+
+        btn.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebar.classList.toggle('absolute');
+        });
+
+        function closeMobileMenu() {
+            if(window.innerWidth < 768) {
+                sidebar.classList.add('-translate-x-full');
+                sidebar.classList.add('absolute');
+            }
+        }
+
+        // Active state for sidebar links based on scroll
+        const sections = document.querySelectorAll("section");
+        const navLi = document.querySelectorAll(".sidebar-item");
+
+        window.onscroll = () => {
+            var current = "";
+            sections.forEach((section) => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 100) {
+                    current = section.getAttribute("id");
+                }
+            });
+
+            navLi.forEach((a) => {
+                a.classList.remove("active");
+                a.classList.remove("bg-slate-50");
