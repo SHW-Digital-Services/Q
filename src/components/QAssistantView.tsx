@@ -20,6 +20,7 @@ import { getRelevantMemoryBlobs, saveMemoryBlob } from '../services/memory';
 import { QLogo } from './QLogo';
 import { detectUserCountry } from '../services/localeDetection';
 import { generateLocalReply, isWebLlmSupported, WEBLLM_MODEL } from '../services/webLlm';
+import { generateInstantLocalReply } from '../services/instantLocalAi';
 import { hasCrisisIntent } from '../services/crisisDetection';
 import { getSupabaseClient } from '../services/supabase';
 import { CategoryScroller } from './CategoryScroller';
@@ -156,8 +157,13 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       const finalPrompt = `${knowledgePrompt}${memoryContext}`;
       let data: any;
       if (aiProvider === 'local') {
-        const reply = await generateLocalReply(finalPrompt, updatedMessages.slice(0, -1), report => setModelProgress(report.text));
-        data = { reply, actionItems: [], model: WEBLLM_MODEL };
+        const instantReply = generateInstantLocalReply(query, profile);
+        if (instantReply) {
+          data = instantReply;
+        } else {
+          const reply = await generateLocalReply(finalPrompt, updatedMessages.slice(0, -1), report => setModelProgress(report.text));
+          data = { reply, actionItems: [], model: WEBLLM_MODEL };
+        }
         setModelProgress(null);
       } else {
         const supabase = getSupabaseClient();
@@ -326,9 +332,9 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       <div role="status" className={`px-3 py-2 rounded-xl border text-[11px] ${aiProvider === 'local' ? (isWebLlmSupported() ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-amber-50 border-amber-200 text-amber-800') : 'bg-purple-50 border-purple-200 text-purple-900'}`}>
         <strong>{aiProvider === 'local' ? 'Selected: Private local processing.' : 'Selected: Hosted OpenAI processing.'}</strong>{' '}
         {aiProvider === 'local'
-          ? (isWebLlmSupported() ? 'Prompts and generation stay in this browser. The first use downloads and caches a model of roughly 900 MB.' : 'Local AI needs a WebGPU-capable browser. Select Hosted AI to use the server instead.')
+          ? (isWebLlmSupported() ? 'Common guidance and drafting prompts answer instantly on this device. More open-ended local prompts may load the private browser model.' : 'Common guidance and drafting prompts still work privately on this device. More open-ended local prompts need a WebGPU-capable browser.')
           : 'PII-masked prompt, recent chat context, selected profile context, and relevant opted-in memory are sent to Q’s server and OpenAI. Subscriber usage limits apply.'}
-        <span className="ml-1 font-semibold">Built with Llama.</span>
+        {aiProvider === 'local' && <span className="ml-1 font-semibold">Advanced private model built with Llama.</span>}
         {!hostedAccessLoading && !hasHostedAccess && onOpenSubscription && (
           <button type="button" onClick={onOpenSubscription} className="ml-2 font-bold underline underline-offset-2">Subscribe for hosted AI</button>
         )}
@@ -420,7 +426,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
           {isLoading && (
             <div className="flex items-center gap-3 text-xs text-purple-800 bg-purple-50 p-3 rounded-2xl border border-purple-200 w-fit font-medium">
               <QLogo size="sm" className="animate-pulse" alt="Q Intelligence is generating" />
-              <span>{modelProgress || 'Q is synthesizing personalized guidance...'}</span>
+              <span>{modelProgress || (aiProvider === 'local' ? 'Q is preparing private guidance...' : 'Q is synthesizing personalized guidance...')}</span>
             </div>
           )}
 
