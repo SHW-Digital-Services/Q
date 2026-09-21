@@ -16,6 +16,7 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { LandingPage } from './components/LandingPage';
 import { HelpView } from './components/HelpView';
 import { AdminPanel } from './components/AdminPanel';
+import { NewsUpdatesPage } from './components/NewsUpdatesPage';
 import { getSyncStatus, getSecuritySettings, saveSecuritySettings } from './services/storage';
 import { getSupabaseClient, mapSupabaseUser } from './services/supabase';
 import { SyncStatusState, SecuritySettings, AuthUser } from './types';
@@ -82,6 +83,7 @@ export default function App() {
   const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
   const previewActive = !!currentUser && previewUserId === currentUser.id;
   const isAppRoute = previewActive || (launchEnabled && isViewAppRequest());
+  const isNewsRoute = typeof window !== 'undefined' && ['/news', '/updates'].includes(window.location.pathname);
 
   useEffect(() => {
     let cancelled = false;
@@ -315,6 +317,8 @@ export default function App() {
     (securitySettings.lockScope === 'entire_app' || activeTab === 'journal');
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
+
+  if (isNewsRoute) return <><StatusPageButton /><NewsUpdatesPage /></>;
 
   if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} onPreview={startPreview} /><button onClick={enableCamouflage} className="fixed left-4 top-20 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} (Alt+M)</button></>;
 

@@ -116,3 +116,18 @@ export interface InvestorSectionData {
   description: string;
   details: string[];
 }
+
+export interface ContentPost {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  body: string;
+  content_type: 'news' | 'update';
+  status?: 'draft' | 'published' | 'archived';
+  tags: string[];
+  hero_image_url: string | null;
+  published_at: string | null;
+  updated_at: string;
+  created_at?: string;
+}

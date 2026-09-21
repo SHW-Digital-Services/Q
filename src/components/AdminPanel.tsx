@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2 } from 'lucide-react';
+import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2, Newspaper } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
+import { ContentPost } from '../types';
 
 interface AdminPanelProps {
   enabled: boolean;
@@ -81,6 +82,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [contactMessage, setContactMessage] = useState<string | null>(null);
   const [communicationMessage, setCommunicationMessage] = useState<string | null>(null);
   const [newCommunication, setNewCommunication] = useState({ recipientEmail: '', subject: '', body: '', channel: 'email', status: 'sent' });
+  const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
+  const [contentMessage, setContentMessage] = useState<string | null>(null);
+  const [contentSaving, setContentSaving] = useState(false);
+  const [apiClients, setApiClients] = useState<any[]>([]);
+  const [apiClientName, setApiClientName] = useState('');
+  const [apiClientToken, setApiClientToken] = useState<string | null>(null);
+  const [contentForm, setContentForm] = useState({
+    title: '',
+    slug: '',
+    summary: '',
+    body: '',
+    contentType: 'update',
+    tags: '',
+    heroImageUrl: ''
+  });
 
   // Staff-triggered temporary password state
   const [directEmail, setDirectEmail] = useState('');
@@ -412,15 +428,123 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     }
   };
 
+  const loadContentPosts = async () => {
+    try {
+      const response = await fetch('/api/v1/admin/content', { headers: await getAuthHeaders() });
+      setContentPosts(await parseJsonResponse(response));
+    } catch (error: any) {
+      setContentMessage(error.message || 'Unable to load content posts.');
+    }
+  };
+
+  const loadApiClients = async () => {
+    try {
+      const response = await fetch('/api/v1/admin/content/api-clients', { headers: await getAuthHeaders() });
+      setApiClients(await parseJsonResponse(response));
+    } catch (error: any) {
+      setContentMessage(error.message || 'Unable to load content API clients.');
+    }
+  };
+
+  const createApiClient = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setContentMessage(null);
+    setApiClientToken(null);
+    try {
+      const response = await fetch('/api/v1/admin/content/api-clients', {
+        method: 'POST',
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ name: apiClientName })
+      });
+      const client = await parseJsonResponse(response);
+      setApiClients((current) => [client, ...current]);
+      setApiClientToken(client.token);
+      setApiClientName('');
+      setContentMessage('Content API client authorised. Copy the token now; it will not be shown again.');
+    } catch (error: any) {
+      setContentMessage(error.message || 'Unable to authorise content API client.');
+    }
+  };
+
+  const revokeApiClient = async (clientId: string) => {
+    setContentMessage(null);
+    try {
+      const response = await fetch(`/api/v1/admin/content/api-clients/${clientId}`, {
+        method: 'DELETE',
+        headers: await getAuthHeaders()
+      });
+      const revoked = await parseJsonResponse(response);
+      setApiClients((current) => current.map((client) => client.id === revoked.id ? revoked : client));
+      setContentMessage('Content API client revoked.');
+    } catch (error: any) {
+      setContentMessage(error.message || 'Unable to revoke content API client.');
+    }
+  };
+
+  const saveContentPost = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setContentSaving(true);
+    setContentMessage(null);
+    try {
+      const response = await fetch('/api/v1/admin/content', {
+        method: 'POST',
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({
+          title: contentForm.title,
+          slug: contentForm.slug.trim() || undefined,
+          summary: contentForm.summary,
+          body: contentForm.body,
+          contentType: contentForm.contentType,
+          tags: contentForm.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+          heroImageUrl: contentForm.heroImageUrl.trim() || undefined
+        })
+      });
+      const post = await parseJsonResponse(response);
+      setContentPosts((current) => [post, ...current]);
+      setContentForm({ title: '', slug: '', summary: '', body: '', contentType: 'update', tags: '', heroImageUrl: '' });
+      setContentMessage('Draft saved. Publish it when ready.');
+    } catch (error: any) {
+      setContentMessage(error.message || 'Unable to save content post.');
+    } finally {
+      setContentSaving(false);
+    }
+  };
+
+  const contentAction = async (post: ContentPost, action: 'publish' | 'unpublish' | 'archive') => {
+    setContentMessage(null);
+    try {
+      const response = await fetch(`/api/v1/admin/content/${post.id}${action === 'archive' ? '' : `/${action}`}`, {
+        method: action === 'archive' ? 'DELETE' : 'POST',
+        headers: await getAuthHeaders(),
+        body: action === 'archive' ? undefined : JSON.stringify({})
+      });
+      const payload = await parseJsonResponse(response);
+      if (action === 'archive') {
+        setContentPosts((current) => current.filter((item) => item.id !== post.id));
+      } else {
+        setContentPosts((current) => current.map((item) => item.id === post.id ? payload : item));
+      }
+      setContentMessage(action === 'publish' ? 'Post published.' : action === 'unpublish' ? 'Post returned to draft.' : 'Post archived.');
+    } catch (error: any) {
+      setContentMessage(error.message || `Unable to ${action} content post.`);
+    }
+  };
+
   useEffect(() => {
     getAuthHeaders().then((headers) => fetch('/api/v1/admin/me', { headers })).then(parseJsonResponse).then((data) => setStaffRole(data.role)).catch((error) => setCrmMessage(error.message));
     void loadRequests();
     void loadCrm();
     void loadProducts();
-      void loadContactRequests();
+    void loadContactRequests();
   }, []);
 
   useEffect(() => { if (staffRole === 'partner_admin') void loadStaff(); }, [staffRole]);
+  useEffect(() => {
+    if (staffRole === 'partner_admin') {
+      void loadContentPosts();
+      void loadApiClients();
+    }
+  }, [staffRole]);
 
   const visibleCrmUsers = crmUsers.filter((user) => {
     const query = crmSearch.trim().toLowerCase();
@@ -481,6 +605,79 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         {staffRole === 'partner_admin' && <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
           Current status: {enabled ? 'Live site enabled' : 'Waitlist enabled'}
         </div>}
+
+        {staffRole === 'partner_admin' && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-white"><Newspaper className="h-4 w-4 text-fuchsia-300" /><p className="text-sm font-semibold">News &amp; Updates</p></div>
+              <p className="mt-1 text-sm text-slate-400">Create drafts and publish public posts to <a href="/news" target="_blank" rel="noreferrer" className="font-bold text-purple-200 underline">/news</a>.</p>
+            </div>
+            <button type="button" onClick={() => void loadContentPosts()} className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10"><RefreshCw className="h-3.5 w-3.5" />Refresh</button>
+          </div>
+          <form onSubmit={saveContentPost} className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 md:grid-cols-6">
+            <input required maxLength={180} value={contentForm.title} onChange={(event) => setContentForm({ ...contentForm, title: event.target.value })} placeholder="Post title" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-3" />
+            <input maxLength={120} value={contentForm.slug} onChange={(event) => setContentForm({ ...contentForm, slug: event.target.value })} placeholder="Slug, optional" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2" />
+            <select value={contentForm.contentType} onChange={(event) => setContentForm({ ...contentForm, contentType: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="update">Update</option><option value="news">News</option></select>
+            <textarea required maxLength={500} value={contentForm.summary} onChange={(event) => setContentForm({ ...contentForm, summary: event.target.value })} placeholder="Short summary" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white md:col-span-3" />
+            <textarea required maxLength={20000} value={contentForm.body} onChange={(event) => setContentForm({ ...contentForm, body: event.target.value })} placeholder="Full post body" className="min-h-32 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white md:col-span-3" />
+            <input value={contentForm.tags} onChange={(event) => setContentForm({ ...contentForm, tags: event.target.value })} placeholder="Tags, comma separated" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-3" />
+            <input value={contentForm.heroImageUrl} onChange={(event) => setContentForm({ ...contentForm, heroImageUrl: event.target.value })} placeholder="Hero image URL, optional" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2" />
+            <button disabled={contentSaving} className="rounded-xl bg-fuchsia-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{contentSaving ? 'Saving...' : 'Save draft'}</button>
+          </form>
+          <div className="mt-4 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-fuchsia-200">Authorised publishing API</p>
+                <p className="mt-1 text-xs leading-5 text-slate-300">Create a CRM-approved API client for external content publishers. Tokens are shown once and stored hashed.</p>
+              </div>
+              <button type="button" onClick={() => void loadApiClients()} className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10"><RefreshCw className="h-3.5 w-3.5" />Clients</button>
+            </div>
+            <form onSubmit={createApiClient} className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input required minLength={3} maxLength={120} value={apiClientName} onChange={(event) => setApiClientName(event.target.value)} placeholder="Publisher name" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white" />
+              <button className="rounded-xl bg-fuchsia-600 px-3 py-2 text-xs font-bold text-white">Authorise API</button>
+            </form>
+            {apiClientToken && <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-xs text-emerald-100">
+              <p className="font-bold">Copy this token now</p>
+              <div className="mt-2 flex items-center gap-2">
+                <code className="min-w-0 flex-1 select-all break-all rounded-lg bg-slate-950/80 px-2 py-1 text-white">{apiClientToken}</code>
+                <button type="button" onClick={() => navigator.clipboard.writeText(apiClientToken)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2 py-1 font-bold"><Copy className="h-3 w-3" />Copy</button>
+              </div>
+            </div>}
+            <div className="mt-3 grid gap-2 md:grid-cols-2">
+              {apiClients.length === 0 ? <p className="text-xs text-slate-400">No API clients authorised.</p> : apiClients.map((client) => (
+                <div key={client.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/60 p-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-white">{client.name}</p>
+                    <p className="mt-1 text-[10px] text-slate-500">Prefix {client.token_prefix} · {client.last_used_at ? `last used ${new Date(client.last_used_at).toLocaleString()}` : 'never used'}</p>
+                  </div>
+                  <button type="button" disabled={!client.active} onClick={() => void revokeApiClient(client.id)} className={`rounded-lg px-2 py-1 text-[10px] font-bold ${client.active ? 'bg-rose-600/80 text-white' : 'bg-slate-800 text-slate-500'}`}>{client.active ? 'Revoke' : 'Revoked'}</button>
+                </div>
+              ))}
+            </div>
+          </div>
+          {contentMessage && <p className="mt-3 rounded-xl bg-purple-500/10 p-3 text-xs text-purple-100">{contentMessage}</p>}
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {contentPosts.length === 0 ? <p className="text-xs text-slate-400">No content posts yet.</p> : contentPosts.map((post) => (
+              <article key={post.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-black uppercase text-slate-200">{post.content_type}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${post.status === 'published' ? 'bg-emerald-500/15 text-emerald-200' : 'bg-amber-500/15 text-amber-200'}`}>{post.status}</span>
+                    </div>
+                    <h3 className="mt-2 truncate text-sm font-bold text-white">{post.title}</h3>
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-400">{post.summary}</p>
+                    <p className="mt-2 text-[10px] text-slate-500">/{post.slug}</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {post.status === 'published' ? <button type="button" onClick={() => void contentAction(post, 'unpublish')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Unpublish</button> : <button type="button" onClick={() => void contentAction(post, 'publish')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Publish</button>}
+                  <button type="button" onClick={() => void contentAction(post, 'archive')} className="rounded-xl bg-rose-600/80 px-3 py-2 text-xs font-bold text-white">Archive</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>}
 
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><MessageSquareText className="h-4 w-4 text-sky-300" /><p className="text-sm font-semibold">Support inbox</p></div><p className="mt-1 text-sm text-slate-400">Questions sent from the login screen. Draft a response, open it in your staff email client, then update the CRM status.</p></div><button type="button" onClick={() => void loadContactRequests()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh support inbox"><RefreshCw className="h-4 w-4" /></button></div>

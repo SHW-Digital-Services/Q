@@ -20,7 +20,10 @@ const LaunchLandingPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <QLogo size="sm" />
         </div>
-        <span className="text-xs font-semibold text-purple-200/80">Now live</span>
+        <div className="flex items-center gap-4">
+          <a href="/news" className="text-xs font-semibold text-purple-100 hover:text-white">News &amp; Updates</a>
+          <span className="text-xs font-semibold text-purple-200/80">Now live</span>
+        </div>
       </nav>
 
       <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-20 grid grid-cols-1 gap-10 lg:grid-cols-[1.05fr_.95fr] lg:gap-14 items-center">
@@ -126,7 +129,10 @@ export const WaitlistLandingPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <QLogo size="sm" />
         </div>
-        <span className="text-xs font-semibold text-purple-200/80">A safer life companion</span>
+        <div className="flex items-center gap-4">
+          <a href="/news" className="text-xs font-semibold text-purple-100 hover:text-white">News &amp; Updates</a>
+          <span className="text-xs font-semibold text-purple-200/80">A safer life companion</span>
+        </div>
       </nav>
 
       <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-28 grid grid-cols-1 gap-10 lg:grid-cols-[1.1fr_.9fr] lg:gap-16 items-start">

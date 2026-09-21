@@ -11,6 +11,7 @@ import { referralsRouter } from './routes/referrals.js';
 import { createRateLimitMiddleware } from './security.js';
 import { privacyRouter } from './routes/privacy.js';
 import { premiumRouter } from './routes/premium.js';
+import { contentRouter } from './routes/content.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -43,7 +44,7 @@ app.use((_req, res, next) => {
 });
 
 app.use((req, res, next) => {
-  if (/^\/api\/(?:q-ai|ai|billing|v1\/admin|admin|referrals|privacy)(?:\/|$)/.test(req.path)) {
+  if (/^\/api\/(?:q-ai|ai|billing|v1\/admin|admin|referrals|privacy|premium)(?:\/|$)/.test(req.path)) {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Pragma', 'no-cache');
   }
@@ -158,6 +159,7 @@ app.use(['/api/v1/admin', '/api/admin'], adminRouter);
 app.use('/api/referrals', referralsRouter);
 app.use('/api/privacy', privacyRouter);
 app.use('/api/premium', premiumRouter);
+app.use('/api/content', contentRouter);
 app.use('/legal', legalRouter);
 
 app.use(['/api', '/api/*', '/legal', '/legal/*'], (req, res) => {

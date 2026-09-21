@@ -1,5 +1,5 @@
 import express from 'express';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser, asyncHandler, getCanonicalAppUrl, sendOpaqueError } from '../middleware.js';
 import { buildAnalyticsExport } from '../analyticsEngine.js';
@@ -34,6 +34,21 @@ interface PasswordResetRequest {
   message: string | null;
   createdAt: string;
   status: 'pending' | 'reset' | 'temp_issued' | 'failed';
+}
+
+interface ContentPostPayload {
+  title?: unknown;
+  slug?: unknown;
+  summary?: unknown;
+  body?: unknown;
+  contentType?: unknown;
+  status?: unknown;
+  tags?: unknown;
+  heroImageUrl?: unknown;
+}
+
+function hashContentApiToken(token: string) {
+  return createHash('sha256').update(token, 'utf8').digest('hex');
 }
 
 adminRouter.use(createAdminSecurityMiddleware(getServiceSupabase));
@@ -106,6 +121,81 @@ function mapPasswordResetRequest(row: any): PasswordResetRequest {
     createdAt: row.created_at,
     status: row.status
   };
+}
+
+function normaliseSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120);
+}
+
+function textField(value: unknown, maximumLength: number, required = false) {
+  if (value === undefined || value === null) return required ? null : undefined;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if ((required && !trimmed) || trimmed.length > maximumLength) return null;
+  return trimmed || undefined;
+}
+
+function contentPostPayload(body: ContentPostPayload, actorId: string, partial = false) {
+  const allowed = ['title', 'slug', 'summary', 'body', 'contentType', 'status', 'tags', 'heroImageUrl'] as const;
+  if (!requireExactObject(body, allowed)) return { error: 'Unexpected request fields.' };
+
+  const payload: Record<string, unknown> = { updated_by: actorId };
+  const title = textField(body.title, 180, !partial);
+  if (title === null) return { error: 'Title must be between 3 and 180 characters.' };
+  if (title !== undefined) {
+    if (title.length < 3) return { error: 'Title must be between 3 and 180 characters.' };
+    payload.title = title;
+    if (!partial && body.slug === undefined) payload.slug = normaliseSlug(title);
+  }
+
+  const slug = typeof body.slug === 'string' ? normaliseSlug(body.slug) : undefined;
+  if (body.slug !== undefined && (!slug || slug.length < 3)) return { error: 'Slug must contain at least 3 URL-safe characters.' };
+  if (slug) payload.slug = slug;
+
+  const summary = textField(body.summary, 500, !partial);
+  if (summary === null || (summary !== undefined && summary.length < 10)) return { error: 'Summary must be between 10 and 500 characters.' };
+  if (summary !== undefined) payload.summary = summary;
+
+  const postBody = textField(body.body, 20000, !partial);
+  if (postBody === null || (postBody !== undefined && postBody.length < 20)) return { error: 'Body must be between 20 and 20,000 characters.' };
+  if (postBody !== undefined) payload.body = postBody;
+
+  if (body.contentType !== undefined) {
+    if (!['news', 'update'].includes(String(body.contentType))) return { error: 'Content type must be news or update.' };
+    payload.content_type = body.contentType;
+  } else if (!partial) {
+    payload.content_type = 'update';
+  }
+
+  if (body.status !== undefined) {
+    if (!['draft', 'published', 'archived'].includes(String(body.status))) return { error: 'Status must be draft, published, or archived.' };
+    payload.status = body.status;
+    payload.published_at = body.status === 'published' ? new Date().toISOString() : null;
+  } else if (!partial) {
+    payload.status = 'draft';
+  }
+
+  if (body.tags !== undefined) {
+    if (!Array.isArray(body.tags)) return { error: 'Tags must be an array.' };
+    const tags = [...new Set(body.tags.map((tag) => typeof tag === 'string' ? tag.trim().toLowerCase() : '').filter(Boolean))].slice(0, 12);
+    if (tags.some((tag) => tag.length > 40)) return { error: 'Tags must be 40 characters or fewer.' };
+    payload.tags = tags;
+  }
+
+  const heroImageUrl = textField(body.heroImageUrl, 1000, false);
+  if (heroImageUrl === null) return { error: 'Hero image URL is too long.' };
+  if (heroImageUrl !== undefined) {
+    if (heroImageUrl && !/^https?:\/\/|^\//i.test(heroImageUrl)) return { error: 'Hero image URL must be HTTPS or site-relative.' };
+    payload.hero_image_url = heroImageUrl || null;
+  }
+
+  if (!partial) payload.created_by = actorId;
+  return { payload };
 }
 
 function randomCharFrom(characters: string) {
@@ -236,6 +326,140 @@ adminRouter.patch('/site-settings/launch', asyncHandler(async (req, res) => {
   const { error } = await adminCtx.serviceSupabase.from('site_settings').upsert({ key: 'launch_override', value: req.body.enabled, updated_by: adminCtx.identity.user.id, updated_at: new Date().toISOString() });
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ enabled: req.body.enabled });
+}));
+
+adminRouter.get('/content', asyncHandler(async (req, res) => {
+  const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
+  const requestedLimit = Number.parseInt(String(req.query.limit ?? '100'), 10);
+  const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 250) : 100;
+  const { data, error } = await adminCtx.serviceSupabase
+    .from('content_posts')
+    .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+  if (error) return sendOpaqueError(req, res, 500, 'Unable to load content posts.', 'Admin Content List', error);
+  return res.json(data ?? []);
+}));
+
+adminRouter.post('/content', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  const parsed = contentPostPayload(req.body, adminCtx.identity.user.id);
+  if ('error' in parsed) return res.status(400).json({ error: parsed.error });
+  const { data, error } = await adminCtx.serviceSupabase
+    .from('content_posts')
+    .insert(parsed.payload)
+    .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
+    .single();
+  if (error) {
+    if (error.code === '23505') return res.status(409).json({ error: 'A post with that slug already exists.' });
+    return sendOpaqueError(req, res, 500, 'Unable to create content post.', 'Admin Content Create', error);
+  }
+  return res.status(201).json(data);
+}));
+
+adminRouter.patch('/content/:id', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  const parsed = contentPostPayload(req.body, adminCtx.identity.user.id, true);
+  if ('error' in parsed) return res.status(400).json({ error: parsed.error });
+  if (Object.keys(parsed.payload).length <= 1) return res.status(400).json({ error: 'No valid content changes supplied.' });
+  const { data, error } = await adminCtx.serviceSupabase
+    .from('content_posts')
+    .update(parsed.payload)
+    .eq('id', req.params.id)
+    .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
+    .maybeSingle();
+  if (error) {
+    if (error.code === '23505') return res.status(409).json({ error: 'A post with that slug already exists.' });
+    return sendOpaqueError(req, res, 500, 'Unable to update content post.', 'Admin Content Update', error);
+  }
+  if (!data) return res.status(404).json({ error: 'Content post not found.' });
+  return res.json(data);
+}));
+
+adminRouter.post('/content/:id/publish', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  if (!requireExactObject(req.body ?? {}, [])) return res.status(400).json({ error: 'Unexpected request fields.' });
+  const { data, error } = await adminCtx.serviceSupabase
+    .from('content_posts')
+    .update({ status: 'published', published_at: new Date().toISOString(), updated_by: adminCtx.identity.user.id })
+    .eq('id', req.params.id)
+    .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
+    .maybeSingle();
+  if (error) return sendOpaqueError(req, res, 500, 'Unable to publish content post.', 'Admin Content Publish', error);
+  if (!data) return res.status(404).json({ error: 'Content post not found.' });
+  return res.json(data);
+}));
+
+adminRouter.post('/content/:id/unpublish', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  if (!requireExactObject(req.body ?? {}, [])) return res.status(400).json({ error: 'Unexpected request fields.' });
+  const { data, error } = await adminCtx.serviceSupabase
+    .from('content_posts')
+    .update({ status: 'draft', published_at: null, updated_by: adminCtx.identity.user.id })
+    .eq('id', req.params.id)
+    .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
+    .maybeSingle();
+  if (error) return sendOpaqueError(req, res, 500, 'Unable to unpublish content post.', 'Admin Content Unpublish', error);
+  if (!data) return res.status(404).json({ error: 'Content post not found.' });
+  return res.json(data);
+}));
+
+adminRouter.delete('/content/:id', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  const { data, error } = await adminCtx.serviceSupabase
+    .from('content_posts')
+    .update({ status: 'archived', published_at: null, updated_by: adminCtx.identity.user.id })
+    .eq('id', req.params.id)
+    .select('id,status')
+    .maybeSingle();
+  if (error) return sendOpaqueError(req, res, 500, 'Unable to archive content post.', 'Admin Content Archive', error);
+  if (!data) return res.status(404).json({ error: 'Content post not found.' });
+  return res.json({ success: true, id: data.id, status: data.status });
+}));
+
+adminRouter.get('/content/api-clients', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  const { data, error } = await adminCtx.serviceSupabase
+    .from('content_api_clients')
+    .select('id,name,token_prefix,active,created_at,last_used_at,revoked_at')
+    .order('created_at', { ascending: false });
+  if (error) return sendOpaqueError(req, res, 500, 'Unable to load content API clients.', 'Admin Content API Clients', error);
+  return res.json(data ?? []);
+}));
+
+adminRouter.post('/content/api-clients', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  if (!requireExactObject(req.body, ['name'])) return res.status(400).json({ error: 'Unexpected request fields.' });
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  if (name.length < 3 || name.length > 120) return res.status(400).json({ error: 'Client name must be between 3 and 120 characters.' });
+  const token = `qcp_${randomBytes(32).toString('base64url')}`;
+  const tokenPrefix = token.slice(0, 12);
+  const { data, error } = await adminCtx.serviceSupabase
+    .from('content_api_clients')
+    .insert({
+      name,
+      token_hash: hashContentApiToken(token),
+      token_prefix: tokenPrefix,
+      created_by: adminCtx.identity.user.id,
+      approved_by: adminCtx.identity.user.id
+    })
+    .select('id,name,token_prefix,active,created_at,last_used_at,revoked_at')
+    .single();
+  if (error) return sendOpaqueError(req, res, 500, 'Unable to create content API client.', 'Admin Content API Client Create', error);
+  return res.status(201).json({ ...data, token });
+}));
+
+adminRouter.delete('/content/api-clients/:id', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  const { data, error } = await adminCtx.serviceSupabase
+    .from('content_api_clients')
+    .update({ active: false, revoked_by: adminCtx.identity.user.id, revoked_at: new Date().toISOString() })
+    .eq('id', req.params.id)
+    .select('id,name,token_prefix,active,created_at,last_used_at,revoked_at')
+    .maybeSingle();
+  if (error) return sendOpaqueError(req, res, 500, 'Unable to revoke content API client.', 'Admin Content API Client Revoke', error);
+  if (!data) return res.status(404).json({ error: 'Content API client not found.' });
+  return res.json(data);
 }));
 
 adminRouter.get('/staff', asyncHandler(async (req, res) => {
