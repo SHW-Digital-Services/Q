@@ -89,8 +89,17 @@ export function saveLifeGuide(guide: LifeGuide, userId?: string): LifeGuide[] {
   return updated;
 }
 
-export function toggleGuideStep(guideId: string, stepId: string): LifeGuide[] {
-  const current = getLifeGuides();
+export function deleteGeneratedLifeGuide(guideId: string, userId?: string): LifeGuide[] {
+  const current = getLifeGuides(userId);
+  const updated = current.filter((guide) => guide.id !== guideId || !guide.aiGenerated);
+  if (updated.length === current.length) return current;
+  setItem(userScopedKey(KEYS.GUIDES, userId), updated);
+  recordPendingSync();
+  return updated;
+}
+
+export function toggleGuideStep(guideId: string, stepId: string, userId?: string): LifeGuide[] {
+  const current = getLifeGuides(userId);
   const updated = current.map((g) => {
     if (g.id === guideId) {
       const updatedSteps = g.steps.map((s) => (s.id === stepId ? { ...s, completed: !s.completed } : s));
@@ -106,13 +115,13 @@ export function toggleGuideStep(guideId: string, stepId: string): LifeGuide[] {
     }
     return g;
   });
-  setItem(KEYS.GUIDES, updated);
+  setItem(userScopedKey(KEYS.GUIDES, userId), updated);
   recordPendingSync();
   return updated;
 }
 
-export function bookmarkGuideProgress(guideId: string, stepId?: string): LifeGuide[] {
-  const current = getLifeGuides();
+export function bookmarkGuideProgress(guideId: string, stepId?: string, userId?: string): LifeGuide[] {
+  const current = getLifeGuides(userId);
   const updated = current.map((g) => {
     if (g.id === guideId) {
       const isCurrentlyBookmarked = g.bookmarkedStepId === stepId;
@@ -128,13 +137,13 @@ export function bookmarkGuideProgress(guideId: string, stepId?: string): LifeGui
     }
     return g;
   });
-  setItem(KEYS.GUIDES, updated);
+  setItem(userScopedKey(KEYS.GUIDES, userId), updated);
   recordPendingSync();
   return updated;
 }
 
-export function toggleGuideBookmark(guideId: string): LifeGuide[] {
-  const current = getLifeGuides();
+export function toggleGuideBookmark(guideId: string, userId?: string): LifeGuide[] {
+  const current = getLifeGuides(userId);
   const updated = current.map((g) => {
     if (g.id === guideId) {
       const nextIsBookmarked = !g.isBookmarked;
@@ -147,7 +156,7 @@ export function toggleGuideBookmark(guideId: string): LifeGuide[] {
     }
     return g;
   });
-  setItem(KEYS.GUIDES, updated);
+  setItem(userScopedKey(KEYS.GUIDES, userId), updated);
   recordPendingSync();
   return updated;
 }

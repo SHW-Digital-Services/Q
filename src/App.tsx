@@ -316,7 +316,7 @@ export default function App() {
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
-  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} onPreview={startPreview} /><button onClick={enableCamouflage} className="fixed bottom-4 left-4 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} (Alt+M)</button></>;
+  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} onPreview={startPreview} /><button onClick={enableCamouflage} className="fixed left-4 top-20 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} (Alt+M)</button></>;
 
   if (!currentUser) {
     return (

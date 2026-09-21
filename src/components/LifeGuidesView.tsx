@@ -29,12 +29,21 @@ import { LifeGuide } from '../types';
 import {
   getLifeGuides,
   saveLifeGuide,
+  deleteGeneratedLifeGuide,
   toggleGuideStep,
   bookmarkGuideProgress,
   toggleGuideBookmark
 } from '../services/storage';
 import { CategoryScroller } from './CategoryScroller';
 import { usePremium } from '../contexts/PremiumContext';
+import { getSupabaseClient } from '../services/supabase';
+
+const guideCategories = ['healthcare', 'rights', 'social', 'mental_health', 'career', 'housing'] as const;
+type GuideCategory = LifeGuide['category'];
+
+function isGuideCategory(value: unknown): value is GuideCategory {
+  return typeof value === 'string' && (guideCategories as readonly string[]).includes(value);
+}
 
 export const LifeGuidesView: React.FC = () => {
   const { userId } = usePremium();
@@ -45,30 +54,31 @@ export const LifeGuidesView: React.FC = () => {
   // AI Generator Modal state
   const [showGeneratorModal, setShowGeneratorModal] = useState(false);
   const [genTopic, setGenTopic] = useState('');
-  const [genCategory, setGenCategory] = useState<'healthcare' | 'rights' | 'social' | 'mental_health' | 'career' | 'housing'>('healthcare');
+  const [genCategory, setGenCategory] = useState<GuideCategory>('healthcare');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState('');
 
   useEffect(() => {
-    setGuides(getLifeGuides());
-    const refresh = () => setGuides(getLifeGuides());
+    setGuides(getLifeGuides(userId));
+    const refresh = () => setGuides(getLifeGuides(userId));
     window.addEventListener('q-cloud-applied', refresh);
     return () => window.removeEventListener('q-cloud-applied', refresh);
-  }, []);
+  }, [userId]);
 
   const handleStepToggle = (guideId: string, stepId: string) => {
-    const updated = toggleGuideStep(guideId, stepId);
+    const updated = toggleGuideStep(guideId, stepId, userId);
     setGuides(updated);
   };
 
   const handleToggleBookmark = (guideId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = toggleGuideBookmark(guideId);
+    const updated = toggleGuideBookmark(guideId, userId);
     setGuides(updated);
   };
 
   const handleBookmarkStep = (guideId: string, stepId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = bookmarkGuideProgress(guideId, stepId);
+    const updated = bookmarkGuideProgress(guideId, stepId, userId);
     setGuides(updated);
   };
 
@@ -89,30 +99,49 @@ export const LifeGuidesView: React.FC = () => {
     setGuides(updated);
   };
 
+  const handleDeleteGeneratedGuide = (guideId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentGuide = guides.find((g) => g.id === guideId);
+    if (!currentGuide?.aiGenerated) return;
+    if (!window.confirm(`Delete "${currentGuide.title}" from your Life Guides?`)) return;
+    const updated = deleteGeneratedLifeGuide(guideId, userId);
+    setGuides(updated);
+  };
+
   const handleGenerateCustomGuide = async () => {
     if (!genTopic.trim() || isGenerating) return;
 
     setIsGenerating(true);
+    setGenerationError('');
     try {
+      const supabase = getSupabaseClient();
+      const { data: sessionData } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (sessionData.session?.access_token) headers.Authorization = `Bearer ${sessionData.session.access_token}`;
+
       const res = await fetch('/api/q-ai/generate-guide', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ topic: genTopic, category: genCategory })
       });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Q guide generation is unavailable.');
+      const steps = Array.isArray(data.steps) && data.steps.length > 0
+        ? data.steps
+        : ['Clarify the goal and what would feel safe enough to do next', 'Gather verified local information before making decisions', 'Choose one small action and note who can support you'];
 
       const newGuide: LifeGuide = {
         id: `guide-gen-${Date.now()}`,
         title: data.title || genTopic,
-        category: genCategory,
+        category: isGuideCategory(data.category) ? data.category : genCategory,
         summary: data.summary || `AI-generated step-by-step toolkit for ${genTopic}`,
-        steps: (data.steps || []).map((stepText: string, idx: number) => ({
+        steps: steps.map((stepText: string, idx: number) => ({
           id: `st-${idx}`,
           text: stepText,
           completed: false
         })),
-        keyContactsOrLinks: data.keyContactsOrLinks,
+        keyContactsOrLinks: Array.isArray(data.keyContactsOrLinks) ? data.keyContactsOrLinks : undefined,
         aiGenerated: true,
         savedOffline: true,
         updatedAt: new Date().toISOString(),
@@ -122,10 +151,13 @@ export const LifeGuidesView: React.FC = () => {
 
       const updated = saveLifeGuide(newGuide, userId);
       setGuides(updated);
+      setSelectedCategory('all');
+      setSearchQuery('');
       setGenTopic('');
       setShowGeneratorModal(false);
-    } catch (err) {
-      console.warn('[Q Guides] AI Guide generation failed, using local offline generator');
+    } catch (err: any) {
+      const reason = err?.message || 'Q guide generation is unavailable.';
+      console.warn('[Q Guides] AI Guide generation failed, using local offline generator:', reason);
       const fallbackGuide: LifeGuide = {
         id: `guide-off-${Date.now()}`,
         title: `Toolkit: ${genTopic}`,
@@ -144,6 +176,9 @@ export const LifeGuidesView: React.FC = () => {
       };
       const updated = saveLifeGuide(fallbackGuide, userId);
       setGuides(updated);
+      setSelectedCategory('all');
+      setSearchQuery('');
+      setGenerationError('Hosted AI was unavailable, so Q created and saved an offline guide instead.');
       setGenTopic('');
       setShowGeneratorModal(false);
     } finally {
@@ -158,6 +193,7 @@ export const LifeGuidesView: React.FC = () => {
     { id: 'healthcare', label: 'Healthcare & Care', icon: Heart },
     { id: 'rights', label: 'Rights & Legal', icon: Scale },
     { id: 'social', label: 'Social & Family', icon: Users },
+    { id: 'mental_health', label: 'Mental Wellbeing', icon: Brain },
     { id: 'career', label: 'Workplace & Career', icon: Briefcase },
     { id: 'housing', label: 'Housing & Travel', icon: Home }
   ];
@@ -289,6 +325,12 @@ export const LifeGuidesView: React.FC = () => {
         </div>
       </div>
 
+      {generationError && (
+        <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+          {generationError}
+        </div>
+      )}
+
       {/* Guides Grid */}
       {filteredGuides.length === 0 ? (
         <div className="p-8 text-center rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
@@ -341,6 +383,17 @@ export const LifeGuidesView: React.FC = () => {
                         <WifiOff className="w-3 h-3 text-emerald-600" />
                         <span className="font-medium hidden sm:inline">Offline</span>
                       </div>
+
+                      {guide.aiGenerated && (
+                        <button
+                          onClick={(e) => handleDeleteGeneratedGuide(guide.id, e)}
+                          title="Delete generated guide"
+                          aria-label={`Delete generated guide ${guide.title}`}
+                          className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition-all hover:bg-rose-100 hover:text-rose-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
 
                       {/* Bookmark Guide Toggle */}
                       <button

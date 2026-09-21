@@ -16,7 +16,7 @@ const LaunchLandingPage: React.FC = () => {
       <div className="absolute top-0 left-0 w-[32rem] max-w-full h-[32rem] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[28rem] max-w-full h-[28rem] bg-indigo-500/20 rounded-full blur-[130px] pointer-events-none" />
 
-      <nav className="relative z-10 max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+      <nav className="relative z-10 max-w-6xl mx-auto px-6 pb-6 pt-36 lg:pt-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <QLogo size="sm" />
         </div>
@@ -122,7 +122,7 @@ export const WaitlistLandingPage: React.FC = () => {
       <div className="absolute top-0 left-0 w-[32rem] max-w-full h-[32rem] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[28rem] max-w-full h-[28rem] bg-indigo-500/20 rounded-full blur-[130px] pointer-events-none" />
 
-      <nav className="relative z-10 max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+      <nav className="relative z-10 max-w-6xl mx-auto px-6 pb-6 pt-36 lg:pt-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <QLogo size="sm" />
         </div>
@@ -241,7 +241,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ launchEnabled, onToggl
       <button
         type="button"
         onClick={() => setAdminModalOpen(true)}
-        className="fixed bottom-4 right-4 z-40 rounded-full border border-white/15 bg-slate-900/80 p-3 text-white shadow-lg backdrop-blur transition hover:bg-slate-800"
+        className="fixed right-4 top-20 z-40 rounded-full border border-white/15 bg-slate-900/80 p-3 text-white shadow-lg backdrop-blur transition hover:bg-slate-800"
         aria-label="Open admin access"
       >
         <Settings className="h-5 w-5" />
