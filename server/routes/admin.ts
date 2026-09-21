@@ -108,10 +108,29 @@ function mapPasswordResetRequest(row: any): PasswordResetRequest {
   };
 }
 
+function randomCharFrom(characters: string) {
+  return characters[randomBytes(1)[0] % characters.length];
+}
+
+function shuffleCharacters(value: string) {
+  const chars = value.split('');
+  const bytes = randomBytes(chars.length);
+  for (let index = chars.length - 1; index > 0; index -= 1) {
+    const swapIndex = bytes[index] % (index + 1);
+    [chars[index], chars[swapIndex]] = [chars[swapIndex], chars[index]];
+  }
+  return chars.join('');
+}
+
 function generateTemporaryPassword() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
-  const bytes = randomBytes(18);
-  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+  const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lowercase = 'abcdefghijkmnopqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%^&*';
+  const all = `${uppercase}${lowercase}${digits}${symbols}`;
+  const required = [uppercase, lowercase, digits, symbols].map(randomCharFrom).join('');
+  const remaining = Array.from(randomBytes(16), (byte) => all[byte % all.length]).join('');
+  return shuffleCharacters(`${required}${remaining}`);
 }
 
 async function findAuthUserByEmail(serviceSupabase: any, email: string) {
@@ -791,7 +810,7 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
 
     const { data: updatedRequest, error: updateRequestError } = await serviceSupabase
       .from('password_reset_requests')
-      .update({ status: 'temp_issued', handled_at: new Date().toISOString(), handled_by: adminCtx.identity.user.id })
+      .update({ status: 'reset', handled_at: new Date().toISOString(), handled_by: adminCtx.identity.user.id })
       .eq('id', request.id)
       .select('id, email, message, created_at, status')
       .single();
@@ -805,7 +824,7 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
       temporaryPassword: issued.temporaryPassword,
       email: user.email,
       userId: user.id,
-      request: updatedRequest ? mapPasswordResetRequest(updatedRequest) : { ...request, status: 'temp_issued' }
+      request: updatedRequest ? mapPasswordResetRequest(updatedRequest) : { ...request, status: 'reset' }
     });
   } catch (error: any) {
     return sendOpaqueError(req, res, 500, 'Unable to issue the temporary password.', 'Admin Temporary Password', error);
