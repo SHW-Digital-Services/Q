@@ -92,6 +92,9 @@ function permissionFor(request: Request): StaffCapability | null {
   if (path === '/site-settings/launch' && request.method === 'GET') return null;
   if (path === '/contact-requests' && request.method === 'POST') return null;
   if (path === '/password-reset-requests' && request.method === 'POST') return null;
+  if (path === '/password-reset-requests' && request.method === 'GET') return 'crm.read';
+  if (/^\/password-reset-requests\/[^/]+\/reset$/.test(path) && request.method === 'POST') return 'crm.write';
+  if (path === '/direct-password-reset' && request.method === 'POST') return 'crm.write';
   if (path === '/data-moat-export') return 'analytics.export';
   if (path.startsWith('/staff') || path.includes('/role') || path.includes('password-reset')) return 'security.admin';
   if (path.includes('payments') || path.includes('paypal-subscriptions') || path.includes('referral-credits')) return request.method === 'GET' ? 'billing.read' : 'billing.write';

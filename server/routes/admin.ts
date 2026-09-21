@@ -1,4 +1,5 @@
 import express from 'express';
+import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser, asyncHandler, getCanonicalAppUrl, sendOpaqueError } from '../middleware.js';
 import { buildAnalyticsExport } from '../analyticsEngine.js';
@@ -32,7 +33,7 @@ interface PasswordResetRequest {
   email: string;
   message: string | null;
   createdAt: string;
-  status: 'pending' | 'reset' | 'failed';
+  status: 'pending' | 'reset' | 'temp_issued' | 'failed';
 }
 
 adminRouter.use(createAdminSecurityMiddleware(getServiceSupabase));
@@ -105,6 +106,43 @@ function mapPasswordResetRequest(row: any): PasswordResetRequest {
     createdAt: row.created_at,
     status: row.status
   };
+}
+
+function generateTemporaryPassword() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+  const bytes = randomBytes(18);
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+}
+
+async function findAuthUserByEmail(serviceSupabase: any, email: string) {
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await serviceSupabase.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const match = data?.users?.find((user: any) => String(user.email ?? '').toLowerCase() === email);
+    if (match) return match;
+    if (!data?.users || data.users.length < 1000) return null;
+  }
+  return null;
+}
+
+async function issueTemporaryPassword(serviceSupabase: any, user: any, actorId: string, metadata: Record<string, unknown> = {}) {
+  const temporaryPassword = generateTemporaryPassword();
+  const { data, error } = await serviceSupabase.auth.admin.updateUserById(user.id, { password: temporaryPassword });
+  if (error) throw error;
+  await recordCrmActivity(serviceSupabase, user.id, actorId, 'temporary_password_issued', 'Temporary account password issued', metadata);
+  const communicationLog = await recordCrmCommunication(serviceSupabase, {
+    userId: user.id,
+    direction: 'outbound',
+    channel: 'email',
+    status: 'logged',
+    recipientEmail: user.email ?? null,
+    subject: 'Q temporary account password',
+    body: 'A temporary account password was issued by Q staff. The temporary password was displayed once in the CRM and was not stored in Q.',
+    actorId,
+    metadata: { source: 'temporary_password', ...metadata }
+  });
+  if (communicationLog.error) console.error('[Admin] Failed to record temporary password communication:', communicationLog.error);
+  return { user: data?.user ?? user, temporaryPassword };
 }
 
 async function requireAdmin(req: express.Request, res: express.Response) {
@@ -699,7 +737,7 @@ adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {
 
 adminRouter.get('/password-reset-requests', asyncHandler(async (req, res) => {
   try {
-    const adminCtx = await requireAdmin(req, res);
+    const adminCtx = await requireStaff(req, res);
     if (!adminCtx) return;
 
     const { data, error } = await adminCtx.serviceSupabase
@@ -720,7 +758,7 @@ adminRouter.get('/password-reset-requests', asyncHandler(async (req, res) => {
 
 adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, res) => {
   try {
-    const adminCtx = await requireAdmin(req, res);
+    const adminCtx = await requireStaff(req, res);
     if (!adminCtx) return;
     const { serviceSupabase } = adminCtx;
 
@@ -740,21 +778,20 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
     }
 
     const request = mapPasswordResetRequest(requestRow);
-    const { error: recoveryError } = await serviceSupabase.auth.resetPasswordForEmail(request.email, {
-      redirectTo: `${getCanonicalAppUrl()}/app`
-    });
-
-    if (recoveryError) {
+    const user = await findAuthUserByEmail(serviceSupabase, request.email);
+    if (!user) {
       await serviceSupabase
         .from('password_reset_requests')
         .update({ status: 'failed' })
         .eq('id', request.id);
-      return sendOpaqueError(req, res, 502, 'Unable to send the recovery email.', 'Admin Password Recovery', recoveryError);
+      return res.status(404).json({ error: 'No Q account was found for this reset request email.' });
     }
+
+    const issued = await issueTemporaryPassword(serviceSupabase, user, adminCtx.identity.user.id, { source: 'password_reset_request', requestId: request.id });
 
     const { data: updatedRequest, error: updateRequestError } = await serviceSupabase
       .from('password_reset_requests')
-      .update({ status: 'reset', handled_at: new Date().toISOString(), handled_by: adminCtx.identity.user.id })
+      .update({ status: 'temp_issued', handled_at: new Date().toISOString(), handled_by: adminCtx.identity.user.id })
       .eq('id', request.id)
       .select('id, email, message, created_at, status')
       .single();
@@ -762,40 +799,54 @@ adminRouter.post('/password-reset-requests/:id/reset', asyncHandler(async (req, 
     if (updateRequestError) {
       console.error('[Admin] password_reset_requests status update failed:', updateRequestError);
     }
-    const recoveryLog = await recordCrmCommunication(serviceSupabase, { direction: 'outbound', channel: 'email', status: 'sent', recipientEmail: request.email, subject: 'Q account recovery', body: 'A single-use Q account recovery email was sent through the authentication provider.', actorId: adminCtx.identity.user.id, metadata: { source: 'password_reset_request', requestId: request.id } });
-    if (recoveryLog.error) console.error('[Admin] Failed to record recovery communication:', recoveryLog.error);
 
     return res.json({
       success: true,
-      recoverySent: true,
-      request: updatedRequest ? mapPasswordResetRequest(updatedRequest) : { ...request, status: 'reset' }
+      temporaryPassword: issued.temporaryPassword,
+      email: user.email,
+      userId: user.id,
+      request: updatedRequest ? mapPasswordResetRequest(updatedRequest) : { ...request, status: 'temp_issued' }
     });
   } catch (error: any) {
-    return sendOpaqueError(req, res, 500, 'Unable to send the recovery email.', 'Admin Password Recovery', error);
+    return sendOpaqueError(req, res, 500, 'Unable to issue the temporary password.', 'Admin Temporary Password', error);
   }
 }));
 
 adminRouter.post('/direct-password-reset', asyncHandler(async (req, res) => {
   try {
     if (!requireExactObject(req.body, ['email'])) return res.status(400).json({ error: 'Unexpected request fields.' });
-    const adminCtx = await requireAdmin(req, res);
-    if (!adminCtx) return;
-    const { serviceSupabase } = adminCtx;
+    const staffCtx = await requireStaff(req, res);
+    if (!staffCtx) return;
+    const { serviceSupabase } = staffCtx;
 
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     if (!email) {
       return res.status(400).json({ error: 'Email address is required.' });
     }
 
-    const { error: recoveryError } = await serviceSupabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getCanonicalAppUrl()}/app`
-    });
-    if (recoveryError) return sendOpaqueError(req, res, 502, 'Unable to send the recovery email.', 'Admin Direct Password Recovery', recoveryError);
-    const recoveryLog = await recordCrmCommunication(serviceSupabase, { direction: 'outbound', channel: 'email', status: 'sent', recipientEmail: email, subject: 'Q account recovery', body: 'A single-use Q account recovery email was sent through the authentication provider.', actorId: adminCtx.identity.user.id, metadata: { source: 'direct_password_reset' } });
-    if (recoveryLog.error) console.error('[Admin] Failed to record direct recovery communication:', recoveryLog.error);
-    return res.json({ success: true, email, recoverySent: true });
+    const user = await findAuthUserByEmail(serviceSupabase, email);
+    if (!user) return res.status(404).json({ error: 'No Q account was found for that email address.' });
+
+    const issued = await issueTemporaryPassword(serviceSupabase, user, staffCtx.identity.user.id, { source: 'direct_password_reset' });
+    return res.json({ success: true, email: user.email, userId: user.id, temporaryPassword: issued.temporaryPassword });
   } catch (error: any) {
-    return sendOpaqueError(req, res, 500, 'Unable to send the recovery email.', 'Admin Direct Password Recovery', error);
+    return sendOpaqueError(req, res, 500, 'Unable to issue the temporary password.', 'Admin Direct Temporary Password', error);
+  }
+}));
+
+adminRouter.post('/crm/users/:id/temporary-password', asyncHandler(async (req, res) => {
+  try {
+    if (!requireExactObject(req.body, [])) return res.status(400).json({ error: 'Unexpected request fields.' });
+    const staffCtx = await requireStaff(req, res);
+    if (!staffCtx) return;
+
+    const { data: authData, error: authError } = await staffCtx.serviceSupabase.auth.admin.getUserById(req.params.id);
+    if (authError || !authData?.user) return res.status(404).json({ error: 'Customer not found.' });
+
+    const issued = await issueTemporaryPassword(staffCtx.serviceSupabase, authData.user, staffCtx.identity.user.id, { source: 'crm_customer_record' });
+    return res.json({ success: true, email: authData.user.email, userId: authData.user.id, temporaryPassword: issued.temporaryPassword });
+  } catch (error: any) {
+    return sendOpaqueError(req, res, 500, 'Unable to issue the temporary password.', 'CRM Temporary Password', error);
   }
 }));
 

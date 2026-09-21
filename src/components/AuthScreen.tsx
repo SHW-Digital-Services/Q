@@ -155,6 +155,24 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       return;
     }
 
+    if (mode === 'forgot') {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/v1/admin/password-reset-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), message: 'Password reset requested from the sign-in form.' })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || payload.message || 'Unable to submit the password reset request.');
+        setSuccessMessage('Your request has been sent to the Q CRM. Staff will issue a temporary password after review.');
+      } catch (err: any) {
+        setErrorMessage(err.message || 'Unable to submit the password reset request.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     const supabase = getSupabaseClient();
 
     // Authentication requires a configured Supabase project.
@@ -212,13 +230,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             setTimeout(() => onUserSignedIn(authUser), 600);
           }
         }
-      } else if (mode === 'forgot') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin
-        });
-
-        if (error) throw error;
-        setSuccessMessage('Password reset instructions sent to your email.');
       }
     } catch (err: any) {
       console.error('Supabase Auth error:', err);
@@ -433,7 +444,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                     {mode === 'signup'
                       ? 'Create Confidential Account'
                       : mode === 'forgot'
-                        ? 'Send Password Reset Link'
+                        ? 'Request Temporary Password'
                         : 'Sign In to Q App'}
                   </span>
                   <ArrowRight className="w-4 h-4" />
@@ -462,7 +473,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-base font-black text-slate-900">Password reset request</h3>
-                <p className="mt-1 text-xs text-slate-500">Send your email to the admin team and they can trigger a single-use recovery email. Staff never see your password or recovery link.</p>
+                <p className="mt-1 text-xs text-slate-500">Send your email to the admin team. Staff can review the request in the CRM and issue a temporary password.</p>
               </div>
               <button
                 type="button"

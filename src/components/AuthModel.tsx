@@ -87,6 +87,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    if (mode === 'forgot') {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/v1/admin/password-reset-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), message: 'Password reset requested from the sign-in modal.' })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || payload.message || 'Unable to submit the password reset request.');
+        setSuccessMessage('Your request has been sent to the Q CRM. Staff will issue a temporary password after review.');
+      } catch (err: any) {
+        setErrorMessage(err.message || 'Unable to submit the password reset request.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     const supabase = getSupabaseClient();
 
     // 1. Authentication requires a configured Supabase project.
@@ -136,13 +154,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setSuccessMessage('Signed in successfully!');
           setTimeout(() => onClose(), 1000);
         }
-      } else if (mode === 'forgot') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin
-        });
-
-        if (error) throw error;
-        setSuccessMessage('Password reset instructions sent to your email.');
       }
     } catch (err: any) {
       console.error('Supabase Auth error:', err);
@@ -403,7 +414,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         {mode === 'signup'
                           ? 'Create Q Account'
                           : mode === 'forgot'
-                          ? 'Send Password Reset Email'
+                          ? 'Request Temporary Password'
                           : 'Sign In to Q'}
                       </span>
                       <ArrowRight className="w-4 h-4" />

@@ -82,10 +82,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [communicationMessage, setCommunicationMessage] = useState<string | null>(null);
   const [newCommunication, setNewCommunication] = useState({ recipientEmail: '', subject: '', body: '', channel: 'email', status: 'sent' });
 
-  // Admin-triggered recovery email state
+  // Staff-triggered temporary password state
   const [directEmail, setDirectEmail] = useState('');
   const [directResetting, setDirectResetting] = useState(false);
-  const [directResult, setDirectResult] = useState<{ email: string } | null>(null);
+  const [directResult, setDirectResult] = useState<{ email: string; temporaryPassword: string } | null>(null);
+  const [customerTempPassword, setCustomerTempPassword] = useState<{ email: string; temporaryPassword: string } | null>(null);
+  const [issuingCustomerPassword, setIssuingCustomerPassword] = useState(false);
 
   const getAuthHeaders = async () => {
     const supabase = getSupabaseClient();
@@ -267,7 +269,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   };
 
   const openCustomer = async (userId: string) => {
-    setCustomerLoading(true); setCustomerMessage(null);
+    setCustomerLoading(true); setCustomerMessage(null); setCustomerTempPassword(null);
     try {
       const response = await fetch(`/api/v1/admin/crm/users/${userId}`, { headers: await getAuthHeaders() });
       setCustomer(await parseJsonResponse(response));
@@ -359,9 +361,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       });
       const payload = await parseJsonResponse(response);
       setRequests((current) => current.map((item) => item.id === request.id ? payload.request : item));
-      setRequestMessage(`Recovery email sent to ${request.email}. No credentials are shown or stored in Q.`);
+      setDirectResult({ email: payload.email || request.email, temporaryPassword: payload.temporaryPassword });
+      setRequestMessage(`Temporary password issued for ${request.email}. It is shown once below and is not stored in Q.`);
     } catch (error: any) {
-      setRequestMessage(error.message || 'Unable to send the recovery email.');
+      setRequestMessage(error.message || 'Unable to issue the temporary password.');
     } finally {
       setResettingId(null);
     }
@@ -382,12 +385,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         body: JSON.stringify({ email: directEmail.trim() })
       });
       const payload = await parseJsonResponse(response);
-      setDirectResult({ email: payload.email });
+      setDirectResult({ email: payload.email, temporaryPassword: payload.temporaryPassword });
       setDirectEmail('');
     } catch (error: any) {
-      setRequestMessage(error.message || 'Unable to send the recovery email.');
+      setRequestMessage(error.message || 'Unable to issue the temporary password.');
     } finally {
       setDirectResetting(false);
+    }
+  };
+
+  const issueCustomerTemporaryPassword = async () => {
+    if (!customer?.identity?.id) return;
+    setIssuingCustomerPassword(true);
+    setCustomerMessage(null);
+    setCustomerTempPassword(null);
+    try {
+      const response = await fetch(`/api/v1/admin/crm/users/${customer.identity.id}/temporary-password`, { method: 'POST', headers: await getAuthHeaders(), body: JSON.stringify({}) });
+      const payload = await parseJsonResponse(response);
+      await openCustomer(customer.identity.id);
+      setCustomerTempPassword({ email: payload.email, temporaryPassword: payload.temporaryPassword });
+      setCustomerMessage('Temporary password issued. Share it with the customer through your approved support channel and ask them to change it after signing in.');
+    } catch (error: any) {
+      setCustomerMessage(error.message || 'Unable to issue the temporary password.');
+    } finally {
+      setIssuingCustomerPassword(false);
     }
   };
 
@@ -572,11 +593,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           </div>
         </section>}
 
-        {staffRole === 'partner_admin' && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {staffRole && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-white">Send account recovery</p>
-              <p className="mt-1 text-sm text-slate-400">Send a single-use recovery email. Q never displays the password or recovery link.</p>
+              <p className="text-sm font-semibold text-white">Issue temporary password</p>
+              <p className="mt-1 text-sm text-slate-400">Create a temporary Supabase Auth password from the CRM. Q shows it once here and does not store it.</p>
             </div>
           </div>
 
@@ -595,23 +616,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-purple-500 disabled:opacity-60"
             >
               <KeyRound className="h-3.5 w-3.5" />
-              {directResetting ? 'Sending…' : 'Send recovery email'}
+              {directResetting ? 'Issuing...' : 'Issue temp password'}
             </button>
           </form>
 
           {directResult && (
-            <div className="mt-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-xs text-emerald-200 space-y-1.5">
-              <p className="font-semibold text-emerald-100">Recovery email sent to {directResult.email}.</p>
-              <p>The recipient completes the password reset through the email link; no credential is exposed to staff.</p>
+            <div className="mt-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-xs text-emerald-200 space-y-2">
+              <p className="font-semibold text-emerald-100">Temporary password issued for {directResult.email}.</p>
+              <div className="flex items-center gap-2 rounded-xl bg-slate-950/70 p-2">
+                <code className="min-w-0 flex-1 select-all break-all text-sm font-bold text-white">{directResult.temporaryPassword}</code>
+                <button type="button" onClick={() => navigator.clipboard.writeText(directResult.temporaryPassword)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2 py-1 font-bold text-emerald-100"><Copy className="h-3 w-3" /> Copy</button>
+              </div>
+              <p>Copy it now and ask the customer to change it after signing in. This password is not stored in Q.</p>
             </div>
           )}
         </div>}
 
-        {staffRole === 'partner_admin' && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {staffRole && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-white">Password reset requests</p>
-              <p className="mt-1 text-sm text-slate-400">Review requests from the login page and send a single-use recovery email.</p>
+              <p className="mt-1 text-sm text-slate-400">Review requests from the login page and issue a temporary password from the CRM.</p>
             </div>
             <button
               type="button"
@@ -650,7 +675,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                       className="inline-flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1.5 text-xs font-semibold text-purple-200 transition hover:bg-purple-500/20 disabled:opacity-60 shrink-0"
                     >
                       <KeyRound className="h-3.5 w-3.5" />
-                      {resettingId === request.id ? 'Sending…' : request.status === 'reset' ? 'Send again' : 'Send recovery email'}
+                      {resettingId === request.id ? 'Issuing...' : request.status === 'temp_issued' ? 'Issue again' : 'Issue temp password'}
                     </button>
                   </div>
                 </div>
@@ -669,6 +694,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                 </div>
                 {customerMessage && <div className="mt-4 rounded-xl border border-purple-400/20 bg-purple-500/10 p-3 text-xs text-purple-100">{customerMessage}</div>}
                 <button type="button" onClick={() => setTaskModalOpen(true)} className="mt-4 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add task</button>
+                <section className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div><h3 className="font-bold text-white">Temporary password</h3><p className="mt-1 text-xs text-emerald-100/80">Issue a temporary Supabase Auth password for this customer. Q shows it once and logs the CRM action without storing the password.</p></div>
+                    <button type="button" onClick={() => void issueCustomerTemporaryPassword()} disabled={issuingCustomerPassword} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-60"><KeyRound className="h-3.5 w-3.5" />{issuingCustomerPassword ? 'Issuing...' : 'Issue temp password'}</button>
+                  </div>
+                  {customerTempPassword && <div className="mt-3 rounded-xl bg-slate-950/70 p-3 text-xs text-emerald-100"><p className="font-semibold">Temporary password for {customerTempPassword.email}</p><div className="mt-2 flex items-center gap-2"><code className="min-w-0 flex-1 select-all break-all text-sm font-bold text-white">{customerTempPassword.temporaryPassword}</code><button type="button" onClick={() => navigator.clipboard.writeText(customerTempPassword.temporaryPassword)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2 py-1 font-bold"><Copy className="h-3 w-3" /> Copy</button></div><p className="mt-2 text-emerald-100/80">Ask the customer to change this after signing in.</p></div>}
+                </section>
 
                 <div className="mt-5 grid gap-4 lg:grid-cols-3">
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Personal details</h3><dl className="mt-3 space-y-2 text-xs text-slate-300">
