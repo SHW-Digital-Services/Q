@@ -51,6 +51,18 @@ function hashContentApiToken(token: string) {
   return createHash('sha256').update(token, 'utf8').digest('hex');
 }
 
+function isMissingContentSchema(error: any) {
+  const message = `${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase();
+  return error?.code === '42P01' || error?.code === 'PGRST205' || message.includes('content_api_clients') || message.includes('content_posts');
+}
+
+function sendContentSchemaMissing(res: express.Response) {
+  return res.status(503).json({
+    error: 'Content publishing is not configured yet. Ask an admin to apply the content publishing Supabase migration.',
+    code: 'CONTENT_PUBLISHING_NOT_CONFIGURED'
+  });
+}
+
 adminRouter.use(createAdminSecurityMiddleware(getServiceSupabase));
 
 async function paypalRequest(path: string, init: RequestInit = {}) {
@@ -337,7 +349,10 @@ adminRouter.get('/content', asyncHandler(async (req, res) => {
     .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
     .order('updated_at', { ascending: false })
     .limit(limit);
-  if (error) return sendOpaqueError(req, res, 500, 'Unable to load content posts.', 'Admin Content List', error);
+  if (error) {
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
+    return sendOpaqueError(req, res, 500, 'Unable to load content posts.', 'Admin Content List', error);
+  }
   return res.json(data ?? []);
 }));
 
@@ -352,6 +367,7 @@ adminRouter.post('/content', asyncHandler(async (req, res) => {
     .single();
   if (error) {
     if (error.code === '23505') return res.status(409).json({ error: 'A post with that slug already exists.' });
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
     return sendOpaqueError(req, res, 500, 'Unable to create content post.', 'Admin Content Create', error);
   }
   return res.status(201).json(data);
@@ -370,6 +386,7 @@ adminRouter.patch('/content/:id', asyncHandler(async (req, res) => {
     .maybeSingle();
   if (error) {
     if (error.code === '23505') return res.status(409).json({ error: 'A post with that slug already exists.' });
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
     return sendOpaqueError(req, res, 500, 'Unable to update content post.', 'Admin Content Update', error);
   }
   if (!data) return res.status(404).json({ error: 'Content post not found.' });
@@ -385,7 +402,10 @@ adminRouter.post('/content/:id/publish', asyncHandler(async (req, res) => {
     .eq('id', req.params.id)
     .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
     .maybeSingle();
-  if (error) return sendOpaqueError(req, res, 500, 'Unable to publish content post.', 'Admin Content Publish', error);
+  if (error) {
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
+    return sendOpaqueError(req, res, 500, 'Unable to publish content post.', 'Admin Content Publish', error);
+  }
   if (!data) return res.status(404).json({ error: 'Content post not found.' });
   return res.json(data);
 }));
@@ -399,7 +419,10 @@ adminRouter.post('/content/:id/unpublish', asyncHandler(async (req, res) => {
     .eq('id', req.params.id)
     .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
     .maybeSingle();
-  if (error) return sendOpaqueError(req, res, 500, 'Unable to unpublish content post.', 'Admin Content Unpublish', error);
+  if (error) {
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
+    return sendOpaqueError(req, res, 500, 'Unable to unpublish content post.', 'Admin Content Unpublish', error);
+  }
   if (!data) return res.status(404).json({ error: 'Content post not found.' });
   return res.json(data);
 }));
@@ -412,7 +435,10 @@ adminRouter.delete('/content/:id', asyncHandler(async (req, res) => {
     .eq('id', req.params.id)
     .select('id,status')
     .maybeSingle();
-  if (error) return sendOpaqueError(req, res, 500, 'Unable to archive content post.', 'Admin Content Archive', error);
+  if (error) {
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
+    return sendOpaqueError(req, res, 500, 'Unable to archive content post.', 'Admin Content Archive', error);
+  }
   if (!data) return res.status(404).json({ error: 'Content post not found.' });
   return res.json({ success: true, id: data.id, status: data.status });
 }));
@@ -423,7 +449,10 @@ adminRouter.get('/content/api-clients', asyncHandler(async (req, res) => {
     .from('content_api_clients')
     .select('id,name,token_prefix,active,created_at,last_used_at,revoked_at')
     .order('created_at', { ascending: false });
-  if (error) return sendOpaqueError(req, res, 500, 'Unable to load content API clients.', 'Admin Content API Clients', error);
+  if (error) {
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
+    return sendOpaqueError(req, res, 500, 'Unable to load content API clients.', 'Admin Content API Clients', error);
+  }
   return res.json(data ?? []);
 }));
 
@@ -445,7 +474,10 @@ adminRouter.post('/content/api-clients', asyncHandler(async (req, res) => {
     })
     .select('id,name,token_prefix,active,created_at,last_used_at,revoked_at')
     .single();
-  if (error) return sendOpaqueError(req, res, 500, 'Unable to create content API client.', 'Admin Content API Client Create', error);
+  if (error) {
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
+    return sendOpaqueError(req, res, 500, 'Unable to create content API client.', 'Admin Content API Client Create', error);
+  }
   return res.status(201).json({ ...data, token });
 }));
 
@@ -457,7 +489,10 @@ adminRouter.delete('/content/api-clients/:id', asyncHandler(async (req, res) => 
     .eq('id', req.params.id)
     .select('id,name,token_prefix,active,created_at,last_used_at,revoked_at')
     .maybeSingle();
-  if (error) return sendOpaqueError(req, res, 500, 'Unable to revoke content API client.', 'Admin Content API Client Revoke', error);
+  if (error) {
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
+    return sendOpaqueError(req, res, 500, 'Unable to revoke content API client.', 'Admin Content API Client Revoke', error);
+  }
   if (!data) return res.status(404).json({ error: 'Content API client not found.' });
   return res.json(data);
 }));

@@ -26,6 +26,18 @@ function hashContentApiToken(token: string) {
   return createHash('sha256').update(token, 'utf8').digest('hex');
 }
 
+function isMissingContentSchema(error: any) {
+  const message = `${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase();
+  return error?.code === '42P01' || error?.code === 'PGRST205' || message.includes('content_api_clients') || message.includes('content_posts');
+}
+
+function sendContentSchemaMissing(res: express.Response) {
+  return res.status(503).json({
+    error: 'Content publishing is not configured yet. Ask an admin to apply the content publishing Supabase migration.',
+    code: 'CONTENT_PUBLISHING_NOT_CONFIGURED'
+  });
+}
+
 function getPublisherToken(req: express.Request) {
   const bearer = req.headers.authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
   const header = req.header('x-q-content-api-key');
@@ -103,7 +115,10 @@ contentRouter.get('/', asyncHandler(async (req, res) => {
   if (searchQuery) query = query.textSearch('search_text', searchQuery);
 
   const { data, error } = await query;
-  if (error) return sendOpaqueError(req, res, 500, 'Unable to load published content.', 'Content List', error);
+  if (error) {
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
+    return sendOpaqueError(req, res, 500, 'Unable to load published content.', 'Content List', error);
+  }
   res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   return res.json({ posts: data ?? [] });
 }));
@@ -123,7 +138,10 @@ contentRouter.post('/publish', asyncHandler(async (req, res) => {
     .eq('active', true)
     .maybeSingle();
 
-  if (clientError) return sendOpaqueError(req, res, 500, 'Unable to verify content API authorisation.', 'Content API Authorisation', clientError);
+  if (clientError) {
+    if (isMissingContentSchema(clientError)) return sendContentSchemaMissing(res);
+    return sendOpaqueError(req, res, 500, 'Unable to verify content API authorisation.', 'Content API Authorisation', clientError);
+  }
   if (!client) return res.status(403).json({ error: 'This content API token is not authorised in the CRM.' });
 
   const parsed = buildPublisherPost(req.body, client.id);
@@ -137,6 +155,7 @@ contentRouter.post('/publish', asyncHandler(async (req, res) => {
 
   if (error) {
     if (error.code === '23505') return res.status(409).json({ error: 'A post with that slug already exists.' });
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
     return sendOpaqueError(req, res, 500, 'Unable to publish content.', 'Content API Publish', error);
   }
 
@@ -159,7 +178,10 @@ contentRouter.get('/:slug', asyncHandler(async (req, res) => {
     .lte('published_at', new Date().toISOString())
     .maybeSingle();
 
-  if (error) return sendOpaqueError(req, res, 500, 'Unable to load published content.', 'Content Detail', error);
+  if (error) {
+    if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
+    return sendOpaqueError(req, res, 500, 'Unable to load published content.', 'Content Detail', error);
+  }
   if (!data) return res.status(404).json({ error: 'Content not found.' });
   res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   return res.json({ post: data });
