@@ -18,6 +18,68 @@ import { lifeGuidesRouter } from './routes/lifeGuides.js';
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
+type DependencyState = 'up' | 'down' | 'not_configured';
+
+type SupabaseHealth = {
+  status: 'ok' | 'down';
+  services: {
+    database: DependencyState;
+    auth: DependencyState;
+  };
+  timestamp: string;
+};
+
+async function checkSupabaseHealth(): Promise<SupabaseHealth> {
+  const timestamp = new Date().toISOString();
+  const supabaseUrl = (
+    process.env.VITE_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    ''
+  ).replace(/\/$/, '');
+  const supabaseAnonKey =
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return {
+      status: 'down',
+      services: { database: 'not_configured', auth: 'not_configured' },
+      timestamp
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  const check = async (dependencyPath: string): Promise<DependencyState> => {
+    try {
+      const response = await fetch(`${supabaseUrl}${dependencyPath}`, {
+        headers: { apikey: supabaseAnonKey },
+        signal: controller.signal
+      });
+      return response.ok ? 'up' : 'down';
+    } catch {
+      return 'down';
+    }
+  };
+
+  try {
+    const [auth, database] = await Promise.all([
+      check('/auth/v1/health'),
+      check('/rest/v1/site_settings?select=key&limit=1')
+    ]);
+    const isHealthy = auth === 'up' && database === 'up';
+    return {
+      status: isHealthy ? 'ok' : 'down',
+      services: { database, auth },
+      timestamp
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 app.disable('x-powered-by');
 
 const trustedProxy = process.env.TRUSTED_PROXY?.trim();
@@ -99,60 +161,24 @@ app.use((req, res, next) => {
   })(req, res, next);
 });
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/api/health', async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const supabase = await checkSupabaseHealth();
+  return res.status(supabase.status === 'ok' ? 200 : 503).json({
+    status: supabase.status,
+    services: {
+      api: 'up',
+      database: supabase.services.database,
+      auth: supabase.services.auth
+    },
+    timestamp: supabase.timestamp
+  });
 });
 
 app.get('/api/health/supabase', async (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-
-  const supabaseUrl = (
-    process.env.VITE_SUPABASE_URL ||
-    process.env.SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    ''
-  ).replace(/\/$/, '');
-  const supabaseAnonKey =
-    process.env.VITE_SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return res.status(503).json({
-      status: 'down',
-      services: { database: 'not_configured', auth: 'not_configured' },
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
-  const check = async (path: string) => {
-    try {
-      const response = await fetch(`${supabaseUrl}${path}`, {
-        headers: { apikey: supabaseAnonKey },
-        signal: controller.signal
-      });
-      return response.ok ? 'up' : 'down';
-    } catch {
-      return 'down';
-    }
-  };
-
-  try {
-    const [auth, database] = await Promise.all([
-      check('/auth/v1/health'),
-      check('/rest/v1/site_settings?select=key&limit=1')
-    ]);
-    const isHealthy = auth === 'up' && database === 'up';
-    return res.status(isHealthy ? 200 : 503).json({
-      status: isHealthy ? 'ok' : 'down',
-      services: { database, auth },
-      timestamp: new Date().toISOString()
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
+  const supabase = await checkSupabaseHealth();
+  return res.status(supabase.status === 'ok' ? 200 : 503).json(supabase);
 });
 
 app.use(['/api/billing'], billingRouter);
