@@ -4,8 +4,6 @@ import CountdownTimer from './CountdownTimer';
 import { QLogo } from './QLogo';
 import { LegalFooter } from './LegalFooter';
 import { joinWaitlist } from '../services/waitlist';
-import { AdminAccessModal } from './AdminAccessModal';
-import { AdminPanel } from './AdminPanel';
 
 // 1 November is outside British Summer Time, so 09:00 UK time is 09:00 UTC.
 export const Q_LAUNCH_DATE = new Date('2026-11-01T09:00:00Z');
@@ -237,34 +235,19 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ launchEnabled, onToggleLaunch, onPreview }) => {
-  const [adminModalOpen, setAdminModalOpen] = useState(false);
-  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
-  const handleAdminGranted = () => setAdminPanelOpen(true);
+  void onToggleLaunch;
+  void onPreview;
 
   return (
     <>
       {launchEnabled ? <LaunchLandingPage /> : <WaitlistLandingPage />}
-      <button
-        type="button"
-        onClick={() => setAdminModalOpen(true)}
+      <a
+        href="/crm"
         className="fixed right-4 top-20 z-40 rounded-full border border-white/15 bg-slate-900/80 p-3 text-white shadow-lg backdrop-blur transition hover:bg-slate-800"
-        aria-label="Open admin access"
+        aria-label="Open staff CRM"
       >
         <Settings className="h-5 w-5" />
-      </button>
-      <AdminAccessModal
-        isOpen={adminModalOpen}
-        onClose={() => setAdminModalOpen(false)}
-        onAdminGranted={handleAdminGranted}
-      />
-      {adminPanelOpen && (
-        <AdminPanel
-          enabled={launchEnabled}
-          onToggle={onToggleLaunch}
-          onPreview={onPreview}
-          onClose={() => setAdminPanelOpen(false)}
-        />
-      )}
+      </a>
     </>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { ExternalLink, Settings } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { QAssistantView } from './components/QAssistantView';
 import { LifeGuidesView } from './components/LifeGuidesView';
@@ -16,6 +16,7 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { LandingPage } from './components/LandingPage';
 import { HelpView } from './components/HelpView';
 import { AdminPanel } from './components/AdminPanel';
+import { CrmAccessPage } from './components/CrmAccessPage';
 import { NewsUpdatesPage } from './components/NewsUpdatesPage';
 import { getSyncStatus, getSecuritySettings, saveSecuritySettings } from './services/storage';
 import { getSupabaseClient, mapSupabaseUser } from './services/supabase';
@@ -75,6 +76,7 @@ export default function App() {
   const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
   const [canAccessCrm, setCanAccessCrm] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [crmAccessChecked, setCrmAccessChecked] = useState(false);
   const [isProgrammeCourseOpen, setIsProgrammeCourseOpen] = useState(false);
   const [launchEnabled, setLaunchEnabled] = useState(false);
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
@@ -85,6 +87,7 @@ export default function App() {
   const previewActive = !!currentUser && previewUserId === currentUser.id;
   const isAppRoute = previewActive || (launchEnabled && isViewAppRequest());
   const isNewsRoute = typeof window !== 'undefined' && ['/news', '/updates'].includes(window.location.pathname);
+  const isCrmRoute = typeof window !== 'undefined' && ['/crm', '/admin/crm'].includes(window.location.pathname);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,15 +146,23 @@ export default function App() {
     if (!currentUser) {
       setPreviewUserId(null);
       setCanAccessCrm(false);
+      setCrmAccessChecked(true);
       setIsAdminPanelOpen(false);
       return;
     }
 
     const checkCrmAccess = async () => {
+      setCrmAccessChecked(false);
       const supabase = getSupabaseClient();
       const { data } = await supabase?.auth.getSession() ?? { data: { session: null } };
       const token = data.session?.access_token;
-      if (!token) return;
+      if (!token) {
+        if (!cancelled) {
+          setCanAccessCrm(false);
+          setCrmAccessChecked(true);
+        }
+        return;
+      }
 
       try {
         const response = await fetch('/api/v1/admin/me', { headers: { Authorization: `Bearer ${token}` } });
@@ -160,12 +171,14 @@ export default function App() {
         const allowed = staff.role === 'staff' || staff.role === 'partner_admin';
         if (cancelled) return;
         setCanAccessCrm(allowed);
+        setCrmAccessChecked(true);
         if (staff.role !== 'partner_admin') setPreviewUserId(null);
 
       } catch {
         if (!cancelled) {
           setPreviewUserId(null);
           setCanAccessCrm(false);
+          setCrmAccessChecked(true);
           setIsAdminPanelOpen(false);
         }
       }
@@ -326,6 +339,24 @@ export default function App() {
 
   if (isNewsRoute) return <><StatusPageButton /><NewsUpdatesPage /></>;
 
+  if (isCrmRoute) {
+    if (!currentUser) {
+      return <><StatusPageButton /><CrmAccessPage onUserSignedIn={(user) => { setStorageUser(user.id); setCurrentUser(user); }} /></>;
+    }
+    if (!crmAccessChecked) {
+      return <><StatusPageButton /><main className="flex min-h-screen items-center justify-center bg-slate-950 p-6 text-sm font-semibold text-slate-200">Checking CRM access...</main></>;
+    }
+    if (!canAccessCrm) {
+      return <><StatusPageButton /><CrmAccessPage onUserSignedIn={(user) => { setStorageUser(user.id); setCurrentUser(user); }} /></>;
+    }
+    return (
+      <div className="min-h-screen bg-slate-950 p-3 text-slate-100 sm:p-6">
+        <StatusPageButton />
+        <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} />
+      </div>
+    );
+  }
+
   if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} onPreview={startPreview} /><button onClick={enableCamouflage} className="fixed left-4 top-20 z-40 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} (Alt+M)</button></>;
 
   if (!currentUser) {
@@ -431,11 +462,6 @@ export default function App() {
       {/* Modals */}
       <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
       <button onClick={enableCamouflage} className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] right-4 z-40 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 shadow-md hover:bg-slate-700 sm:bottom-4">{t('disguise')} (Alt+M)</button>
-      {canAccessCrm && !isLockActive && !isAdminPanelOpen && (
-        <button type="button" onClick={() => setIsAdminPanelOpen(true)} aria-label="Open staff CRM" title="Open staff CRM" className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] left-4 z-40 rounded-full border border-violet-300/40 bg-slate-900/90 p-3 text-white shadow-xl backdrop-blur transition hover:bg-violet-900 sm:bottom-4">
-          <Settings className="h-5 w-5" />
-        </button>
-      )}
       <BackupModal
         isOpen={isBackupOpen}
         userId={currentUser?.id}
