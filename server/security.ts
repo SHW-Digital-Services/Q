@@ -6,7 +6,7 @@ export type StaffCapability =
   | 'crm.read' | 'crm.sensitive' | 'crm.write' | 'billing.read' | 'billing.write'
   | 'support.read' | 'support.write' | 'security.admin' | 'analytics.export';
 
-const STAFF_DEFAULTS = new Set<StaffCapability>(['crm.read', 'crm.write', 'support.read', 'support.write', 'billing.read']);
+const STAFF_DEFAULTS = new Set<StaffCapability>(['crm.read', 'crm.sensitive', 'crm.write', 'support.read', 'support.write', 'billing.read']);
 const SENSITIVE_CAPABILITIES = new Set<StaffCapability>(['billing.write', 'security.admin', 'analytics.export']);
 
 function decodeJwtPayload(authorization?: string): Record<string, unknown> | null {

@@ -17,6 +17,7 @@ import { LandingPage } from './components/LandingPage';
 import { HelpView } from './components/HelpView';
 import { AdminPanel } from './components/AdminPanel';
 import { CrmAccessPage } from './components/CrmAccessPage';
+import { DeveloperPage } from './components/DeveloperPage';
 import { NewsUpdatesPage } from './components/NewsUpdatesPage';
 import { getSyncStatus, getSecuritySettings, saveSecuritySettings } from './services/storage';
 import { getSupabaseClient, mapSupabaseUser } from './services/supabase';
@@ -88,6 +89,7 @@ export default function App() {
   const isAppRoute = previewActive || (launchEnabled && isViewAppRequest());
   const isNewsRoute = typeof window !== 'undefined' && ['/news', '/updates'].includes(window.location.pathname);
   const isCrmRoute = typeof window !== 'undefined' && ['/crm', '/admin/crm'].includes(window.location.pathname);
+  const isDeveloperRoute = typeof window !== 'undefined' && window.location.pathname === '/developer';
 
   useEffect(() => {
     let cancelled = false;
@@ -338,6 +340,7 @@ export default function App() {
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
   if (isNewsRoute) return <><StatusPageButton /><NewsUpdatesPage /></>;
+  if (isDeveloperRoute) return <><StatusPageButton /><DeveloperPage /></>;
 
   if (isCrmRoute) {
     if (!currentUser) {

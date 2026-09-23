@@ -854,15 +854,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
 
           {crmMessage && <div className="mt-3 rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-xs text-rose-200">{crmMessage}</div>}
           <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[820px] text-left text-xs">
+            <table className="w-full min-w-[900px] text-left text-xs">
               <thead className="bg-white/5 text-[10px] uppercase tracking-wider text-slate-400">
-                <tr><th className="p-3">Customer</th><th className="p-3">Signup</th><th className="p-3">Last login</th><th className="p-3">Account</th><th className="p-3">Subscription</th><th className="p-3">Renews / ends</th></tr>
+                <tr><th className="p-3">Customer</th><th className="p-3">Signup</th><th className="p-3">Last login</th><th className="p-3">Account</th><th className="p-3">Subscription</th><th className="p-3">Renews / ends</th><th className="p-3 text-right">Record</th></tr>
               </thead>
               <tbody className="divide-y divide-white/10">
                 {crmLoading && crmUsers.length === 0 ? (
-                  <tr><td colSpan={6} className="p-5 text-center text-slate-400">Loading customers…</td></tr>
+                  <tr><td colSpan={7} className="p-5 text-center text-slate-400">Loading customers…</td></tr>
                 ) : visibleCrmUsers.length === 0 ? (
-                  <tr><td colSpan={6} className="p-5 text-center text-slate-400">No matching customers.</td></tr>
+                  <tr><td colSpan={7} className="p-5 text-center text-slate-400">No matching customers.</td></tr>
                 ) : visibleCrmUsers.map((user) => (
                   <tr key={user.id} onClick={() => void openCustomer(user.id)} className="cursor-pointer bg-slate-950/30 text-slate-300 transition hover:bg-purple-500/10">
                     <td className="p-3"><p className="font-semibold text-white">{user.name}</p><p className="mt-0.5 text-slate-500">{user.email}</p></td>
@@ -871,6 +871,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                     <td className="p-3"><span className="rounded-full bg-purple-500/10 px-2 py-1 text-purple-200">{user.role}</span><p className="mt-2 text-[10px] text-slate-500">{user.emailConfirmedAt ? 'Email verified' : 'Awaiting verification'}</p></td>
                     <td className="p-3"><span className={`rounded-full px-2 py-1 ${user.subscription?.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-200' : 'bg-slate-700/60 text-slate-300'}`}>{user.subscription?.status ?? 'Not subscribed'}</span></td>
                     <td className="p-3">{user.subscription?.currentPeriodEnd ? new Date(user.subscription.currentPeriodEnd).toLocaleDateString() : '—'}</td>
+                    <td className="p-3 text-right"><button type="button" onClick={(event) => { event.stopPropagation(); void openCustomer(user.id); }} className="rounded-xl bg-purple-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-purple-500">Open 360</button></td>
                   </tr>
                 ))}
               </tbody>
