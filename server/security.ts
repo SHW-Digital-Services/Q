@@ -100,6 +100,7 @@ function permissionFor(request: Request): StaffCapability | null {
   if (path.includes('payments') || path.includes('paypal-subscriptions') || path.includes('referral-credits')) return request.method === 'GET' ? 'billing.read' : 'billing.write';
   if (path.startsWith('/crm/products')) return request.method === 'GET' ? 'billing.read' : 'billing.write';
   if (path.startsWith('/contact-requests')) return request.method === 'GET' ? 'support.read' : 'support.write';
+  if (path.startsWith('/peer-knowledge')) return request.method === 'GET' ? 'support.read' : 'support.write';
   if (/^\/crm\/users\/[^/]+$/.test(path) && request.method === 'GET') return 'crm.sensitive';
   if (path.startsWith('/crm/')) return request.method === 'GET' ? 'crm.read' : 'crm.write';
   if (path.startsWith('/provider-insights')) return 'analytics.export';

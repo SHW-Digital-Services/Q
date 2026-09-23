@@ -14,12 +14,14 @@ import {
 import { LivedExperienceStory } from '../types';
 import { getLivedExperiences, addLivedExperience, toggleSaveLivedExperience } from '../services/storage';
 import { CategoryScroller } from './CategoryScroller';
+import { getSupabaseClient } from '../services/supabase';
 
 export const LivedExperiencesView: React.FC = () => {
   const [stories, setStories] = useState<LivedExperienceStory[]>([]);
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [submissionMessage, setSubmissionMessage] = useState<string | null>(null);
 
   // New story form
   const [newTitle, setNewTitle] = useState('');
@@ -30,6 +32,15 @@ export const LivedExperiencesView: React.FC = () => {
 
   useEffect(() => {
     setStories(getLivedExperiences());
+    fetch('/api/peer-knowledge', { cache: 'no-store' })
+      .then(response => response.ok ? response.json() : [])
+      .then((published) => {
+        if (!Array.isArray(published) || published.length === 0) return;
+        const local = getLivedExperiences();
+        const existingIds = new Set(local.map(story => story.id));
+        setStories([...published.filter(story => !existingIds.has(story.id)), ...local]);
+      })
+      .catch(error => console.warn('[Peer Knowledge] Approved posts unavailable:', error));
   }, []);
 
   const handleToggleSave = (id: string) => {
@@ -43,7 +54,7 @@ export const LivedExperiencesView: React.FC = () => {
     );
   };
 
-  const handleCreateStory = () => {
+  const handleCreateStory = async () => {
     if (!newTitle.trim() || !newContent.trim()) return;
 
     const story: LivedExperienceStory = {
@@ -58,8 +69,24 @@ export const LivedExperiencesView: React.FC = () => {
       savedOffline: true
     };
 
-    const updated = addLivedExperience(story);
-    setStories(updated);
+    try {
+      const supabase = getSupabaseClient();
+      const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (data.session?.access_token) headers.Authorization = `Bearer ${data.session.access_token}`;
+      const response = await fetch('/api/peer-knowledge', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ...story, website: '' })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to submit your reflection for moderation.');
+      setSubmissionMessage('Thanks. Your reflection has been sent to the Q CRM moderation queue and will appear after Staff/Admin approval.');
+    } catch (error: any) {
+      const updated = addLivedExperience({ ...story, id: `pending-${Date.now()}`, tags: [...story.tags, 'Pending moderation'] });
+      setStories(updated);
+      setSubmissionMessage(error.message || 'Saved locally as pending because moderation is unavailable.');
+    }
     setNewTitle('');
     setNewContent('');
     setNewTakeaway('');
@@ -84,8 +111,8 @@ export const LivedExperiencesView: React.FC = () => {
           <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <Users className="w-5 h-5 text-purple-600" /> Peer Lived Experiences
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Real advice, strategies, and lessons learned directly from LGBTQ+ peers navigating life milestones.
+              <p className="text-xs text-slate-500 mt-0.5">
+            Staff-moderated advice, strategies, and lessons learned from LGBTQ+ peers navigating life milestones.
           </p>
         </div>
 
@@ -97,6 +124,9 @@ export const LivedExperiencesView: React.FC = () => {
           <span>Share Reflection</span>
         </button>
       </div>
+
+      {/* Filter & Search Toolbar */}
+      {submissionMessage && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-900">{submissionMessage}</div>}
 
       {/* Filter & Search Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -276,7 +306,7 @@ export const LivedExperiencesView: React.FC = () => {
                 disabled={!newTitle.trim() || !newContent.trim()}
                 className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs disabled:opacity-50 shadow-sm"
               >
-                Publish Anonymous Entry
+                Submit for Moderation
               </button>
             </div>
           </div>

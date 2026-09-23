@@ -59,8 +59,26 @@ export const LifeGuidesView: React.FC = () => {
   const [generationError, setGenerationError] = useState('');
 
   useEffect(() => {
-    setGuides(getLifeGuides(userId));
-    const refresh = () => setGuides(getLifeGuides(userId));
+    const mergePublishedGuides = async () => {
+      const localGuides = getLifeGuides(userId);
+      setGuides(localGuides);
+      try {
+        const response = await fetch('/api/life-guides', { cache: 'no-store' });
+        if (!response.ok) return;
+        const published = await response.json();
+        if (!Array.isArray(published) || published.length === 0) return;
+        const localById = new Map(localGuides.map((guide) => [guide.id, guide]));
+        const merged = [...localGuides];
+        for (const guide of published) {
+          if (!localById.has(guide.id)) merged.push(guide);
+        }
+        setGuides(merged);
+      } catch (error) {
+        console.warn('[Life Guides] CRM-published guides unavailable:', error);
+      }
+    };
+    void mergePublishedGuides();
+    const refresh = () => { void mergePublishedGuides(); };
     window.addEventListener('q-cloud-applied', refresh);
     return () => window.removeEventListener('q-cloud-applied', refresh);
   }, [userId]);

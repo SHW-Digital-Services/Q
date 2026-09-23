@@ -648,7 +648,7 @@ adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
   if (!adminCtx) return;
   const { serviceSupabase } = adminCtx;
   const userId = req.params.id;
-  const [{ data: authData, error: authError }, profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult, communicationsResult, referralCreditsResult] = await Promise.all([
+  const [{ data: authData, error: authError }, profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult, communicationsResult, referralCreditsResult, peerKnowledgeResult] = await Promise.all([
     serviceSupabase.auth.admin.getUserById(userId),
     serviceSupabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     serviceSupabase.from('subscriptions').select('*').eq('user_id', userId).maybeSingle(),
@@ -660,7 +660,8 @@ adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
       ? serviceSupabase.from('crm_activities').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100)
       : Promise.resolve({ data: [], error: null }),
     serviceSupabase.from('crm_communications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
-    serviceSupabase.from('referral_credits').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+    serviceSupabase.from('referral_credits').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+    serviceSupabase.from('peer_knowledge_posts').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100)
   ]);
   if (authError || !authData?.user) return res.status(404).json({ error: 'Customer not found.' });
   const databaseError = [profileResult, subscriptionResult, notesResult, tasksResult, paymentsResult, entitlementsResult, activitiesResult, communicationsResult, referralCreditsResult].find((result: any) => result.error)?.error;
@@ -671,7 +672,8 @@ adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
     profile: profileResult.data,
     subscription: subscriptionResult.data,
     notes: notesResult.data ?? [], tasks: tasksResult.data ?? [], payments: paymentsResult.data ?? [],
-    entitlements: entitlementsResult.data ?? [], activities: activitiesResult.data ?? [], communications: communicationsResult.data ?? [], referralCredits: referralCreditsResult.data ?? []
+    entitlements: entitlementsResult.data ?? [], activities: activitiesResult.data ?? [], communications: communicationsResult.data ?? [], referralCredits: referralCreditsResult.data ?? [],
+    peerKnowledgeContributions: peerKnowledgeResult.error ? [] : peerKnowledgeResult.data ?? []
   });
 }));
 
@@ -916,6 +918,129 @@ adminRouter.get('/contact-requests', asyncHandler(async (req, res) => {
   const { data, error } = await staffCtx.serviceSupabase.from('contact_requests').select('*').order('created_at', { ascending: false }).limit(200);
   if (error) return res.status(500).json({ error: 'Unable to load contact requests.' });
   return res.json(data ?? []);
+}));
+
+adminRouter.get('/peer-knowledge', asyncHandler(async (req, res) => {
+  const staffCtx = await requireStaff(req, res);
+  if (!staffCtx) return;
+  const { data, error } = await staffCtx.serviceSupabase.from('peer_knowledge_posts').select('*').order('created_at', { ascending: false }).limit(250);
+  if (error) return res.status(500).json({ error: 'Unable to load Peer Knowledge submissions.' });
+  return res.json(data ?? []);
+}));
+
+adminRouter.patch('/peer-knowledge/:id', asyncHandler(async (req, res) => {
+  const staffCtx = await requireStaff(req, res);
+  if (!staffCtx) return;
+  if (!requireExactObject(req.body, ['status', 'moderationNote'])) return res.status(400).json({ error: 'Unexpected request fields.' });
+  const status = ['pending', 'approved', 'rejected', 'archived'].includes(req.body?.status) ? req.body.status : null;
+  if (!status) return res.status(400).json({ error: 'Status must be pending, approved, rejected, or archived.' });
+  const moderationNote = typeof req.body?.moderationNote === 'string' ? req.body.moderationNote.trim().slice(0, 1000) : null;
+  const updates: Record<string, unknown> = {
+    status,
+    moderation_note: moderationNote || null,
+    moderated_by: staffCtx.identity.user.id,
+    moderated_at: new Date().toISOString(),
+    published_at: status === 'approved' ? new Date().toISOString() : null
+  };
+  const { data, error } = await staffCtx.serviceSupabase.from('peer_knowledge_posts').update(updates).eq('id', req.params.id).select('*').maybeSingle();
+  if (error) return res.status(500).json({ error: 'Unable to moderate this Peer Knowledge submission.' });
+  if (!data) return res.status(404).json({ error: 'Peer Knowledge submission not found.' });
+  if (data.user_id) await recordCrmActivity(staffCtx.serviceSupabase, data.user_id, staffCtx.identity.user.id, 'peer_knowledge_moderated', `Peer Knowledge submission ${status}`, { postId: data.id, status });
+  return res.json(data);
+}));
+
+adminRouter.delete('/peer-knowledge/:id', asyncHandler(async (req, res) => {
+  const staffCtx = await requireStaff(req, res);
+  if (!staffCtx) return;
+  const { data, error } = await staffCtx.serviceSupabase.from('peer_knowledge_posts').update({ status: 'archived', moderated_by: staffCtx.identity.user.id, moderated_at: new Date().toISOString(), published_at: null }).eq('id', req.params.id).select('id,status,user_id').maybeSingle();
+  if (error) return res.status(500).json({ error: 'Unable to archive this Peer Knowledge submission.' });
+  if (!data) return res.status(404).json({ error: 'Peer Knowledge submission not found.' });
+  if (data.user_id) await recordCrmActivity(staffCtx.serviceSupabase, data.user_id, staffCtx.identity.user.id, 'peer_knowledge_archived', 'Peer Knowledge submission archived', { postId: data.id });
+  return res.json({ success: true, id: data.id, status: data.status });
+}));
+
+function lifeGuidePayload(body: any, actorId: string, partial = false) {
+  const allowed = ['title', 'category', 'summary', 'steps', 'keyContactsOrLinks', 'status'] as const;
+  if (!requireExactObject(body, allowed)) return { error: 'Unexpected request fields.' };
+  const payload: Record<string, unknown> = { updated_by: actorId };
+  if (body.title !== undefined || !partial) {
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    if (title.length < 4 || title.length > 180) return { error: 'Title must be between 4 and 180 characters.' };
+    payload.title = title;
+  }
+  if (body.category !== undefined || !partial) {
+    if (!['healthcare', 'rights', 'social', 'mental_health', 'career', 'housing'].includes(body.category)) return { error: 'Choose a valid Life Guide category.' };
+    payload.category = body.category;
+  }
+  if (body.summary !== undefined || !partial) {
+    const summary = typeof body.summary === 'string' ? body.summary.trim() : '';
+    if (summary.length < 10 || summary.length > 500) return { error: 'Summary must be between 10 and 500 characters.' };
+    payload.summary = summary;
+  }
+  if (body.steps !== undefined || !partial) {
+    if (!Array.isArray(body.steps)) return { error: 'Steps must be an array.' };
+    const steps = body.steps.map((step: any, index: number) => ({
+      id: typeof step?.id === 'string' && step.id.trim() ? step.id.trim().slice(0, 80) : `s${index + 1}`,
+      text: typeof step?.text === 'string' ? step.text.trim().slice(0, 1000) : '',
+      completed: false
+    })).filter((step: any) => step.text).slice(0, 20);
+    if (steps.length < 2) return { error: 'Add at least two Life Guide steps.' };
+    payload.steps = steps;
+  }
+  if (body.keyContactsOrLinks !== undefined) {
+    if (!Array.isArray(body.keyContactsOrLinks)) return { error: 'Resources must be an array.' };
+    payload.key_contacts_or_links = body.keyContactsOrLinks.map((link: any) => ({
+      name: typeof link?.name === 'string' ? link.name.trim().slice(0, 100) : '',
+      detail: typeof link?.detail === 'string' ? link.detail.trim().slice(0, 240) : ''
+    })).filter((link: any) => link.name && link.detail).slice(0, 8);
+  }
+  if (body.status !== undefined) {
+    if (!['draft', 'published', 'archived'].includes(body.status)) return { error: 'Status must be draft, published, or archived.' };
+    payload.status = body.status;
+    payload.published_at = body.status === 'published' ? new Date().toISOString() : null;
+  } else if (!partial) {
+    payload.status = 'draft';
+  }
+  if (!partial) payload.created_by = actorId;
+  return { payload };
+}
+
+adminRouter.get('/life-guides', asyncHandler(async (req, res) => {
+  const staffCtx = await requireStaff(req, res);
+  if (!staffCtx) return;
+  const { data, error } = await staffCtx.serviceSupabase.from('life_guides').select('*').order('updated_at', { ascending: false }).limit(250);
+  if (error) return res.status(500).json({ error: 'Unable to load Life Guides.' });
+  return res.json(data ?? []);
+}));
+
+adminRouter.post('/life-guides', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res);
+  if (!adminCtx) return;
+  const parsed = lifeGuidePayload(req.body, adminCtx.identity.user.id);
+  if ('error' in parsed) return res.status(400).json({ error: parsed.error });
+  const { data, error } = await adminCtx.serviceSupabase.from('life_guides').insert(parsed.payload).select('*').single();
+  if (error) return res.status(500).json({ error: 'Unable to create Life Guide.' });
+  return res.status(201).json(data);
+}));
+
+adminRouter.patch('/life-guides/:id', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res);
+  if (!adminCtx) return;
+  const parsed = lifeGuidePayload(req.body, adminCtx.identity.user.id, true);
+  if ('error' in parsed) return res.status(400).json({ error: parsed.error });
+  const { data, error } = await adminCtx.serviceSupabase.from('life_guides').update(parsed.payload).eq('id', req.params.id).select('*').maybeSingle();
+  if (error) return res.status(500).json({ error: 'Unable to update Life Guide.' });
+  if (!data) return res.status(404).json({ error: 'Life Guide not found.' });
+  return res.json(data);
+}));
+
+adminRouter.delete('/life-guides/:id', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res);
+  if (!adminCtx) return;
+  const { data, error } = await adminCtx.serviceSupabase.from('life_guides').update({ status: 'archived', published_at: null, updated_by: adminCtx.identity.user.id }).eq('id', req.params.id).select('id,status').maybeSingle();
+  if (error) return res.status(500).json({ error: 'Unable to archive Life Guide.' });
+  if (!data) return res.status(404).json({ error: 'Life Guide not found.' });
+  return res.json({ success: true, id: data.id, status: data.status });
 }));
 
 adminRouter.get('/communications', asyncHandler(async (req, res) => {

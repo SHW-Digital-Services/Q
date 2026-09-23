@@ -71,7 +71,15 @@ export function saveMemoryProfile(profile: UserMemoryProfile): UserMemoryProfile
 
 // Life Guides
 export function getLifeGuides(userId?: string): LifeGuide[] {
-  return getItem<LifeGuide[]>(userScopedKey(KEYS.GUIDES, userId), INITIAL_LIFE_GUIDES);
+  const key = userScopedKey(KEYS.GUIDES, userId);
+  const stored = getItem<LifeGuide[] | null>(key, null);
+  if (!stored) return INITIAL_LIFE_GUIDES;
+  const existingIds = new Set(stored.map((guide) => guide.id));
+  const missingSeedGuides = INITIAL_LIFE_GUIDES.filter((guide) => !existingIds.has(guide.id));
+  if (missingSeedGuides.length === 0) return stored;
+  const merged = [...stored, ...missingSeedGuides];
+  setItem(key, merged);
+  return merged;
 }
 
 export function saveLifeGuide(guide: LifeGuide, userId?: string): LifeGuide[] {

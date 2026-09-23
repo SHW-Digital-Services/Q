@@ -12,6 +12,8 @@ import { createRateLimitMiddleware } from './security.js';
 import { privacyRouter } from './routes/privacy.js';
 import { premiumRouter } from './routes/premium.js';
 import { contentRouter } from './routes/content.js';
+import { peerKnowledgeRouter } from './routes/peerKnowledge.js';
+import { lifeGuidesRouter } from './routes/lifeGuides.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -160,6 +162,8 @@ app.use('/api/referrals', referralsRouter);
 app.use('/api/privacy', privacyRouter);
 app.use('/api/premium', premiumRouter);
 app.use('/api/content', contentRouter);
+app.use('/api/peer-knowledge', peerKnowledgeRouter);
+app.use('/api/life-guides', lifeGuidesRouter);
 app.use('/legal', legalRouter);
 
 app.use(['/api', '/api/*', '/legal', '/legal/*'], (req, res) => {

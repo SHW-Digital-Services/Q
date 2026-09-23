@@ -12,78 +12,76 @@ export const DEFAULT_USER_PROFILE: UserMemoryProfile = {
   privacyLevel: 'high'
 };
 
-export const INITIAL_LIFE_GUIDES: LifeGuide[] = [
-  {
-    id: 'g-1',
-    title: 'Finding & Vetting Affirming Healthcare Providers',
-    category: 'healthcare',
-    summary: 'A structured framework for identifying culturally competent doctors, therapists, and gender-affirming medical specialists.',
-    steps: [
-      { id: 's1', text: 'Search WPATH directory or GLMA Provider Directory for licensed local specialists', completed: false },
-      { id: 's2', text: 'Call clinic intake to ask explicit questions about pronoun intake & insurance pre-authorization', completed: false },
-      { id: 's3', text: 'Prepare your medical summary sheet including current prescriptions and affirming terminology preferences', completed: false },
-      { id: 's4', text: 'Request a designated advocate or support person to attend initial intake if comfortable', completed: false }
-    ],
-    keyContactsOrLinks: [
-      { name: 'GLMA Provider Directory', detail: 'glma.org - Health Professionals Advancing LGBTQ+ Equality' },
-      { name: 'WPATH Directory', detail: 'wpath.org - World Professional Association for Transgender Health' }
-    ],
-    savedOffline: false,
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'g-2',
-    title: 'Navigating Workplace Coming Out & Name Updates',
-    category: 'career',
-    summary: 'Protecting your rights, setting boundaries, and requesting HR record adjustments safely in corporate or remote environments.',
-    steps: [
-      { id: 's1', text: 'Review company non-discrimination policy and local labor protections', completed: false },
-      { id: 's2', text: 'Draft a concise email to HR regarding display name & email alias updates prior to legal name changes', completed: false },
-      { id: 's3', text: 'Identify supportive allies or ERG (Employee Resource Group) leads in your workplace', completed: false },
-      { id: 's4', text: 'Establish clear communication guidelines for email signatures and team meetings', completed: false }
-    ],
-    keyContactsOrLinks: [
-      { name: 'Human Rights Campaign Workplace Equality', detail: 'hrc.org/resources/workplace' },
-      { name: 'Out & Equal Workplace Advocates', detail: 'outandequal.org' }
-    ],
-    savedOffline: false,
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'g-3',
-    title: 'Safe Travel & Regional Rights Navigator',
-    category: 'rights',
-    summary: 'Essential checklist for airport security (TSA), international legal protections, emergency contacts, and safe housing.',
-    steps: [
-      { id: 's1', text: 'Verify destination legal climate using ILGA World maps and travel advisories', completed: false },
-      { id: 's2', text: 'Ensure legal identity documents match ticket names to avoid TSA discrepancies', completed: false },
-      { id: 's3', text: 'Store digital copies of prescriptions and medical letters in encrypted offline vault', completed: false },
-      { id: 's4', text: 'Save local emergency numbers and embassy contacts for travel destination', completed: false }
-    ],
-    keyContactsOrLinks: [
-      { name: 'ILGA World Maps', detail: 'ilga.org - World maps on sexual orientation laws' },
-      { name: 'Equaldex Legal Index', detail: 'equaldex.com - Collaborative LGBT rights knowledge base' }
-    ],
-    savedOffline: false,
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'g-4',
-    title: 'Building Authentic Queer Friendship & Community',
-    category: 'social',
-    summary: 'Moving beyond dating apps: strategies for discovering local interest groups, queer sports leagues, and mutual aid spaces.',
-    steps: [
-      { id: 's1', text: 'Search local LGBTQ+ community center activity calendar', completed: false },
-      { id: 's2', text: 'Attend an event centered on a specific hobby (book club, gaming, outdoor activities)', completed: false },
-      { id: 's3', text: 'Initiate 1-on-1 coffee or virtual check-ins after second group meetup', completed: false }
-    ],
-    keyContactsOrLinks: [
-      { name: 'CenterLink Directory', detail: 'lgbtcenters.org - Network of LGBTQ Centers worldwide' }
-    ],
-    savedOffline: false,
-    updatedAt: new Date().toISOString()
-  }
+const lifeGuideTopics: Array<{ title: string; category: LifeGuide['category']; summary: string; links?: { name: string; detail: string }[] }> = [
+  { title: 'Finding and Vetting Affirming Healthcare Providers', category: 'healthcare', summary: 'Identify, screen and prepare for care with clinicians who respect LGBTQ+ identities.', links: [{ name: 'GLMA Provider Directory', detail: 'glma.org' }, { name: 'WPATH Directory', detail: 'wpath.org' }] },
+  { title: 'Preparing for a First Gender-Affirming Care Appointment', category: 'healthcare', summary: 'Build notes, questions, support and follow-up plans for a first appointment.' },
+  { title: 'Asking for a Second Opinion', category: 'healthcare', summary: 'Understand when and how to seek another clinical view without losing momentum.' },
+  { title: 'Medication and Prescription Organisation', category: 'healthcare', summary: 'Track prescriptions, refills, side effects and pharmacy questions safely.' },
+  { title: 'Mental Health Provider Intake Checklist', category: 'mental_health', summary: 'Screen counsellors or therapists for fit, consent, identity respect and scope.' },
+  { title: 'Dysphoria Day Reset Plan', category: 'mental_health', summary: 'Create a practical plan for getting through a difficult dysphoria day with care.' },
+  { title: 'Anxiety Before an Appointment', category: 'mental_health', summary: 'Reduce appointment anxiety with scripts, grounding and a clear priority list.' },
+  { title: 'Building a Personal Crisis Support Map', category: 'mental_health', summary: 'Map trusted people, professional services and immediate stabilising actions.' },
+  { title: 'Coming Out to One Trusted Person', category: 'social', summary: 'Choose timing, words, boundaries and aftercare for a first disclosure.' },
+  { title: 'Coming Out to Family as an Adult', category: 'social', summary: 'Plan family conversations while protecting privacy, housing and emotional safety.' },
+  { title: 'Setting Pronoun Boundaries', category: 'social', summary: 'Create correction scripts, ally support and limits around repeated misgendering.' },
+  { title: 'Handling Unsupportive Relatives', category: 'social', summary: 'Protect yourself around difficult relatives with boundaries and exit plans.' },
+  { title: 'Building Chosen Family', category: 'social', summary: 'Find, nurture and maintain supportive relationships at a manageable pace.' },
+  { title: 'Joining a Community Group Safely', category: 'social', summary: 'Evaluate moderation, privacy and accessibility before joining a new group.' },
+  { title: 'Navigating Dating Apps Safely', category: 'social', summary: 'Set dating-app boundaries, privacy settings and first-meeting safety plans.' },
+  { title: 'Repairing a Friendship After Harm', category: 'social', summary: 'Prepare repair conversations and decide whether closeness is still healthy.' },
+  { title: 'Workplace Name and Pronoun Updates', category: 'career', summary: 'Coordinate HR, IT, managers and team communication for identity updates.' },
+  { title: 'Preparing a Workplace Disclosure Plan', category: 'career', summary: 'Decide what to share, with whom and through which workplace channel.' },
+  { title: 'Documenting Workplace Discrimination', category: 'career', summary: 'Keep clear records and identify internal or external support routes.' },
+  { title: 'Finding an Inclusive Employer', category: 'career', summary: 'Review policies, benefits, culture signals and interview questions.' },
+  { title: 'Interviewing While Protecting Privacy', category: 'career', summary: 'Plan names, documents, gaps, references and disclosure choices during hiring.' },
+  { title: 'Remote Work Identity Safety', category: 'career', summary: 'Manage display names, cameras, chat tools and remote-team boundaries.' },
+  { title: 'Legal Name Change Planning', category: 'rights', summary: 'Sequence forms, evidence, fees and follow-up for a name change process.' },
+  { title: 'Gender Marker Document Updates', category: 'rights', summary: 'Track requirements and dependencies across official records.' },
+  { title: 'Understanding Local LGBTQ+ Rights', category: 'rights', summary: 'Find reliable rights information and save relevant contacts.' },
+  { title: 'Reporting Hate or Harassment', category: 'rights', summary: 'Decide whether and how to report while preserving evidence and safety.' },
+  { title: 'Travel Safety and Regional Rights', category: 'rights', summary: 'Prepare documents, prescriptions, contacts and risk checks before travel.', links: [{ name: 'ILGA World', detail: 'ilga.org' }, { name: 'Equaldex', detail: 'equaldex.com' }] },
+  { title: 'Airport Security Preparation', category: 'rights', summary: 'Prepare documents, medications, body-scanner concerns and support contacts.' },
+  { title: 'Housing Search Safety', category: 'housing', summary: 'Screen listings, landlords, roommates and neighbourhoods before committing.' },
+  { title: 'Roommate Boundaries and Privacy', category: 'housing', summary: 'Set household agreements around guests, names, privacy and shared space.' },
+  { title: 'Preparing for a Move', category: 'housing', summary: 'Plan documents, utilities, medication, support and moving-day safety.' },
+  { title: 'Emergency Housing Backup Plan', category: 'housing', summary: 'Identify temporary stays, transport, essential documents and support routes.' },
+  { title: 'Tenant Rights Preparation', category: 'housing', summary: 'Store lease records, payment proof and local advice contacts.' },
+  { title: 'Living With Family While Planning Independence', category: 'housing', summary: 'Plan privacy, documents, money and timelines while sharing a home.' },
+  { title: 'Digital Privacy Audit', category: 'rights', summary: 'Review public accounts, location traces, photos and linked identities.' },
+  { title: 'Online Community Safety', category: 'social', summary: 'Join online spaces with moderation checks, privacy boundaries and exit plans.' },
+  { title: 'Managing Social Media Disclosure', category: 'rights', summary: 'Choose what to share, who can see it and how to protect others consent.' },
+  { title: 'Building a Transition Budget', category: 'housing', summary: 'Estimate costs, sort priorities and find practical support routes.' },
+  { title: 'Finding Financial Support or Mutual Aid', category: 'housing', summary: 'Search for grants, community funds and support without overexposing yourself.' },
+  { title: 'Preparing for a Family Gathering', category: 'social', summary: 'Plan transport, boundaries, ally support and recovery around gatherings.' },
+  { title: 'Creating a Personal Safety Plan', category: 'mental_health', summary: 'Map warning signs, supports, grounding actions and professional resources.' },
+  { title: 'Supporting a Partner Through Change', category: 'social', summary: 'Offer support while protecting consent, boundaries and your own wellbeing.' },
+  { title: 'Exploring Identity Language Privately', category: 'mental_health', summary: 'Experiment with language, labels and expression without pressure to announce.' },
+  { title: 'Trying New Clothes or Presentation', category: 'social', summary: 'Plan low-pressure experiments in expression, fit, budget and safety.' },
+  { title: 'Faith or Cultural Community Conversations', category: 'social', summary: 'Prepare conversations where identity, culture, family and belief overlap.' },
+  { title: 'School or University Chosen Name Requests', category: 'rights', summary: 'Navigate portals, staff contacts, records and privacy at school or university.' },
+  { title: 'Healthcare Insurance Pre-Authorisation', category: 'healthcare', summary: 'Track insurer requirements, letters, referrals and appeal options.' },
+  { title: 'Preparing an Appeal or Complaint', category: 'rights', summary: 'Organise evidence, timelines, desired outcomes and escalation contacts.' },
+  { title: 'Making a Rest and Recovery Routine', category: 'mental_health', summary: 'Build repeatable routines for rest, overload and emotional recovery.' },
+  { title: 'Planning a Joyful Milestone', category: 'social', summary: 'Mark personal progress in a way that fits your privacy, culture and safety.' }
 ];
+
+export const INITIAL_LIFE_GUIDES: LifeGuide[] = lifeGuideTopics.map((topic, index) => ({
+  id: `g-${index + 1}`,
+  title: topic.title,
+  category: topic.category,
+  summary: topic.summary,
+  steps: [
+    { id: 's1', text: 'Clarify the goal, urgency and what would feel safe enough for the next step.', completed: false },
+    { id: 's2', text: 'Gather verified information, local rules, relevant documents and any support contacts.', completed: false },
+    { id: 's3', text: 'Write down your boundaries, privacy needs and the details you do not want to share.', completed: false },
+    { id: 's4', text: 'Prepare a short script, checklist or question list before taking action.', completed: false },
+    { id: 's5', text: 'Choose one practical next step that fits your current energy and safety.', completed: false },
+    { id: 's6', text: 'Review what happened, save useful evidence and decide whether to continue, pause or get more support.', completed: false }
+  ],
+  keyContactsOrLinks: topic.links,
+  savedOffline: false,
+  updatedAt: new Date().toISOString()
+}));
 
 export const INITIAL_LIVED_EXPERIENCES: LivedExperienceStory[] = [
   {

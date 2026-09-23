@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2, Newspaper } from 'lucide-react';
+import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2, Newspaper, BookOpen } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 import { ContentPost } from '../types';
 
@@ -97,6 +97,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     tags: '',
     heroImageUrl: ''
   });
+  const [peerSubmissions, setPeerSubmissions] = useState<any[]>([]);
+  const [peerMessage, setPeerMessage] = useState<string | null>(null);
+  const [lifeGuides, setLifeGuides] = useState<any[]>([]);
+  const [lifeGuideMessage, setLifeGuideMessage] = useState<string | null>(null);
+  const [lifeGuideForm, setLifeGuideForm] = useState({ title: '', category: 'social', summary: '', steps: '', status: 'draft' });
 
   // Staff-triggered temporary password state
   const [directEmail, setDirectEmail] = useState('');
@@ -530,12 +535,85 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     }
   };
 
+  const loadPeerSubmissions = async () => {
+    try {
+      const response = await fetch('/api/v1/admin/peer-knowledge', { headers: await getAuthHeaders() });
+      setPeerSubmissions(await parseJsonResponse(response));
+    } catch (error: any) {
+      setPeerMessage(error.message || 'Unable to load Peer Knowledge submissions.');
+    }
+  };
+
+  const moderatePeerSubmission = async (submission: any, status: 'approved' | 'rejected' | 'archived') => {
+    setPeerMessage(null);
+    try {
+      const response = await fetch(`/api/v1/admin/peer-knowledge/${submission.id}`, {
+        method: status === 'archived' ? 'DELETE' : 'PATCH',
+        headers: await getAuthHeaders(),
+        body: status === 'archived' ? undefined : JSON.stringify({ status, moderationNote: '' })
+      });
+      const updated = await parseJsonResponse(response);
+      if (status === 'archived') setPeerSubmissions(current => current.filter(item => item.id !== submission.id));
+      else setPeerSubmissions(current => current.map(item => item.id === updated.id ? updated : item));
+      setPeerMessage(`Peer Knowledge submission ${status}.`);
+    } catch (error: any) {
+      setPeerMessage(error.message || 'Unable to moderate submission.');
+    }
+  };
+
+  const loadLifeGuides = async () => {
+    try {
+      const response = await fetch('/api/v1/admin/life-guides', { headers: await getAuthHeaders() });
+      setLifeGuides(await parseJsonResponse(response));
+    } catch (error: any) {
+      setLifeGuideMessage(error.message || 'Unable to load Life Guides.');
+    }
+  };
+
+  const saveCrmLifeGuide = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLifeGuideMessage(null);
+    try {
+      const steps = lifeGuideForm.steps.split('\n').map((text, index) => ({ id: `s${index + 1}`, text: text.trim() })).filter(step => step.text);
+      const response = await fetch('/api/v1/admin/life-guides', {
+        method: 'POST',
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ title: lifeGuideForm.title, category: lifeGuideForm.category, summary: lifeGuideForm.summary, steps, keyContactsOrLinks: [], status: lifeGuideForm.status })
+      });
+      const guide = await parseJsonResponse(response);
+      setLifeGuides(current => [guide, ...current]);
+      setLifeGuideForm({ title: '', category: 'social', summary: '', steps: '', status: 'draft' });
+      setLifeGuideMessage('Life Guide saved.');
+    } catch (error: any) {
+      setLifeGuideMessage(error.message || 'Unable to save Life Guide.');
+    }
+  };
+
+  const lifeGuideAction = async (guide: any, status: 'published' | 'draft' | 'archived') => {
+    setLifeGuideMessage(null);
+    try {
+      const response = await fetch(`/api/v1/admin/life-guides/${guide.id}`, {
+        method: status === 'archived' ? 'DELETE' : 'PATCH',
+        headers: await getAuthHeaders(),
+        body: status === 'archived' ? undefined : JSON.stringify({ status })
+      });
+      const updated = await parseJsonResponse(response);
+      if (status === 'archived') setLifeGuides(current => current.filter(item => item.id !== guide.id));
+      else setLifeGuides(current => current.map(item => item.id === updated.id ? updated : item));
+      setLifeGuideMessage(status === 'published' ? 'Life Guide published.' : status === 'draft' ? 'Life Guide returned to draft.' : 'Life Guide archived.');
+    } catch (error: any) {
+      setLifeGuideMessage(error.message || 'Unable to update Life Guide.');
+    }
+  };
+
   useEffect(() => {
     getAuthHeaders().then((headers) => fetch('/api/v1/admin/me', { headers })).then(parseJsonResponse).then((data) => setStaffRole(data.role)).catch((error) => setCrmMessage(error.message));
     void loadRequests();
     void loadCrm();
     void loadProducts();
     void loadContactRequests();
+    void loadPeerSubmissions();
+    void loadLifeGuides();
   }, []);
 
   useEffect(() => { if (staffRole === 'partner_admin') void loadStaff(); }, [staffRole]);
@@ -678,6 +756,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             ))}
           </div>
         </section>}
+
+        <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><Users className="h-4 w-4 text-emerald-300" /><p className="text-sm font-semibold">Peer Knowledge moderation</p></div><p className="mt-1 text-sm text-slate-400">Review user contributions before they appear in Peer Knowledge. Approved posts are public; rejected or archived posts remain out of the app.</p></div><button type="button" onClick={() => void loadPeerSubmissions()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh Peer Knowledge moderation"><RefreshCw className="h-4 w-4" /></button></div>
+          {peerMessage && <p className="mt-3 rounded-xl bg-emerald-500/10 p-3 text-xs text-emerald-100">{peerMessage}</p>}
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {peerSubmissions.length === 0 ? <p className="text-xs text-slate-400">No Peer Knowledge submissions yet.</p> : peerSubmissions.map(submission => <article key={submission.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+              <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${submission.status === 'approved' ? 'bg-emerald-500/15 text-emerald-200' : submission.status === 'rejected' ? 'bg-rose-500/15 text-rose-200' : 'bg-amber-500/15 text-amber-200'}`}>{submission.status}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{submission.category}</span></div>
+              <h3 className="mt-2 text-sm font-bold text-white">{submission.title}</h3>
+              <p className="mt-1 text-xs text-slate-400">{submission.author_alias || 'Community Peer'} · {new Date(submission.created_at).toLocaleString()}</p>
+              <p className="mt-3 line-clamp-4 whitespace-pre-wrap rounded-xl bg-slate-950/70 p-3 text-xs leading-relaxed text-slate-200">{submission.content}</p>
+              <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => void moderatePeerSubmission(submission, 'approved')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Approve</button><button type="button" onClick={() => void moderatePeerSubmission(submission, 'rejected')} className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white">Reject</button><button type="button" onClick={() => void moderatePeerSubmission(submission, 'archived')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Archive</button></div>
+            </article>)}
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><BookOpen className="h-4 w-4 text-orange-300" /><p className="text-sm font-semibold">Life Guides catalogue</p></div><p className="mt-1 text-sm text-slate-400">Create, publish, unpublish and archive Life Guides without API keys. Published guides appear in the Life Guides section.</p></div><button type="button" onClick={() => void loadLifeGuides()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh Life Guides"><RefreshCw className="h-4 w-4" /></button></div>
+          {lifeGuideMessage && <p className="mt-3 rounded-xl bg-orange-500/10 p-3 text-xs text-orange-100">{lifeGuideMessage}</p>}
+          {staffRole === 'partner_admin' && <form onSubmit={saveCrmLifeGuide} className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 md:grid-cols-6">
+            <input required maxLength={180} value={lifeGuideForm.title} onChange={event => setLifeGuideForm({ ...lifeGuideForm, title: event.target.value })} placeholder="Guide title" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-3" />
+            <select value={lifeGuideForm.category} onChange={event => setLifeGuideForm({ ...lifeGuideForm, category: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="healthcare">Healthcare</option><option value="rights">Rights</option><option value="social">Social</option><option value="mental_health">Mental health</option><option value="career">Career</option><option value="housing">Housing</option></select>
+            <select value={lifeGuideForm.status} onChange={event => setLifeGuideForm({ ...lifeGuideForm, status: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="draft">Draft</option><option value="published">Published</option></select>
+            <textarea required maxLength={500} value={lifeGuideForm.summary} onChange={event => setLifeGuideForm({ ...lifeGuideForm, summary: event.target.value })} placeholder="Short summary" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white md:col-span-3" />
+            <textarea required value={lifeGuideForm.steps} onChange={event => setLifeGuideForm({ ...lifeGuideForm, steps: event.target.value })} placeholder="One step per line" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white md:col-span-2" />
+            <button className="rounded-xl bg-orange-600 px-3 py-2 text-xs font-bold text-white">Save guide</button>
+          </form>}
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {lifeGuides.length === 0 ? <p className="text-xs text-slate-400">No CRM-managed Life Guides yet.</p> : lifeGuides.map(guide => <article key={guide.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+              <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${guide.status === 'published' ? 'bg-emerald-500/15 text-emerald-200' : 'bg-amber-500/15 text-amber-200'}`}>{guide.status}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{guide.category}</span></div>
+              <h3 className="mt-2 text-sm font-bold text-white">{guide.title}</h3>
+              <p className="mt-1 line-clamp-2 text-xs text-slate-400">{guide.summary}</p>
+              <div className="mt-3 flex flex-wrap gap-2">{guide.status === 'published' ? <button type="button" onClick={() => void lifeGuideAction(guide, 'draft')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Unpublish</button> : <button type="button" onClick={() => void lifeGuideAction(guide, 'published')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Publish</button>}<button type="button" onClick={() => void lifeGuideAction(guide, 'archived')} className="rounded-xl bg-rose-600/80 px-3 py-2 text-xs font-bold text-white">Archive</button></div>
+            </article>)}
+          </div>
+        </section>
 
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><MessageSquareText className="h-4 w-4 text-sky-300" /><p className="text-sm font-semibold">Support inbox</p></div><p className="mt-1 text-sm text-slate-400">Questions sent from the login screen. Draft a response, open it in your staff email client, then update the CRM status.</p></div><button type="button" onClick={() => void loadContactRequests()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh support inbox"><RefreshCw className="h-4 w-4" /></button></div>
@@ -928,6 +1041,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                   <div className="mt-4 max-h-72 space-y-2 overflow-y-auto">{(customer.communications ?? []).length === 0 ? <p className="text-xs text-slate-400">No communications logged for this account yet.</p> : customer.communications.map((item: CrmCommunication) => <article key={item.id} className="rounded-xl border border-white/10 bg-slate-900/70 p-3"><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${item.direction === 'inbound' ? 'bg-sky-500/15 text-sky-200' : 'bg-emerald-500/15 text-emerald-200'}`}>{item.direction}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{item.channel} · {item.status}</span><span className="ml-auto text-[10px] text-slate-500">{new Date(item.created_at).toLocaleString()}</span></div><p className="mt-2 text-xs text-slate-300">{item.direction === 'inbound' ? item.sender_email || 'Unknown sender' : item.recipient_email || 'Unknown recipient'}{item.subject ? ` · ${item.subject}` : ''}</p><p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-400">{item.body}</p></article>)}</div>
                 </section>
                 {taskModalOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 p-4"><form onSubmit={createTask} className="w-full max-w-lg rounded-2xl border border-white/15 bg-slate-900 p-5 shadow-2xl"><div className="flex items-center justify-between"><h3 className="text-lg font-bold text-white">Create task</h3><button type="button" onClick={() => setTaskModalOpen(false)} className="rounded-full p-2 text-slate-400 hover:bg-white/10"><X className="h-4 w-4" /></button></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><input required value={taskForm.title} onChange={event => setTaskForm({ ...taskForm, title: event.target.value })} placeholder="Task title" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white sm:col-span-2" /><textarea value={taskForm.description} onChange={event => setTaskForm({ ...taskForm, description: event.target.value })} placeholder="Description" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white sm:col-span-2" /><label className="text-xs text-slate-400">Status<select value={taskForm.status} onChange={event => setTaskForm({ ...taskForm, status: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="open">Open</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label><label className="text-xs text-slate-400">Priority<select value={taskForm.priority} onChange={event => setTaskForm({ ...taskForm, priority: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></label><label className="text-xs text-slate-400">Start date<input type="datetime-local" value={taskForm.startAt} onChange={event => setTaskForm({ ...taskForm, startAt: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white" /></label><label className="text-xs text-slate-400">Due date<input type="datetime-local" value={taskForm.dueAt} onChange={event => setTaskForm({ ...taskForm, dueAt: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white" /></label><label className="text-xs text-slate-400 sm:col-span-2">Assigned to<select value={taskForm.assignedTo} onChange={event => setTaskForm({ ...taskForm, assignedTo: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="">Me</option>{staffAccounts.map(account => <option key={account.id} value={account.id}>{account.preferred_name || account.email} ({account.role})</option>)}</select></label></div><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={() => setTaskModalOpen(false)} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200">Cancel</button><button type="submit" className="rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white">Create task</button></div></form></div>}
+                <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center gap-2 text-white"><Users className="h-4 w-4 text-emerald-300" /><h3 className="font-bold">Peer Knowledge contributions</h3></div><p className="mt-1 text-xs text-slate-400">Customer-submitted Peer Knowledge entries and moderation status.</p><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{(customer.peerKnowledgeContributions ?? []).length === 0 ? <p className="text-xs text-slate-400">No Peer Knowledge contributions for this account.</p> : customer.peerKnowledgeContributions.map((item:any)=><article key={item.id} className="rounded-xl border border-white/10 bg-slate-900/70 p-3"><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${item.status === 'approved' ? 'bg-emerald-500/15 text-emerald-200' : item.status === 'rejected' ? 'bg-rose-500/15 text-rose-200' : 'bg-amber-500/15 text-amber-200'}`}>{item.status}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{item.category}</span><span className="ml-auto text-[10px] text-slate-500">{new Date(item.created_at).toLocaleString()}</span></div><p className="mt-2 text-xs font-bold text-white">{item.title}</p><p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-slate-400">{item.content}</p></article>)}</div></section>
                 <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Task table</h3><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-xs"><thead className="border-b border-white/10 text-[10px] uppercase tracking-wider text-slate-500"><tr><th className="p-2">Task</th><th className="p-2">Status</th><th className="p-2">Priority</th><th className="p-2">Start</th><th className="p-2">Due</th><th className="p-2">Assigned to</th></tr></thead><tbody>{customer.tasks.length === 0 ? <tr><td colSpan={6} className="p-4 text-center text-slate-400">No tasks for this account.</td></tr> : customer.tasks.map((task: any) => <tr key={task.id} className="border-b border-white/10 text-slate-300"><td className="p-2"><p className="font-semibold text-white">{task.title}</p>{task.description && <p className="mt-1 max-w-xs truncate text-[10px] text-slate-500">{task.description}</p>}</td><td className="p-2"><span className="rounded-full bg-purple-500/15 px-2 py-1 text-[10px] font-bold text-purple-200">{String(task.status || 'open').replace('_', ' ')}</span></td><td className="p-2">{task.priority || 'normal'}</td><td className="p-2">{task.starts_at ? new Date(task.starts_at).toLocaleString() : '—'}</td><td className="p-2">{task.due_at ? new Date(task.due_at).toLocaleString() : '—'}</td><td className="p-2">{task.assigned_to || 'Unassigned'}</td></tr>)}</tbody></table></div></section>
                 <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Edit task</h3><p className="mt-1 text-xs text-slate-400">Select a task to open its edit form.</p><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[680px] text-left text-xs"><thead className="text-[10px] uppercase tracking-wider text-slate-500"><tr><th className="p-2">Task</th><th className="p-2">Status</th><th className="p-2">Priority</th><th className="p-2">Start</th><th className="p-2">Due</th><th className="p-2">Assignee</th></tr></thead><tbody>{customer.tasks.map((task: any) => <tr key={`edit-${task.id}`} onClick={() => { setSelectedTask(task); setTaskForm({ title: task.title || '', description: task.description || '', status: task.status || 'open', priority: task.priority || 'normal', startAt: task.starts_at ? new Date(task.starts_at).toISOString().slice(0, 16) : '', dueAt: task.due_at ? new Date(task.due_at).toISOString().slice(0, 16) : '', assignedTo: task.assigned_to || '' }); setTaskModalOpen(true); }} className="cursor-pointer border-t border-white/10 text-slate-300 hover:bg-purple-500/10"><td className="p-2 font-semibold text-white">{task.title}</td><td className="p-2">{String(task.status || 'open').replace('_', ' ')}</td><td className="p-2">{task.priority || 'normal'}</td><td className="p-2">{task.starts_at ? new Date(task.starts_at).toLocaleDateString() : '—'}</td><td className="p-2">{task.due_at ? new Date(task.due_at).toLocaleDateString() : '—'}</td><td className="p-2">{task.assigned_to || 'Unassigned'}</td></tr>)}</tbody></table></div></section>
               </>}
