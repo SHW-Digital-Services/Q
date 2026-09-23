@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { ExternalLink, Settings } from 'lucide-react';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { QAssistantView } from './components/QAssistantView';
@@ -75,6 +75,7 @@ export default function App() {
   const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
   const [canAccessCrm, setCanAccessCrm] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [isProgrammeCourseOpen, setIsProgrammeCourseOpen] = useState(false);
   const [launchEnabled, setLaunchEnabled] = useState(false);
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
 
@@ -241,6 +242,8 @@ export default function App() {
 
   // Handle Tab Switch with Journal Scope Lock
   const handleTabChange = (newTab: ActiveTab) => {
+    setIsAdminPanelOpen(false);
+    setIsProgrammeCourseOpen(false);
     if (
       newTab === 'journal' &&
       securitySettings.enabled &&
@@ -250,6 +253,9 @@ export default function App() {
     }
     setActiveTab(newTab);
   };
+  const handleProgrammeCourseOpenChange = useCallback((open: boolean) => {
+    setIsProgrammeCourseOpen(open);
+  }, []);
 
   // Auto-Lock on Window Blur / Visibility Change
   useEffect(() => {
@@ -370,10 +376,11 @@ export default function App() {
 
         {/* Main Content Viewport */}
         <main className="flex-1 p-3 sm:p-5 lg:p-6">
-          {activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
-          {activeTab === 'guides' && <><GuidedProgrammes /><LifeGuidesView /></>}
-          {activeTab === 'stories' && <LivedExperiencesView />}
-          {activeTab === 'journal' && (
+          {isAdminPanelOpen && canAccessCrm && <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} />}
+          {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
+          {!isAdminPanelOpen && activeTab === 'guides' && <><GuidedProgrammes onCourseOpenChange={handleProgrammeCourseOpenChange} />{!isProgrammeCourseOpen && <LifeGuidesView />}</>}
+          {!isAdminPanelOpen && activeTab === 'stories' && <LivedExperiencesView />}
+          {!isAdminPanelOpen && activeTab === 'journal' && (
             <JournalView
               userId={currentUser.id}
               onAskQSupport={() => {
@@ -381,8 +388,8 @@ export default function App() {
               }}
             />
           )}
-          {activeTab === 'profile' && <ContinuitySettings />}
-          {activeTab === 'profile' && (
+          {!isAdminPanelOpen && activeTab === 'profile' && <ContinuitySettings />}
+          {!isAdminPanelOpen && activeTab === 'profile' && (
             <ProfileView
               currentUser={currentUser}
               onUserChanged={(user) => setCurrentUser(user)}
@@ -396,7 +403,7 @@ export default function App() {
               onSignOut={handleSignOut}
             />
           )}
-          {activeTab === 'help' && (
+          {!isAdminPanelOpen && activeTab === 'help' && (
             <HelpView
               onNavigate={setActiveTab}
               onOpenCrisis={() => setIsCrisisOpen(true)}
@@ -424,13 +431,10 @@ export default function App() {
       {/* Modals */}
       <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
       <button onClick={enableCamouflage} className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] right-4 z-40 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 shadow-md hover:bg-slate-700 sm:bottom-4">{t('disguise')} (Alt+M)</button>
-      {canAccessCrm && !isLockActive && (
+      {canAccessCrm && !isLockActive && !isAdminPanelOpen && (
         <button type="button" onClick={() => setIsAdminPanelOpen(true)} aria-label="Open staff CRM" title="Open staff CRM" className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] left-4 z-40 rounded-full border border-violet-300/40 bg-slate-900/90 p-3 text-white shadow-xl backdrop-blur transition hover:bg-violet-900 sm:bottom-4">
           <Settings className="h-5 w-5" />
         </button>
-      )}
-      {canAccessCrm && isAdminPanelOpen && !isLockActive && (
-        <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} />
       )}
       <BackupModal
         isOpen={isBackupOpen}

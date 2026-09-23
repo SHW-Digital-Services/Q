@@ -638,8 +638,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-white/15 bg-slate-950/95 p-6 shadow-2xl">
+    <div className="mx-auto w-full max-w-6xl rounded-3xl border border-white/15 bg-slate-950 p-4 text-slate-100 shadow-2xl sm:p-6">
+      <div>
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-purple-200">
@@ -649,8 +649,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             <h2 className="mt-2 text-xl font-bold text-white">Q Customer Operations</h2>
             <p className="mt-1 text-sm text-slate-300">Manage customers, subscriptions, payments, tasks, and support activity.</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-2 text-slate-400 transition hover:bg-white/10 hover:text-white">
-            <Settings className="h-5 w-5" />
+          <button type="button" onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white">
+            Back to app
           </button>
         </div>
 

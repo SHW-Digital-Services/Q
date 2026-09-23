@@ -20,12 +20,24 @@ export function validSnapshot(payload:unknown):boolean {
   }));
 }
 
-export const programmes = [
-  { id: 'boundaries', title: 'Boundaries that feel like you', summary: 'Four short sessions to identify, communicate and review a personal boundary.', sessions: [
-    { title: 'Notice what matters', body: 'Think of a recent interaction that left you comfortable or drained. Notice what you needed, without judging yourself.', prompt: 'What would I like more or less of in that situation?', action: 'Choose one boundary you would like to explore.' },
-    { title: 'Find your words', body: 'A boundary can describe what you will do. Keep it clear and specific: “If the conversation becomes personal, I will take a break.”', prompt: 'How could I express my boundary in my own words?', action: 'Write one sentence you could use.' },
-    { title: 'Choose a safe next step', body: 'You decide whether, when and how to communicate. You can practise privately or talk to someone you trust first. You do not owe anyone disclosure.', prompt: 'What would help me feel supported, and is now a safe time?', action: 'Choose a small step, or deliberately choose to wait.' },
-    { title: 'Reflect and adjust', body: 'Boundaries may need practice and revision. Another person’s reaction does not determine whether your needs matter.', prompt: 'What worked, what felt difficult, and what would I change?', action: 'Record one thing to carry forward.' }
+type ProgrammeSession = { title: string; body: string; prompt: string; action: string; activityType?: string };
+type Programme = { id: string; title: string; summary: string; sessions: ProgrammeSession[] };
+
+const courseCompleter = (title: string): ProgrammeSession[] => [
+  { title: 'Set your baseline', body: `Pause before continuing ${title}. Name what already feels clear, what feels uncertain and what would make the work feel manageable today.`, prompt: 'What am I bringing into this course right now?', action: 'Write a short baseline note before choosing your next step.', activityType: 'Self-check' },
+  { title: 'Choose your support conditions', body: 'Good personal work includes conditions that make it easier to stop, pause or ask for help. Decide what support, privacy and timing you need.', prompt: 'What conditions would make this safer or easier to practise?', action: 'List two support conditions you want in place.', activityType: 'Planning' },
+  { title: 'Practise a low-risk version', body: 'Try the smallest useful version of the skill before using it in a higher-pressure setting. Rehearsal counts as progress.', prompt: 'What would a low-risk rehearsal look like?', action: 'Choose one rehearsal you can do privately or with someone trusted.', activityType: 'Practice' },
+  { title: 'Handle friction', body: 'Most plans meet some friction. Prepare for hesitation, disagreement, fatigue or a change in circumstances without treating that as failure.', prompt: 'What could get in the way, and how could I respond kindly?', action: 'Write one if-then plan for a likely obstacle.', activityType: 'Scenario' },
+  { title: 'Review the evidence', body: 'Look for evidence of effort, learning and self-respect, not only a perfect outcome. Decide what information this attempt gave you.', prompt: 'What did I learn from this attempt or rehearsal?', action: 'Record one lesson and one adjustment.', activityType: 'Review' },
+  { title: 'Create your maintenance plan', body: `Turn ${title} into something you can revisit. Save the phrases, contacts, reminders or next actions that still feel useful.`, prompt: 'What do I want future me to remember?', action: 'Save a one-paragraph maintenance note.', activityType: 'Maintenance' }
+];
+
+const baseProgrammes: Programme[] = [
+  { id: 'boundaries', title: 'Boundaries that feel like you', summary: 'Ten-step course to identify, communicate and review a personal boundary.', sessions: [
+    { title: 'Notice what matters', body: 'Think of a recent interaction that left you comfortable or drained. Notice what you needed, without judging yourself.', prompt: 'What would I like more or less of in that situation?', action: 'Choose one boundary you would like to explore.', activityType: 'Reflection' },
+    { title: 'Find your words', body: 'A boundary can describe what you will do. Keep it clear and specific: “If the conversation becomes personal, I will take a break.”', prompt: 'How could I express my boundary in my own words?', action: 'Write one sentence you could use.', activityType: 'Script writing' },
+    { title: 'Choose a safe next step', body: 'You decide whether, when and how to communicate. You can practise privately or talk to someone you trust first. You do not owe anyone disclosure.', prompt: 'What would help me feel supported, and is now a safe time?', action: 'Choose a small step, or deliberately choose to wait.', activityType: 'Safety check' },
+    { title: 'Reflect and adjust', body: 'Boundaries may need practice and revision. Another person’s reaction does not determine whether your needs matter.', prompt: 'What worked, what felt difficult, and what would I change?', action: 'Record one thing to carry forward.', activityType: 'Review' }
   ] },
   { id: 'connection', title: 'Building a sense of connection', summary: 'Explore the people, places and interests that help you feel more yourself.', sessions: [
     { title: 'Define connection', body: 'Connection can mean one trusted person, a shared interest or a space where you feel at ease. There is no required social pace.', prompt: 'When do I feel accepted and able to be myself?', action: 'List two qualities you value in a connection.' },
@@ -82,6 +94,12 @@ export const programmes = [
     { title: 'Prepare a future reset kit', body: 'Save comfort items, contacts, scripts, reminders and practical steps before the next hard day.', prompt: 'What should be ready before the next difficult day?', action: 'Create or update your reset kit.' }
   ] }
 ];
+
+export const programmes = baseProgrammes.map(programme => ({
+  ...programme,
+  summary: programme.summary.replace(/^Four short sessions/, 'Ten-step course').replace(/^Explore /, 'Ten-step course: explore '),
+  sessions: programme.sessions.length >= 10 ? programme.sessions : [...programme.sessions, ...courseCompleter(programme.title)].slice(0, 10)
+}));
 
 export function journalInsights(records: Array<{ date: string; rating: number; tags: string[] }>, days: number, now = new Date()) {
   const end = now.toISOString().slice(0, 10);
