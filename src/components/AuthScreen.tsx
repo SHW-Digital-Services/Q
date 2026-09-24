@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import {
   LogIn,
   UserPlus,
@@ -22,8 +22,9 @@ import { AuthUser } from '../types';
 import { getSupabaseClient, getSupabaseEnvConfig, mapSupabaseUser, signInWithGoogle } from '../services/supabase';
 import { QLogo } from './QLogo';
 import { LegalFooter } from './LegalFooter';
-import { HelpView } from './HelpView';
 import { useLanguage } from '../contexts/LanguageContext';
+
+const HelpView = lazy(() => import('./HelpView').then(({ HelpView }) => ({ default: HelpView })));
 
 interface AuthScreenProps {
   onUserSignedIn: (user: AuthUser) => void;
@@ -535,7 +536,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         <div role="dialog" aria-modal="true" aria-label="Q Help centre" className="fixed inset-0 z-[80] overflow-y-auto bg-slate-950/80 p-3 backdrop-blur-sm sm:p-6">
           <div className="mx-auto max-w-5xl rounded-3xl bg-slate-50 p-3 shadow-2xl sm:p-5">
             <div className="mb-3 flex items-center justify-between px-1"><h2 className="font-black text-slate-900">Q Help centre</h2><button type="button" onClick={() => setShowHelp(false)} aria-label="Close Help centre" className="rounded-full bg-slate-200 p-2 text-slate-700 hover:bg-slate-300"><X className="h-5 w-5" /></button></div>
-            <HelpView onOpenCrisis={() => { setShowHelp(false); onOpenCrisis?.(); }} />
+            <Suspense fallback={<div className="p-6 text-center text-sm font-semibold text-slate-500">Loading help...</div>}>
+              <HelpView onOpenCrisis={() => { setShowHelp(false); onOpenCrisis?.(); }} />
+            </Suspense>
           </div>
         </div>
       )}

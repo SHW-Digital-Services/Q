@@ -1,11 +1,6 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { Suspense, lazy, useCallback, useState, useEffect } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Navbar, ActiveTab } from './components/Navbar';
-import { QAssistantView } from './components/QAssistantView';
-import { LifeGuidesView } from './components/LifeGuidesView';
-import { LivedExperiencesView } from './components/LivedExperiencesView';
-import { JournalView } from './components/JournalView';
-import { ProfileView } from './components/ProfileView';
 import { CrisisModal } from './components/CrisisModel';
 import { BackupModal } from './components/BackupModel';
 import { SecurityLockOverlay } from './components/SecurityLockOverlay';
@@ -14,11 +9,7 @@ import { AuthModal } from './components/AuthModel';
 import { AuthScreen } from './components/AuthScreen';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { LandingPage } from './components/LandingPage';
-import { HelpView } from './components/HelpView';
-import { AdminPanel } from './components/AdminPanel';
 import { CrmAccessPage } from './components/CrmAccessPage';
-import { DeveloperPage } from './components/DeveloperPage';
-import { NewsUpdatesPage } from './components/NewsUpdatesPage';
 import { getSyncStatus, getSecuritySettings, saveSecuritySettings } from './services/storage';
 import { getSupabaseClient, mapSupabaseUser } from './services/supabase';
 import { SyncStatusState, SecuritySettings, AuthUser } from './types';
@@ -28,9 +19,19 @@ import { LanguageSelector } from './components/LanguageSelector';
 import { useLanguage } from './contexts/LanguageContext';
 import { PremiumProvider } from './contexts/PremiumContext';
 import { ContinuityProvider, ContinuitySettings } from './contexts/ContinuityContext';
-import { GuidedProgrammes } from './components/GuidedProgrammes';
 import { setStorageUser } from './services/storage';
 import { LegalFooter } from './components/LegalFooter';
+
+const QAssistantView = lazy(() => import('./components/QAssistantView').then(({ QAssistantView }) => ({ default: QAssistantView })));
+const LifeGuidesView = lazy(() => import('./components/LifeGuidesView').then(({ LifeGuidesView }) => ({ default: LifeGuidesView })));
+const LivedExperiencesView = lazy(() => import('./components/LivedExperiencesView').then(({ LivedExperiencesView }) => ({ default: LivedExperiencesView })));
+const JournalView = lazy(() => import('./components/JournalView').then(({ JournalView }) => ({ default: JournalView })));
+const ProfileView = lazy(() => import('./components/ProfileView').then(({ ProfileView }) => ({ default: ProfileView })));
+const HelpView = lazy(() => import('./components/HelpView').then(({ HelpView }) => ({ default: HelpView })));
+const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel }) => ({ default: AdminPanel })));
+const DeveloperPage = lazy(() => import('./components/DeveloperPage').then(({ DeveloperPage }) => ({ default: DeveloperPage })));
+const NewsUpdatesPage = lazy(() => import('./components/NewsUpdatesPage').then(({ NewsUpdatesPage }) => ({ default: NewsUpdatesPage })));
+const GuidedProgrammes = lazy(() => import('./components/GuidedProgrammes').then(({ GuidedProgrammes }) => ({ default: GuidedProgrammes })));
 
 
 function isViewAppRequest() {
@@ -42,6 +43,14 @@ function isViewAppRequest() {
     window.location.pathname.startsWith('/app/') ||
     searchParams.get('view') === 'app' ||
     searchParams.get('open') === 'q'
+  );
+}
+
+function LoadingView({ label = 'Loading...' }: { label?: string }) {
+  return (
+    <div className="flex min-h-40 items-center justify-center p-6 text-sm font-semibold text-slate-500 dark:text-slate-300">
+      {label}
+    </div>
   );
 }
 
@@ -339,8 +348,8 @@ export default function App() {
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
-  if (isNewsRoute) return <><StatusPageButton /><NewsUpdatesPage /></>;
-  if (isDeveloperRoute) return <><StatusPageButton /><DeveloperPage /></>;
+  if (isNewsRoute) return <><StatusPageButton /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
+  if (isDeveloperRoute) return <><StatusPageButton /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
 
   if (isCrmRoute) {
     if (!currentUser) {
@@ -355,7 +364,9 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-950 p-3 text-slate-100 sm:p-6">
         <StatusPageButton />
-        <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />
+        <Suspense fallback={<LoadingView label="Loading CRM..." />}>
+          <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />
+        </Suspense>
       </div>
     );
   }
@@ -410,40 +421,42 @@ export default function App() {
 
         {/* Main Content Viewport */}
         <main className="flex-1 p-3 sm:p-5 lg:p-6">
-          {isAdminPanelOpen && canAccessCrm && <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} />}
-          {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
-          {!isAdminPanelOpen && activeTab === 'guides' && <><GuidedProgrammes onCourseOpenChange={handleProgrammeCourseOpenChange} />{!isProgrammeCourseOpen && <LifeGuidesView />}</>}
-          {!isAdminPanelOpen && activeTab === 'stories' && <LivedExperiencesView />}
-          {!isAdminPanelOpen && activeTab === 'journal' && (
-            <JournalView
-              userId={currentUser.id}
-              onAskQSupport={() => {
-                setActiveTab('chat');
-              }}
-            />
-          )}
-          {!isAdminPanelOpen && activeTab === 'profile' && <ContinuitySettings />}
-          {!isAdminPanelOpen && activeTab === 'profile' && (
-            <ProfileView
-              currentUser={currentUser}
-              onUserChanged={(user) => setCurrentUser(user)}
-              onOpenAccount={() => {
-                setAuthInitialMode('login');
-                setIsAuthOpen(true);
-              }}
-              onOpenBackup={() => setIsBackupOpen(true)}
-              onOpenSecurity={() => setIsSecurityOpen(true)}
-              onOpenSubscription={() => setIsSubscriptionOpen(true)}
-              onSignOut={handleSignOut}
-            />
-          )}
-          {!isAdminPanelOpen && activeTab === 'help' && (
-            <HelpView
-              onNavigate={setActiveTab}
-              onOpenCrisis={() => setIsCrisisOpen(true)}
-              onOpenSubscription={() => setIsSubscriptionOpen(true)}
-            />
-          )}
+          <Suspense fallback={<LoadingView />}>
+            {isAdminPanelOpen && canAccessCrm && <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} />}
+            {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
+            {!isAdminPanelOpen && activeTab === 'guides' && <><GuidedProgrammes onCourseOpenChange={handleProgrammeCourseOpenChange} />{!isProgrammeCourseOpen && <LifeGuidesView />}</>}
+            {!isAdminPanelOpen && activeTab === 'stories' && <LivedExperiencesView />}
+            {!isAdminPanelOpen && activeTab === 'journal' && (
+              <JournalView
+                userId={currentUser.id}
+                onAskQSupport={() => {
+                  setActiveTab('chat');
+                }}
+              />
+            )}
+            {!isAdminPanelOpen && activeTab === 'profile' && <ContinuitySettings />}
+            {!isAdminPanelOpen && activeTab === 'profile' && (
+              <ProfileView
+                currentUser={currentUser}
+                onUserChanged={(user) => setCurrentUser(user)}
+                onOpenAccount={() => {
+                  setAuthInitialMode('login');
+                  setIsAuthOpen(true);
+                }}
+                onOpenBackup={() => setIsBackupOpen(true)}
+                onOpenSecurity={() => setIsSecurityOpen(true)}
+                onOpenSubscription={() => setIsSubscriptionOpen(true)}
+                onSignOut={handleSignOut}
+              />
+            )}
+            {!isAdminPanelOpen && activeTab === 'help' && (
+              <HelpView
+                onNavigate={setActiveTab}
+                onOpenCrisis={() => setIsCrisisOpen(true)}
+                onOpenSubscription={() => setIsSubscriptionOpen(true)}
+              />
+            )}
+          </Suspense>
         </main>
       </div>
 

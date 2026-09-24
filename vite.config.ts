@@ -18,5 +18,21 @@ export default defineConfig(() => {
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
+    build: {
+      // WebLLM is intentionally lazy-loaded for local AI; keep the warning budget
+      // above that known chunk while feature screens are split by route/tab.
+      chunkSizeWarningLimit: 6500,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined;
+            if (id.includes('@mlc-ai/web-llm')) return 'ai-webllm';
+            if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('dompurify')) return 'pdf-export';
+            if (id.includes('recharts') || id.includes('d3-')) return 'charts';
+            return undefined;
+          },
+        },
+      },
+    },
   };
 });
