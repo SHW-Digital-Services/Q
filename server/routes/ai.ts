@@ -71,8 +71,13 @@ function getChatModel(tier: unknown) {
 }
 
 function isAllowedModel(model: string) {
-  const configured = (process.env.AI_ALLOWED_MODELS || `${DEFAULT_FREE_MODEL},${DEFAULT_PAID_MODEL}`).split(',').map((value) => value.trim()).filter(Boolean);
-  return configured.includes(model);
+  const configured = (process.env.AI_ALLOWED_MODELS || [
+    DEFAULT_FREE_MODEL,
+    DEFAULT_PAID_MODEL,
+    process.env.AI_FREE_MODEL,
+    process.env.AI_PAID_MODEL
+  ].filter(Boolean).join(',')).split(',').map((value) => value.trim()).filter(Boolean);
+  return new Set(configured).has(model);
 }
 
 function getProviderError(error: any) {
@@ -87,6 +92,18 @@ function getProviderError(error: any) {
     status,
     detail: [code, type, message].filter(Boolean).join(': ')
   };
+}
+
+function isProviderLimit(error: any, providerError = getProviderError(error)) {
+  const detail = providerError.detail || '';
+  return providerError.status === 429 || /\b(rate.?limit|quota|too many requests|insufficient_quota)\b/i.test(detail);
+}
+
+function getRetryAfterSeconds(error: any, fallback = 180) {
+  const headers = error?.headers;
+  const retryAfter = typeof headers?.get === 'function' ? headers.get('retry-after') : headers?.['retry-after'];
+  const seconds = Number(retryAfter);
+  return Number.isFinite(seconds) && seconds > 0 ? Math.min(seconds, 3600) : fallback;
 }
 
 function parseJsonObject(text: string) {
@@ -240,6 +257,17 @@ aiRouter.post('/chat', asyncHandler(async (req, res) => {
   } catch (error) {
     await recordAiSafetyEvent(req, 'provider_failure', identity.user.id, model);
     const providerError = getProviderError(error);
+    if (isProviderLimit(error, providerError)) {
+      const retryAfterSeconds = getRetryAfterSeconds(error);
+      res.setHeader('Retry-After', String(retryAfterSeconds));
+      return res.status(429).json({
+        error: 'Hosted AI provider limit reached. Private local AI remains available.',
+        reasonCode: 'HOSTED_PROVIDER_LIMIT',
+        fallback: 'local',
+        retryAfterSeconds,
+        model
+      });
+    }
     return sendOpaqueError(req, res, providerError.status >= 400 && providerError.status < 500 ? 502 : 500, 'An error occurred while generating the response.', 'Q-AI Chat', {
       status: providerError.status,
       model,
@@ -322,6 +350,17 @@ aiRouter.post('/generate-guide', asyncHandler(async (req, res) => {
   } catch (error) {
     await recordAiSafetyEvent(req, 'provider_failure', identity.user.id, model);
     const providerError = getProviderError(error);
+    if (isProviderLimit(error, providerError)) {
+      const retryAfterSeconds = getRetryAfterSeconds(error);
+      res.setHeader('Retry-After', String(retryAfterSeconds));
+      return res.status(429).json({
+        error: 'Hosted AI provider limit reached. Offline guide creation remains available.',
+        reasonCode: 'HOSTED_PROVIDER_LIMIT',
+        fallback: 'offline_guide',
+        retryAfterSeconds,
+        model
+      });
+    }
     return sendOpaqueError(req, res, providerError.status >= 400 && providerError.status < 500 ? 502 : 500, 'An error occurred while generating the guide.', 'Q-AI Guide', {
       status: providerError.status,
       model,
@@ -375,6 +414,17 @@ aiRouter.post('/query', asyncHandler(async (req, res) => {
       category: item.category
     })) });
   } catch (error) {
+    const providerError = getProviderError(error);
+    if (isProviderLimit(error, providerError)) {
+      const retryAfterSeconds = getRetryAfterSeconds(error);
+      res.setHeader('Retry-After', String(retryAfterSeconds));
+      return res.status(429).json({
+        error: 'Hosted AI knowledge search limit reached.',
+        reasonCode: 'HOSTED_PROVIDER_LIMIT',
+        fallback: 'local',
+        retryAfterSeconds
+      });
+    }
     return sendOpaqueError(req, res, 500, 'An error occurred while processing the request.', 'Q-AI Query', error);
   }
 }));
