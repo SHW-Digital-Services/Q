@@ -90,7 +90,7 @@ interface Props {
 }
 
 export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubscription }) => {
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [contact, setContact] = useState({ name: '', email: '', category: 'general', subject: '', message: '', website: '' });
@@ -174,8 +174,6 @@ export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubs
           <p className="text-xs leading-relaxed text-slate-500">Do not include passwords, payment details, emergency information or someone else’s confidential information. For immediate danger, use the crisis-support option above.</p>
         </form>
       </section>
-
-      {language !== 'en' && <p className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">{t('englishNotice')}</p>}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1"><h2 className="text-sm font-black text-slate-900">{visibleArticles.length} {visibleArticles.length === 1 ? t('article') : t('articles')}</h2><span className="text-[11px] text-slate-500">{t('selectArticle')}</span></div>
