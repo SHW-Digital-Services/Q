@@ -351,7 +351,7 @@ export default function App() {
   if (isNewsRoute) return <><StatusPageButton /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
   if (isDeveloperRoute) return <><StatusPageButton /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
 
-  if (isCrmRoute) {
+  if (isCrmRoute && !previewActive) {
     if (!currentUser) {
       return <><StatusPageButton /><CrmAccessPage onUserSignedIn={(user) => { setStorageUser(user.id); setCurrentUser(user); }} /></>;
     }
