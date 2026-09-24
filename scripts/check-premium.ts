@@ -85,7 +85,7 @@ try{
   assert.equal((await request('insights','POST',{records:[],days:30})).status,403);
   assert.equal((await request('continuity','PUT',{payload:{},revision:0})).status,403);
   paid=true;
-  const catalog=await request('programmes');assert.equal(catalog.status,200);assert.equal((await catalog.json()).length,3);assert.equal(catalog.headers.get('cache-control'),'no-store');
+  const catalog=await request('programmes');assert.equal(catalog.status,200);assert.equal((await catalog.json()).length,30);assert.equal(catalog.headers.get('cache-control'),'no-store');
   assert.equal((await request('insights','POST',{records:[{rating:99}],days:30})).status,400);
   assert.equal((await request('insights','POST',{records:[],days:30})).status,200);
   assert.equal((await request('continuity','PUT',{payload:{chat:[]},revision:0,userId:'other-account'})).status,200);

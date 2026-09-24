@@ -66,8 +66,8 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, userId, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-xl overflow-hidden rounded-2xl bg-slate-900 border border-purple-500/30 shadow-2xl text-slate-100">
+    <div className="q-modal-backdrop fixed inset-0 z-50 flex justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+      <div className="relative w-full max-w-xl max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-slate-900 border border-purple-500/30 shadow-2xl text-slate-100">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-950/40">
           <div className="flex items-center gap-3">

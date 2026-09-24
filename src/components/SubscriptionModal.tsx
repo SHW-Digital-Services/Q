@@ -153,8 +153,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 space-y-5 text-slate-900">
+    <div className="q-modal-backdrop fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex justify-center p-4">
+      <div className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 space-y-5 text-slate-900">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-black flex items-center gap-2"><CreditCard className="w-5 h-5 text-purple-600" /> Q Subscription</h2>

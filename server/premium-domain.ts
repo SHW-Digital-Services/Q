@@ -20,85 +20,154 @@ export function validSnapshot(payload:unknown):boolean {
   }));
 }
 
-type ProgrammeSession = { title: string; body: string; prompt: string; action: string; activityType?: string };
+type ActivityKind = 'reflection' | 'checklist' | 'scale' | 'script' | 'sorting' | 'if-then' | 'priority-list' | 'review-grid' | 'action-choice' | 'maintenance-plan';
+type ProgrammeActivity = { kind: ActivityKind; label: string; description?: string; prompt?: string; items?: string[]; options?: string[]; fields?: string[]; columns?: string[] };
+type ProgrammeSession = { title: string; body: string; prompt: string; action: string; activityType?: string; activity?: ProgrammeActivity };
 type Programme = { id: string; title: string; summary: string; sessions: ProgrammeSession[] };
+type ProgrammeTopic = { id: string; title: string; summary: string; focus: string; outcome: string; examples: string[] };
 
-const courseCompleter = (title: string): ProgrammeSession[] => [
-  { title: 'Set your baseline', body: `Pause before continuing ${title}. Name what already feels clear, what feels uncertain and what would make the work feel manageable today.`, prompt: 'What am I bringing into this course right now?', action: 'Write a short baseline note before choosing your next step.', activityType: 'Self-check' },
-  { title: 'Choose your support conditions', body: 'Good personal work includes conditions that make it easier to stop, pause or ask for help. Decide what support, privacy and timing you need.', prompt: 'What conditions would make this safer or easier to practise?', action: 'List two support conditions you want in place.', activityType: 'Planning' },
-  { title: 'Practise a low-risk version', body: 'Try the smallest useful version of the skill before using it in a higher-pressure setting. Rehearsal counts as progress.', prompt: 'What would a low-risk rehearsal look like?', action: 'Choose one rehearsal you can do privately or with someone trusted.', activityType: 'Practice' },
-  { title: 'Handle friction', body: 'Most plans meet some friction. Prepare for hesitation, disagreement, fatigue or a change in circumstances without treating that as failure.', prompt: 'What could get in the way, and how could I respond kindly?', action: 'Write one if-then plan for a likely obstacle.', activityType: 'Scenario' },
-  { title: 'Review the evidence', body: 'Look for evidence of effort, learning and self-respect, not only a perfect outcome. Decide what information this attempt gave you.', prompt: 'What did I learn from this attempt or rehearsal?', action: 'Record one lesson and one adjustment.', activityType: 'Review' },
-  { title: 'Create your maintenance plan', body: `Turn ${title} into something you can revisit. Save the phrases, contacts, reminders or next actions that still feel useful.`, prompt: 'What do I want future me to remember?', action: 'Save a one-paragraph maintenance note.', activityType: 'Maintenance' }
+const activitySequence: ActivityKind[] = ['reflection', 'checklist', 'scale', 'script', 'sorting', 'if-then', 'priority-list', 'review-grid', 'action-choice', 'maintenance-plan'];
+const activityLabels: Record<ActivityKind, string> = {
+  reflection: 'Reflection',
+  checklist: 'Checklist',
+  scale: 'Readiness scale',
+  script: 'Script writing',
+  sorting: 'Sorting map',
+  'if-then': 'If-then plan',
+  'priority-list': 'Priority list',
+  'review-grid': 'Review grid',
+  'action-choice': 'Action choice',
+  'maintenance-plan': 'Maintenance plan'
+};
+
+const topics: ProgrammeTopic[] = [
+  { id: 'boundaries', title: 'Boundaries that feel like you', summary: 'Identify, communicate and review a personal boundary without forcing disclosure.', focus: 'a personal boundary', outcome: 'a boundary plan you can use or adapt', examples: ['private time', 'conversation limits', 'digital replies', 'family expectations'] },
+  { id: 'connection', title: 'Building a sense of connection', summary: 'Explore people, places and interests that help you feel more yourself.', focus: 'a manageable route toward connection', outcome: 'one low-pressure connection step', examples: ['trusted people', 'shared interests', 'moderated groups', 'places of ease'] },
+  { id: 'confidence', title: 'Everyday confidence', summary: 'Build a personal record of strengths and practise manageable next steps.', focus: 'a confidence-building step', outcome: 'a small confidence practice you can repeat', examples: ['strengths', 'small goals', 'kind rehearsal', 'evidence of effort'] },
+  { id: 'healthcare-advocacy', title: 'Healthcare self-advocacy', summary: 'Prepare appointments, ask informed questions and leave with a clear follow-up plan.', focus: 'a healthcare appointment or care decision', outcome: 'a one-page appointment and follow-up plan', examples: ['appointment goal', 'symptom notes', 'informed consent questions', 'follow-up route'] },
+  { id: 'workplace-transition', title: 'Workplace identity planning', summary: 'Coordinate name, pronoun, records and communication updates at work.', focus: 'a workplace identity update', outcome: 'a practical workplace update sequence', examples: ['HR systems', 'manager support', 'email aliases', 'privacy boundaries'] },
+  { id: 'coming-out-planning', title: 'Coming out and privacy planning', summary: 'Decide who, when and how to tell while keeping safety and aftercare central.', focus: 'a coming-out or privacy decision', outcome: 'a safer disclosure and aftercare plan', examples: ['safe people', 'uncertain people', 'message boundaries', 'aftercare'] },
+  { id: 'digital-safety', title: 'Digital safety and privacy', summary: 'Audit your online footprint, strengthen accounts and set safer sharing boundaries.', focus: 'your digital privacy and account safety', outcome: 'a practical digital safety checklist', examples: ['public profiles', 'separate identities', 'MFA', 'block and report steps'] },
+  { id: 'housing-stability', title: 'Housing stability and home safety', summary: 'Screen housing, set household boundaries and prepare practical backup options.', focus: 'housing stability and home safety', outcome: 'a housing needs and backup plan', examples: ['dealbreakers', 'roommate questions', 'tenant rights', 'backup stays'] },
+  { id: 'legal-documents', title: 'Name and document change planning', summary: 'Sequence forms, evidence and agencies without losing track of paperwork.', focus: 'name and document changes', outcome: 'a document tracker and update sequence', examples: ['passport', 'driving licence', 'banks', 'certified copies'] },
+  { id: 'resilience-reset', title: 'Resilience after difficult days', summary: 'Create grounding, recovery, support and reset routines for hard days.', focus: 'recovering after difficult days', outcome: 'a reset kit for future hard days', examples: ['next hour', 'minimum day', 'support text', 'comfort items'] },
+  { id: 'friendship-repair', title: 'Repairing a strained friendship', summary: 'Prepare an honest repair attempt while respecting consent and limits.', focus: 'a strained friendship', outcome: 'a repair message and next-step boundary', examples: ['what happened', 'accountability', 'listening', 'space'] },
+  { id: 'family-conversations', title: 'Difficult family conversations', summary: 'Plan family conversations with clearer aims, limits and exit options.', focus: 'a difficult family conversation', outcome: 'a safer conversation plan', examples: ['topics to avoid', 'support person', 'exit line', 'follow-up'] },
+  { id: 'money-basics', title: 'Money basics for steadier weeks', summary: 'Build a simple picture of bills, spending pressure and next money actions.', focus: 'money basics and weekly stability', outcome: 'a small money plan for the next month', examples: ['fixed bills', 'flexible spending', 'urgent costs', 'support services'] },
+  { id: 'study-rhythm', title: 'Study rhythm and motivation', summary: 'Turn study pressure into smaller sessions, cues and review habits.', focus: 'study rhythm', outcome: 'a repeatable study session pattern', examples: ['module deadlines', 'focus blocks', 'rewards', 'catch-up time'] },
+  { id: 'job-search', title: 'Job search with less overwhelm', summary: 'Create a focused job-search routine with scripts, evidence and pacing.', focus: 'a job search or career move', outcome: 'a paced job-search routine', examples: ['roles', 'CV evidence', 'cover notes', 'application limits'] },
+  { id: 'interview-prep', title: 'Interview preparation', summary: 'Prepare examples, access needs, questions and post-interview recovery.', focus: 'an interview', outcome: 'an interview pack and confidence plan', examples: ['STAR examples', 'questions', 'access needs', 'recovery time'] },
+  { id: 'neurodivergent-energy', title: 'Neurodivergent energy planning', summary: 'Notice energy patterns and design routines around capacity, not shame.', focus: 'energy planning', outcome: 'an energy-aware week plan', examples: ['sensory load', 'transitions', 'recovery', 'minimum tasks'] },
+  { id: 'sensory-comfort', title: 'Sensory comfort toolkit', summary: 'Build a toolkit for sensory strain, social recovery and safer environments.', focus: 'sensory comfort', outcome: 'a sensory toolkit and response plan', examples: ['light', 'sound', 'textures', 'exit options'] },
+  { id: 'body-image', title: 'Body image and self-respect', summary: 'Practise kinder body-related choices without forcing positivity.', focus: 'body image and self-respect', outcome: 'a kinder body-care plan', examples: ['clothes', 'mirrors', 'movement', 'language'] },
+  { id: 'gender-expression', title: 'Gender expression experiments', summary: 'Plan low-risk experiments with style, presentation and feedback.', focus: 'gender expression experiments', outcome: 'a low-risk expression experiment', examples: ['clothing', 'voice', 'hair', 'names'] },
+  { id: 'dating-safety', title: 'Dating boundaries and safety', summary: 'Set expectations, privacy choices and exit plans before dating situations.', focus: 'dating boundaries and safety', outcome: 'a dating safety and communication plan', examples: ['profile privacy', 'meeting place', 'dealbreakers', 'check-in'] },
+  { id: 'community-finding', title: 'Finding affirming community', summary: 'Explore groups and spaces with attention to safety, fit and energy.', focus: 'affirming community', outcome: 'a community exploration plan', examples: ['online spaces', 'local groups', 'moderation', 'energy cost'] },
+  { id: 'crisis-aftercare', title: 'Aftercare after a crisis moment', summary: 'Create practical aftercare and support routines once immediate danger has passed.', focus: 'aftercare after a crisis moment', outcome: 'an aftercare and support plan', examples: ['basic needs', 'trusted contact', 'reduced demands', 'warning signs'] },
+  { id: 'grief-change', title: 'Grief, endings and change', summary: 'Make room for grief while keeping daily life gently supported.', focus: 'grief or a major ending', outcome: 'a gentle support plan for change', examples: ['loss reminders', 'support people', 'rituals', 'daily anchors'] },
+  { id: 'conflict-deescalation', title: 'Conflict de-escalation practice', summary: 'Prepare calmer responses, exit lines and repair choices for conflict.', focus: 'a conflict pattern', outcome: 'a de-escalation and repair plan', examples: ['early signs', 'pause lines', 'repair request', 'boundaries'] },
+  { id: 'assertive-requests', title: 'Making assertive requests', summary: 'Turn needs into clear requests while leaving room for consent and limits.', focus: 'an assertive request', outcome: 'a clear request script and backup option', examples: ['what I need', 'why it matters', 'timing', 'fallback'] },
+  { id: 'habit-reset', title: 'Gentle habit reset', summary: 'Rebuild a habit using cues, tiny steps and realistic recovery after missed days.', focus: 'a habit reset', outcome: 'a small habit loop and restart plan', examples: ['cue', 'tiny action', 'reward', 'missed-day plan'] },
+  { id: 'sleep-winddown', title: 'Sleep wind-down planning', summary: 'Create a realistic evening routine around safety, comfort and reduced friction.', focus: 'sleep wind-down', outcome: 'a wind-down routine you can test', examples: ['screens', 'light', 'worries', 'morning setup'] },
+  { id: 'creative-restart', title: 'Creative restart', summary: 'Reconnect with creativity through low-pressure experiments and review.', focus: 'a creative restart', outcome: 'a small creative practice', examples: ['materials', 'time box', 'sharing choice', 'inspiration'] },
+  { id: 'future-planning', title: 'Future planning when life feels uncertain', summary: 'Choose grounded next steps without pretending uncertainty has disappeared.', focus: 'future planning under uncertainty', outcome: 'a flexible next-steps map', examples: ['known facts', 'open questions', 'support', 'next decisions'] }
 ];
 
-const baseProgrammes: Programme[] = [
-  { id: 'boundaries', title: 'Boundaries that feel like you', summary: 'Ten-step course to identify, communicate and review a personal boundary.', sessions: [
-    { title: 'Notice what matters', body: 'Think of a recent interaction that left you comfortable or drained. Notice what you needed, without judging yourself.', prompt: 'What would I like more or less of in that situation?', action: 'Choose one boundary you would like to explore.', activityType: 'Reflection' },
-    { title: 'Find your words', body: 'A boundary can describe what you will do. Keep it clear and specific: “If the conversation becomes personal, I will take a break.”', prompt: 'How could I express my boundary in my own words?', action: 'Write one sentence you could use.', activityType: 'Script writing' },
-    { title: 'Choose a safe next step', body: 'You decide whether, when and how to communicate. You can practise privately or talk to someone you trust first. You do not owe anyone disclosure.', prompt: 'What would help me feel supported, and is now a safe time?', action: 'Choose a small step, or deliberately choose to wait.', activityType: 'Safety check' },
-    { title: 'Reflect and adjust', body: 'Boundaries may need practice and revision. Another person’s reaction does not determine whether your needs matter.', prompt: 'What worked, what felt difficult, and what would I change?', action: 'Record one thing to carry forward.', activityType: 'Review' }
-  ] },
-  { id: 'connection', title: 'Building a sense of connection', summary: 'Explore the people, places and interests that help you feel more yourself.', sessions: [
-    { title: 'Define connection', body: 'Connection can mean one trusted person, a shared interest or a space where you feel at ease. There is no required social pace.', prompt: 'When do I feel accepted and able to be myself?', action: 'List two qualities you value in a connection.' },
-    { title: 'Follow an interest', body: 'Shared interests can offer a gentle starting point. Consider a book group, creative activity, walking group or online community with clear moderation.', prompt: 'Which interest would I enjoy sharing?', action: 'Identify one group to learn more about without committing.' },
-    { title: 'Plan a small hello', body: 'Decide what you feel comfortable sharing. For a new group, check the setting and privacy expectations and give yourself permission to leave.', prompt: 'What would make a first interaction manageable?', action: 'Draft an introduction or question.' },
-    { title: 'Review your experience', body: 'You can decide a group is not for you. Notice moments of ease as well as discomfort, and make room for rest.', prompt: 'Would I like to return, try something different or pause?', action: 'Choose your next step at your own pace.' }
-  ] },
-  { id: 'confidence', title: 'Everyday confidence', summary: 'Course: build a personal record of strengths and practise manageable steps.', sessions: [
-    { title: 'Recognise a strength', body: 'Strengths can be quiet: asking for help, being curious, resting or showing care. Think about something you managed recently.', prompt: 'What helped me get through it?', action: 'Name one strength you used.' },
-    { title: 'Make the goal smaller', body: 'Pick something within your control. A small, specific step is easier to review than a demand to feel confident.', prompt: 'What is a manageable version of something I want to try?', action: 'Choose a step that takes around ten minutes.' },
-    { title: 'Practise kindly', body: 'Try your step when you feel ready. You may adapt, stop or ask for support. Progress does not require ignoring discomfort.', prompt: 'What support or preparation would help?', action: 'Try your step or write a plan for trying it.' },
-    { title: 'Keep the evidence', body: 'Review effort and learning as well as results. Confidence can fluctuate; a difficult day does not erase earlier progress.', prompt: 'What did I learn, and what would I tell a friend in my position?', action: 'Write a reminder to revisit.' }
-  ] },
-  { id: 'healthcare-advocacy', title: 'Healthcare self-advocacy', summary: 'Course: prepare appointments, ask informed questions and leave with a clear follow-up plan.', sessions: [
-    { title: 'Clarify the appointment goal', body: 'Decide whether you need information, a referral, documentation, medication discussion or a care-plan review.', prompt: 'What do I need this appointment to achieve?', action: 'Write one appointment goal and your top three questions.' },
-    { title: 'Build your one-page brief', body: 'Include current medication, relevant history, names and pronouns, symptoms, access needs and privacy concerns.', prompt: 'What information do I want ready without relying on memory?', action: 'Draft a one-page appointment note.' },
-    { title: 'Prepare informed-consent questions', body: 'Ask about benefits, risks, alternatives, timelines, costs and what happens if you wait.', prompt: 'What do I need to understand before deciding?', action: 'Choose three informed-consent questions.' },
-    { title: 'Leave with next steps', body: 'Before leaving, confirm who is responsible, when to follow up, warning signs and how results will arrive.', prompt: 'What must be clear before I leave?', action: 'Create a follow-up checklist.' }
-  ] },
-  { id: 'workplace-transition', title: 'Workplace identity planning', summary: 'Course: coordinate name, pronoun, records and communication updates at work.', sessions: [
-    { title: 'Audit the workplace landscape', body: 'Review policies, HR systems, manager support, IT ownership and legal protections in your location.', prompt: 'Where is support likely, and where might friction appear?', action: 'Create a workplace readiness map.' },
-    { title: 'Choose the update sequence', body: 'Separate public display changes, legal records, payroll, benefits, email aliases, signatures and directories.', prompt: 'Which changes matter now, and which can wait?', action: 'List desired changes in priority order.' },
-    { title: 'Write the request', body: 'Keep the request practical: what should change, when, who owns it, and what should remain private.', prompt: 'What do HR or IT need to do?', action: 'Draft the HR or IT request.' },
-    { title: 'Maintain and document', body: 'After rollout, record what changed, what still needs fixing and any incidents that need follow-up.', prompt: 'What follow-up protects my wellbeing and rights?', action: 'Create a two-week maintenance checklist.' }
-  ] },
-  { id: 'coming-out-planning', title: 'Coming out and privacy planning', summary: 'Course: decide who, when and how to tell while keeping safety and aftercare central.', sessions: [
-    { title: 'Separate desire from pressure', body: 'Coming out is not a duty. Name what you want and what privacy still protects you.', prompt: 'What do I want for myself apart from pressure?', action: 'Write a private intention statement.' },
-    { title: 'Map people and risk', body: 'Consider emotional safety, housing, money, work, caregiving, culture and social networks.', prompt: 'Who is safest, uncertain or unsafe to tell right now?', action: 'Create a three-zone people map.' },
-    { title: 'Write the message', body: 'Name what you are sharing, what support looks like, what questions are welcome and what is off limits.', prompt: 'What do I need them to understand first?', action: 'Draft your message and boundary line.' },
-    { title: 'Plan aftercare', body: 'Arrange transport, a supportive contact, a calming activity and a way to end the conversation.', prompt: 'How will I care for myself afterwards?', action: 'Set one support check-in and one exit option.' }
-  ] },
-  { id: 'digital-safety', title: 'Digital safety and privacy', summary: 'Course: audit your online footprint, strengthen accounts and set safer sharing boundaries.', sessions: [
-    { title: 'Audit your footprint', body: 'Search for what is publicly connected to your names, handles, photos, workplace and location.', prompt: 'What information about me is easy to connect online?', action: 'List accounts and details needing attention.' },
-    { title: 'Separate identities intentionally', body: 'Use different usernames, photos, emails and posting patterns where separation matters.', prompt: 'Where would separation reduce risk or stress?', action: 'Choose one account boundary to improve.' },
-    { title: 'Strengthen access', body: 'Prioritise email, banking, cloud storage and social accounts with unique passwords and MFA.', prompt: 'Which accounts would cause most harm if accessed?', action: 'Secure two high-priority accounts.' },
-    { title: 'Set a response plan', body: 'Prepare block, report, screenshot and trusted-contact steps for unwanted contact.', prompt: 'What is my response plan for harassment or unwanted contact?', action: 'Save the plan and one support contact.' }
-  ] },
-  { id: 'housing-stability', title: 'Housing stability and home safety', summary: 'Course: screen housing, set household boundaries and prepare practical backup options.', sessions: [
-    { title: 'Define needs and dealbreakers', body: 'Include money, privacy, lease terms, commute, identity respect, accessibility and emergency options.', prompt: 'What do I need from a home to feel stable enough?', action: 'Write needs, preferences and dealbreakers.' },
-    { title: 'Screen listings and roommates', body: 'Ask about bills, guests, repairs, privacy, neighbourhood and how conflict is handled.', prompt: 'What must I know before signing or moving in?', action: 'Create a screening question list.' },
-    { title: 'Prepare documents and rights', body: 'Keep lease copies, payment records, communication logs and local tenant-rights contacts.', prompt: 'Which documents and advice contacts do I need saved?', action: 'Save key documents and one advice contact.' },
-    { title: 'Build a backup plan', body: 'Identify temporary stays, transport, essential documents, medication, pets and financial support options.', prompt: 'What would I need if I had to leave quickly?', action: 'Build a housing backup checklist.' }
-  ] },
-  { id: 'legal-documents', title: 'Name and document change planning', summary: 'Course: sequence forms, evidence and agencies without losing track of paperwork.', sessions: [
-    { title: 'Map document dependencies', body: 'Legal name, gender marker, passport, driving licence, banks, payroll and healthcare may affect one another.', prompt: 'Which documents affect the most areas of my life?', action: 'Create a document dependency map.' },
-    { title: 'Gather requirements', body: 'Use official sources and note fees, forms, evidence, processing time and certified-copy needs.', prompt: 'What does each agency require from me?', action: 'Record requirements for two document targets.' },
-    { title: 'Create the tracker', body: 'Keep dates, submissions, receipts, confirmation numbers and follow-up reminders together.', prompt: 'How will I track every submission and response?', action: 'Set up a folder and tracking table.' },
-    { title: 'Close the loop', body: 'After one document changes, update dependent records and archive proof safely.', prompt: 'Which records now need the updated document?', action: 'Mark completed steps and list dependent updates.' }
-  ] },
-  { id: 'resilience-reset', title: 'Resilience after difficult days', summary: 'Course: create grounding, recovery, support and reset routines for hard days.', sessions: [
-    { title: 'Stabilise the next hour', body: 'Focus on food, water, medication, warmth, sensory comfort, rest or one safe person.', prompt: 'What would make the next hour safer or easier?', action: 'Choose one immediate stabilising action.' },
-    { title: 'Lower the demand', body: 'Reduce tasks to essentials and use neutral goals when positivity is out of reach.', prompt: 'Which demands can be paused, reduced or delegated?', action: 'Make a minimum-viable-day list.' },
-    { title: 'Reach out simply', body: 'A support request can be short: I am having a hard day; could you check in later?', prompt: 'Who can receive a small, clear support request?', action: 'Draft a low-explanation support text.' },
-    { title: 'Prepare a future reset kit', body: 'Save comfort items, contacts, scripts, reminders and practical steps before the next hard day.', prompt: 'What should be ready before the next difficult day?', action: 'Create or update your reset kit.' }
-  ] }
-];
+function buildSessions(topic: ProgrammeTopic): ProgrammeSession[] {
+  return activitySequence.map((kind, index) => {
+    const label = activityLabels[kind];
+    const common = {
+      activityType: label,
+      activity: { kind, label } as ProgrammeActivity
+    };
+    if (kind === 'reflection') return {
+      ...common,
+      title: 'Name the focus',
+      body: `Start by naming what matters about ${topic.focus}. You are not committing to a big change yet; you are making the situation clearer and kinder to work with.`,
+      prompt: `What is the real-life situation behind ${topic.focus}?`,
+      action: `Save one sentence describing what you want ${topic.outcome} to help with.`,
+      activity: { ...common.activity, prompt: `What do I want to understand about ${topic.focus}?`, description: 'Open reflection gives you room to name the situation before choosing actions.' }
+    };
+    if (kind === 'checklist') return {
+      ...common,
+      title: 'Gather what matters',
+      body: `Good planning for ${topic.focus} starts with a few concrete details. Tick what is relevant today and leave anything that does not fit.`,
+      prompt: 'Which pieces matter for this situation?',
+      action: 'Tick the relevant pieces and notice what is missing.',
+      activity: { ...common.activity, prompt: 'Select the pieces you want this course to account for.', items: topic.examples }
+    };
+    if (kind === 'scale') return {
+      ...common,
+      title: 'Check readiness',
+      body: `Readiness is information, not a pass/fail score. Rate how manageable this feels before choosing the size of your next step.`,
+      prompt: `How ready do I feel to work on ${topic.focus} this week?`,
+      action: 'Set a readiness score and name one thing that would make it easier.',
+      activity: { ...common.activity, prompt: `How manageable does ${topic.focus} feel right now?`, description: 'Use the slider to choose the size of the next step.' }
+    };
+    if (kind === 'script') return {
+      ...common,
+      title: 'Find your words',
+      body: `A short script can make ${topic.focus} less abstract. Keep it plain, specific and easy to edit later.`,
+      prompt: 'What words could I use?',
+      action: 'Draft the words you might use privately, in writing or with someone trusted.',
+      activity: { ...common.activity, fields: ['What I want to say', 'Boundary or request', 'Fallback phrase'] }
+    };
+    if (kind === 'sorting') return {
+      ...common,
+      title: 'Sort the moving parts',
+      body: `Some parts of ${topic.focus} may feel safe, some uncertain and some not right for now. Sorting helps you act without treating everything as equally urgent.`,
+      prompt: 'Where does each piece belong today?',
+      action: 'Sort the pieces into a simple map before choosing priorities.',
+      activity: { ...common.activity, prompt: 'Sort each piece into the column that fits today.', items: topic.examples, columns: ['Feels safe', 'Needs care', 'Not for now'] }
+    };
+    if (kind === 'if-then') return {
+      ...common,
+      title: 'Plan for friction',
+      body: `Plans for ${topic.focus} become sturdier when they include likely obstacles. An if-then plan keeps the response ready and specific.`,
+      prompt: 'What could get in the way, and how could I respond kindly?',
+      action: 'Write one if-then plan for a likely obstacle.',
+      activity: { ...common.activity, description: 'Pair one likely difficulty with one practical response.' }
+    };
+    if (kind === 'priority-list') return {
+      ...common,
+      title: 'Choose the order',
+      body: `You do not have to do everything at once. Put the next few actions for ${topic.focus} into an order that respects energy, safety and timing.`,
+      prompt: 'What should happen first, second and later?',
+      action: 'Create a short priority list for the next phase.',
+      activity: { ...common.activity, prompt: 'Write one action per line, in the order you want to try them.', items: [`First small step toward ${topic.outcome}`, 'Support or information to gather', 'Later step to revisit'] }
+    };
+    if (kind === 'review-grid') return {
+      ...common,
+      title: 'Review the attempt',
+      body: `Review ${topic.focus} by looking for information, not perfection. What happened, what helped and what would you adjust?`,
+      prompt: 'What did this attempt teach me?',
+      action: 'Record one lesson and one adjustment.',
+      activity: { ...common.activity, fields: ['What worked', 'What was difficult', 'What I will adjust'] }
+    };
+    if (kind === 'action-choice') return {
+      ...common,
+      title: 'Choose the next move',
+      body: `The next move for ${topic.focus} can be action, practice, waiting or asking for support. Choosing deliberately still counts as progress.`,
+      prompt: 'What is the right next move?',
+      action: 'Choose one next move and add a reason if useful.',
+      activity: { ...common.activity, prompt: 'Pick the next move that best fits today.', options: ['Do now', 'Practise first', 'Wait', 'Ask for support'] }
+    };
+    return {
+      ...common,
+      title: 'Save the maintenance plan',
+      body: `Turn ${topic.outcome} into something you can revisit. Keep the useful words, support options and reminders in one place.`,
+      prompt: 'What do I want future me to remember?',
+      action: 'Save a maintenance note you can come back to.',
+      activity: { ...common.activity, fields: ['Reminder for future me', 'Support contact or resource', 'Next revisit point'] }
+    };
+  });
+}
 
-export const programmes = baseProgrammes.map(programme => ({
-  ...programme,
-  summary: programme.summary.replace(/^Four short sessions/, 'Ten-step course').replace(/^Explore /, 'Ten-step course: explore '),
-  sessions: programme.sessions.length >= 10 ? programme.sessions : [...programme.sessions, ...courseCompleter(programme.title)].slice(0, 10)
+export const programmes: Programme[] = topics.map(topic => ({
+  id: topic.id,
+  title: topic.title,
+  summary: topic.summary,
+  sessions: buildSessions(topic)
 }));
 
 export function journalInsights(records: Array<{ date: string; rating: number; tags: string[] }>, days: number, now = new Date()) {

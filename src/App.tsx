@@ -356,13 +356,13 @@ export default function App() {
       return <><StatusPageButton /><CrmAccessPage onUserSignedIn={(user) => { setStorageUser(user.id); setCurrentUser(user); }} /></>;
     }
     if (!crmAccessChecked) {
-      return <><StatusPageButton /><main className="flex min-h-screen items-center justify-center bg-slate-950 p-6 text-sm font-semibold text-slate-200">Checking CRM access...</main></>;
+      return <><StatusPageButton /><main className="q-scroll-page flex items-center justify-center bg-slate-950 p-6 text-sm font-semibold text-slate-200">Checking CRM access...</main></>;
     }
     if (!canAccessCrm) {
       return <><StatusPageButton /><CrmAccessPage onUserSignedIn={(user) => { setStorageUser(user.id); setCurrentUser(user); }} /></>;
     }
     return (
-      <div className="min-h-dvh bg-slate-950 p-0 text-slate-100 sm:p-6">
+      <div className="q-scroll-page bg-slate-950 p-0 text-slate-100 sm:p-6">
         <StatusPageButton />
         <Suspense fallback={<LoadingView label="Loading CRM..." />}>
           <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />
@@ -390,7 +390,7 @@ export default function App() {
 
   return (
     <PremiumProvider key={currentUser.id} userId={currentUser.id} upgrade={() => setIsSubscriptionOpen(true)}><ContinuityProvider>
-    <div className="q-app-shell relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 font-sans text-slate-900 antialiased selection:bg-fuchsia-600 selection:text-white">
+    <div className="q-app-shell q-scroll-page relative flex flex-col bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 font-sans text-slate-900 antialiased selection:bg-fuchsia-600 selection:text-white">
       <StatusPageButton />
       {previewActive && <div className="relative z-50 mt-14 flex items-center justify-center gap-4 bg-amber-100 px-4 py-3 text-sm text-amber-950"><span>Admin preview: Public site {launchEnabled ? 'live' : 'on waitlist'}</span><button type="button" onClick={() => setPreviewUserId(null)} className="font-bold underline">Exit preview</button></div>}
       {/* Soft Pride-spectrum ambient colour keeps content readable while adding identity. */}
@@ -399,7 +399,7 @@ export default function App() {
       <div className="pointer-events-none fixed bottom-0 left-1/3 -z-10 h-72 w-72 rounded-full bg-violet-300/25 blur-[100px]" />
 
       {/* Mobile-First App Shell Container */}
-      <div className="q-content-shell relative mx-auto flex min-h-screen w-full min-w-0 max-w-md flex-col bg-white/72 pb-24 shadow-2xl shadow-purple-950/5 backdrop-blur-xl sm:max-w-2xl sm:border-x sm:border-white/70 sm:pb-0 lg:max-w-5xl xl:max-w-6xl">
+      <div className="q-content-shell relative mx-auto flex min-h-dvh w-full min-w-0 max-w-md flex-col bg-white/72 pb-[calc(6rem+env(safe-area-inset-bottom))] shadow-2xl shadow-purple-950/5 backdrop-blur-xl sm:max-w-2xl sm:border-x sm:border-white/70 sm:pb-0 lg:max-w-5xl xl:max-w-6xl">
         {/* Main Navigation (Sticky Header & Bottom Nav) */}
         <Navbar
           activeTab={activeTab}
@@ -420,7 +420,7 @@ export default function App() {
         />
 
         {/* Main Content Viewport */}
-        <main className="flex-1 p-3 sm:p-5 lg:p-6">
+        <main className="min-w-0 flex-1 p-3 pb-5 sm:p-5 lg:p-6">
           <Suspense fallback={<LoadingView />}>
             {isAdminPanelOpen && canAccessCrm && <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} />}
             {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}

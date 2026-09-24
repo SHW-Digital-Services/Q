@@ -550,8 +550,8 @@ export const LifeGuidesView: React.FC = () => {
 
       {/* AI Guide Generator Modal */}
       {showGeneratorModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="w-full max-w-lg p-6 rounded-2xl bg-white border border-slate-200 shadow-2xl space-y-4 text-slate-900">
+        <div className="q-modal-backdrop fixed inset-0 z-50 flex justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 rounded-2xl bg-white border border-slate-200 shadow-2xl space-y-4 text-slate-900">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-base flex items-center gap-2 text-slate-900">
                 <Sparkles className="w-5 h-5 text-purple-600" /> Generate AI Life Navigator

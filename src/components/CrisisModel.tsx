@@ -11,8 +11,8 @@ export const CrisisModal: React.FC<Props> = ({ isOpen, onClose, userProfileCount
   useEffect(() => { if (isOpen) setCountry(detectUserCountry(initialCountry || userProfileCountry)); }, [isOpen, initialCountry, userProfileCountry]);
   if (!isOpen) return null;
   const profile = crisisDirectory[country] || globalFallback;
-  return <div role="dialog" aria-modal="true" aria-labelledby="crisis-title" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-    <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-slate-900 border border-red-500/40 shadow-2xl text-white">
+  return <div role="dialog" aria-modal="true" aria-labelledby="crisis-title" className="q-modal-backdrop fixed inset-0 z-50 flex justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div className="w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-hidden rounded-2xl bg-slate-900 border border-red-500/40 shadow-2xl text-white">
       <header className="flex items-center justify-between p-5 border-b border-slate-700"><div className="flex items-center gap-3"><ShieldAlert className="w-6 h-6 text-red-400" /><div><h2 id="crisis-title" className="text-xl font-bold text-red-300">Immediate Support & Helplines</h2><p className="text-xs text-slate-400">Stored on this device and available offline</p></div></div><button onClick={onClose} aria-label="Close support window" className="p-2 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button></header>
       <div className="p-5 space-y-4 max-h-[78vh] overflow-y-auto">
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm"><label htmlFor="country-select" className="text-slate-300">Showing resources for:</label><select id="country-select" value={country} onChange={e => setCountry(e.target.value)} className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white">{supportedCountryCodes.map(code => <option key={code} value={code}>{crisisDirectory[code].countryName}</option>)}</select></div>

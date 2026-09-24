@@ -305,7 +305,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
   ];
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-15rem)] min-h-80 max-w-4xl flex-col gap-3 sm:h-[calc(100dvh-9rem)]">
+    <div className="mx-auto flex min-h-[calc(100dvh-18rem)] max-w-4xl flex-col gap-3 sm:min-h-[calc(100dvh-11rem)]">
       {/* Top Controls Bar */}
       <div className="pride-card pride-edge relative flex items-center justify-between overflow-hidden rounded-3xl p-3.5">
         <div className="pride-spectrum absolute inset-x-0 top-0 h-1" />
@@ -395,8 +395,8 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
 
 
       {/* Main Conversation Canvas */}
-      <div className="q-ai-canvas pride-edge min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="h-full space-y-3.5 overflow-y-auto p-3.5 sm:p-4">
+      <div className="q-ai-canvas pride-edge min-h-[18rem] flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="max-h-[70dvh] min-h-[18rem] space-y-3.5 overflow-y-auto p-3.5 sm:max-h-[calc(100dvh-18rem)] sm:p-4">
           {messages.map((msg) => {
           const isAI = msg.sender === 'q_ai';
           return (
@@ -539,8 +539,8 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
 
       {/* Q Memory Engine Settings Modal */}
       {showMemoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="w-full max-w-md p-6 rounded-2xl bg-white border border-slate-200 shadow-2xl space-y-4 text-slate-900">
+        <div className="q-modal-backdrop fixed inset-0 z-50 flex justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 rounded-2xl bg-white border border-slate-200 shadow-2xl space-y-4 text-slate-900">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-base flex items-center gap-2 text-slate-900">
                 <Shield className="w-5 h-5 text-purple-600" /> Q Context Memory Settings

@@ -3,15 +3,17 @@
 html,
 body {
   min-height: 100%;
+  height: auto;
   max-width: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
   background: #f8f7ff;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: auto;
 }
 
 #root {
-  min-height: 100%;
+  min-height: 100dvh;
   max-width: 100%;
   overflow-x: clip;
 }
@@ -50,6 +52,39 @@ a,
 select,
 input {
   touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  select,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  a[href] {
+    min-height: 44px;
+  }
+}
+
+.q-scroll-page {
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.q-modal-backdrop {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  align-items: flex-start;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@media (min-height: 720px) {
+  .q-modal-backdrop {
+    align-items: center;
+  }
 }
 
 :focus-visible {

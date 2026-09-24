@@ -469,8 +469,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       </div>
 
       {showForgotModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 px-4 py-6 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
+        <div className="q-modal-backdrop fixed inset-0 z-[70] flex justify-center bg-slate-950/75 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-base font-black text-slate-900">Password reset request</h3>

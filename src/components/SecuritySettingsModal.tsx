@@ -238,8 +238,8 @@ export const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in select-none">
-      <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="q-modal-backdrop fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center p-4 animate-fade-in select-none">
+      <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* Modal Header */}
         <div className="p-4 bg-gradient-to-r from-purple-900 via-purple-800 to-indigo-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
