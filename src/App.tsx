@@ -355,7 +355,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-950 p-3 text-slate-100 sm:p-6">
         <StatusPageButton />
-        <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} />
+        <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />
       </div>
     );
   }
@@ -410,7 +410,7 @@ export default function App() {
 
         {/* Main Content Viewport */}
         <main className="flex-1 p-3 sm:p-5 lg:p-6">
-          {isAdminPanelOpen && canAccessCrm && <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} />}
+          {isAdminPanelOpen && canAccessCrm && <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} />}
           {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
           {!isAdminPanelOpen && activeTab === 'guides' && <><GuidedProgrammes onCourseOpenChange={handleProgrammeCourseOpenChange} />{!isProgrammeCourseOpen && <LifeGuidesView />}</>}
           {!isAdminPanelOpen && activeTab === 'stories' && <LivedExperiencesView />}

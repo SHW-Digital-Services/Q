@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2, Newspaper, BookOpen } from 'lucide-react';
+import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, LogOut, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2, Newspaper, BookOpen } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 import { ContentPost } from '../types';
 
@@ -8,6 +8,7 @@ interface AdminPanelProps {
   onToggle: (value: boolean) => void;
   onClose: () => void;
   onPreview: () => Promise<void>;
+  onSignOut: () => Promise<void>;
 }
 
 interface CrmUser {
@@ -45,7 +46,7 @@ interface CrmCommunication {
   subject: string | null; body: string; created_at: string;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose, onPreview }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose, onPreview, onSignOut }) => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [requests, setRequests] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
@@ -649,9 +650,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             <h2 className="mt-2 text-xl font-bold text-white">Q Customer Operations</h2>
             <p className="mt-1 text-sm text-slate-300">Manage customers, subscriptions, payments, tasks, and support activity.</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white">
-            Back to app
-          </button>
+          <div className="flex shrink-0 flex-wrap justify-end gap-2">
+            <button type="button" onClick={() => void onSignOut()} className="inline-flex items-center gap-2 rounded-xl border border-rose-300/20 px-3 py-2 text-xs font-bold text-rose-100 transition hover:bg-rose-500/10 hover:text-white">
+              <LogOut className="h-3.5 w-3.5" /> Log out
+            </button>
+            <button type="button" onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white">
+              Back to app
+            </button>
+          </div>
         </div>
 
         {staffRole === 'partner_admin' && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">

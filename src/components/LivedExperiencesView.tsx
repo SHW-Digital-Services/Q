@@ -77,7 +77,15 @@ export const LivedExperiencesView: React.FC = () => {
       const response = await fetch('/api/peer-knowledge', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ ...story, website: '' })
+        body: JSON.stringify({
+          title: story.title,
+          authorAlias: story.authorAlias,
+          tags: story.tags,
+          category: story.category,
+          content: story.content,
+          adviceKeyTakeaways: story.adviceKeyTakeaways,
+          website: ''
+        })
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Unable to submit your reflection for moderation.');
