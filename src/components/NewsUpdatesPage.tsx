@@ -70,7 +70,7 @@ export const NewsUpdatesPage: React.FC = () => {
               <Sparkles className="h-3.5 w-3.5" />
               Q updates
             </div>
-            <h1 className="mt-5 max-w-3xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">News & Updates</h1>
+            <h1 className="mt-5 max-w-3xl text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">News & Updates</h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-700">
               Product notes, launch news, privacy improvements, and operational updates from Q.
             </p>
@@ -144,7 +144,7 @@ export const NewsUpdatesPage: React.FC = () => {
                   <span className="rounded-full bg-violet-100 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-violet-800">{selectedPost.content_type}</span>
                   <span className="text-xs font-semibold text-slate-500">{formatDate(selectedPost.published_at)}</span>
                 </div>
-                <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950">{selectedPost.title}</h2>
+                <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{selectedPost.title}</h2>
                 <p className="mt-3 text-base font-semibold leading-7 text-slate-700">{selectedPost.summary}</p>
                 <div className="mt-6 border-t border-slate-200 pt-2">{renderBody(selectedPost.body)}</div>
                 {selectedPost.tags.length > 0 && (

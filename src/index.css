@@ -10,6 +10,33 @@ body {
   overscroll-behavior-y: none;
 }
 
+#root {
+  min-height: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+picture,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+}
+
 @media (min-width: 640px) {
   html,
   body {
@@ -64,6 +91,47 @@ input {
 
   .mobile-safe-bottom {
     padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+  }
+
+  .mobile-safe-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  .mobile-safe-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+.q-fixed-top-left {
+  top: max(1rem, env(safe-area-inset-top));
+  left: max(1rem, env(safe-area-inset-left));
+}
+
+.q-fixed-top-right {
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
+}
+
+.q-fixed-second-left {
+  top: calc(max(1rem, env(safe-area-inset-top)) + 4.25rem);
+  left: max(1rem, env(safe-area-inset-left));
+}
+
+.q-fixed-second-right {
+  top: calc(max(1rem, env(safe-area-inset-top)) + 4.25rem);
+  right: max(1rem, env(safe-area-inset-right));
+}
+
+@media (max-width: 380px) {
+  .q-fixed-label {
+    display: none;
+  }
+
+  .q-compact-fixed {
+    min-width: 2.75rem;
+    justify-content: center;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 }
 

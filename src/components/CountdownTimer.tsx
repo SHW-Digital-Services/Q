@@ -53,16 +53,16 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate }) => {
   ];
 
   return (
-    <div className="mt-8 rounded-[1.5rem] p-[2px] shadow-2xl shadow-black/10 rainbow-border overflow-hidden bg-transparent">
-      <div className="flex flex-col gap-3 bg-white rounded-[1.25rem] p-5">
-        <div className="text-xs uppercase tracking-[0.3em] text-black font-bold">Official launch</div>
-        <div className="rounded-3xl bg-slate-950/40 p-4 text-center text-sm text-white/90">
+    <div className="mt-8 w-full min-w-0 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[1.5rem] bg-transparent p-[2px] shadow-2xl shadow-black/10 rainbow-border">
+      <div className="flex min-w-0 flex-col gap-3 rounded-[1.25rem] bg-white p-5">
+        <div className="text-xs font-bold uppercase tracking-[0.3em] text-black">Official launch</div>
+        <div className="whitespace-normal break-words rounded-3xl bg-slate-950/40 p-4 text-center text-xs leading-5 text-white/90 sm:text-sm">
           Launch begins 1 November 2026 at 09:00 UK time
         </div>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2 text-center sm:grid-cols-5 sm:gap-3">
         {items.map((item) => (
-          <div key={item.label} className="rounded-3xl bg-slate-950/40 p-3 sm:p-4">
+          <div key={item.label} className="min-w-0 rounded-3xl bg-slate-950/40 p-3 sm:p-4">
             <div className="text-xl font-black tracking-tight text-white sm:text-3xl">{String(item.value).padStart(2, '0')}</div>
             <div className="mt-2 text-[10px] uppercase text-purple-100/70 sm:text-[11px]">{item.label}</div>
           </div>

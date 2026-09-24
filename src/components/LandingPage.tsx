@@ -23,27 +23,27 @@ const LaunchLandingPage: React.FC = () => {
   ];
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950 text-white">
+    <main className="min-h-screen w-screen max-w-[100vw] overflow-x-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950 text-white">
       <div className="absolute top-0 left-0 w-[32rem] max-w-full h-[32rem] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[28rem] max-w-full h-[28rem] bg-indigo-500/20 rounded-full blur-[130px] pointer-events-none" />
 
-      <nav className="relative z-10 max-w-6xl mx-auto px-6 pb-6 pt-36 lg:pt-6 flex items-center justify-between">
+      <nav className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 pb-6 pt-32 sm:px-6 lg:pt-6">
         <div className="flex items-center gap-3">
           <QLogo size="sm" />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-3 text-right">
           <a href="/news" className="text-xs font-semibold text-purple-100 hover:text-white">{t('landingNews')}</a>
-          <span className="text-xs font-semibold text-purple-200/80">{t('landingNowLive')}</span>
+          <span className="hidden text-xs font-semibold text-purple-200/80 sm:inline">{t('landingNowLive')}</span>
         </div>
       </nav>
 
-      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-20 grid grid-cols-1 gap-10 lg:grid-cols-[1.05fr_.95fr] lg:gap-14 items-center">
+      <section className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-10 px-4 pb-20 pt-10 sm:px-6 sm:pt-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-14">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-purple-100 mb-6">
             <Sparkles className="w-3.5 h-3.5 text-purple-300" />
             {t('landingReadyBadge')}
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.02]">
+          <h1 className="max-w-[calc(100vw-2rem)] text-3xl font-black leading-[1.05] tracking-tight sm:max-w-none sm:text-5xl lg:text-6xl xl:text-7xl">
             {t('landingLiveTitle')}
           </h1>
           <p className="mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-purple-100/80">
@@ -87,7 +87,7 @@ const LaunchLandingPage: React.FC = () => {
         </div>
       </section>
 
-      <section id="features" className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
+      <section id="features" className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-24 sm:px-6">
         <div className="grid gap-4 md:grid-cols-3">
           {featureItems.map((item) => (
             <div key={item.title} className="rounded-3xl border border-white/15 bg-white/10 p-6 backdrop-blur-xl">
@@ -130,30 +130,30 @@ export const WaitlistLandingPage: React.FC = () => {
   ];
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950 text-white">
+    <main className="min-h-screen w-screen max-w-[100vw] overflow-x-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950 text-white">
       <div className="absolute top-0 left-0 w-[32rem] max-w-full h-[32rem] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[28rem] max-w-full h-[28rem] bg-indigo-500/20 rounded-full blur-[130px] pointer-events-none" />
 
-      <nav className="relative z-10 max-w-6xl mx-auto px-6 pb-6 pt-36 lg:pt-6 flex items-center justify-between">
+      <nav className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 pb-6 pt-32 sm:px-6 lg:pt-6">
         <div className="flex items-center gap-3">
           <QLogo size="sm" />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-3 text-right">
           <a href="/news" className="text-xs font-semibold text-purple-100 hover:text-white">{t('landingNews')}</a>
-          <span className="text-xs font-semibold text-purple-200/80">{t('landingSaferCompanion')}</span>
+          <span className="hidden text-xs font-semibold text-purple-200/80 sm:inline">{t('landingSaferCompanion')}</span>
         </div>
       </nav>
 
-      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-28 grid grid-cols-1 gap-10 lg:grid-cols-[1.1fr_.9fr] lg:gap-16 items-start">
+      <section className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-10 px-4 pb-28 pt-12 sm:px-6 sm:pt-20 lg:grid-cols-[1.1fr_.9fr] lg:gap-16">
         <div>
-          <div className="max-w-full sm:max-w-lg mx-auto">
+          <div className="mx-auto w-full min-w-0 max-w-full sm:max-w-lg">
             <CountdownTimer targetDate={Q_LAUNCH_DATE} />
           </div>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-purple-100 mt-8 mb-6">
             <Sparkles className="w-3.5 h-3.5 text-purple-300" />
             {t('waitlistBadge')}
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.02]">
+          <h1 className="max-w-[calc(100vw-2rem)] text-3xl font-black leading-[1.05] tracking-tight sm:max-w-none sm:text-5xl lg:text-6xl xl:text-7xl">
             {t('waitlistTitle')}
           </h1>
           <p className="mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-purple-100/80">
@@ -187,7 +187,7 @@ export const WaitlistLandingPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="relative z-10 max-w-xl mx-auto px-6 pb-24 text-center">
+      <section className="relative z-10 mx-auto max-w-xl px-4 pb-24 text-center sm:px-6">
         <div className="rounded-3xl bg-white/10 backdrop-blur-xl border border-white/15 p-6 sm:p-8 shadow-2xl">
           <h2 className="text-2xl font-black">{t('waitlistFormTitle')}</h2>
           <p className="mt-2 text-sm text-purple-100/75">{t('waitlistFormIntro')}</p>
@@ -251,7 +251,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ launchEnabled, onToggl
       {launchEnabled ? <LaunchLandingPage /> : <WaitlistLandingPage />}
       <a
         href="/crm"
-        className="fixed right-4 top-20 z-40 rounded-full border border-white/15 bg-slate-900/80 p-3 text-white shadow-lg backdrop-blur transition hover:bg-slate-800"
+        className="fixed right-4 top-20 z-40 inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/15 bg-slate-900/80 p-3 text-white shadow-lg backdrop-blur transition hover:bg-slate-800"
         aria-label={t('openStaffCrm')}
       >
         <Settings className="h-5 w-5" />

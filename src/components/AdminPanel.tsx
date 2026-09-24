@@ -708,7 +708,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl rounded-3xl border border-white/15 bg-slate-950 p-4 text-slate-100 shadow-2xl sm:p-6">
+    <div className="mx-auto w-full max-w-6xl rounded-none border border-white/15 bg-slate-950 p-3 text-slate-100 shadow-2xl sm:rounded-3xl sm:p-6">
       <div>
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -929,7 +929,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
 
           {crmMessage && <div className="mt-3 rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-xs text-rose-200">{crmMessage}</div>}
           <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[900px] text-left text-xs">
+            <table className="w-full min-w-[760px] text-left text-xs lg:min-w-[900px]">
               <thead className="bg-white/5 text-[10px] uppercase tracking-wider text-slate-400">
                 <tr><th className="p-3">Customer</th><th className="p-3">Signup</th><th className="p-3">Last login</th><th className="p-3">Account</th><th className="p-3">Subscription</th><th className="p-3">Renews / ends</th><th className="p-3 text-right">Record</th></tr>
               </thead>
@@ -1072,7 +1072,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
 
         {(customer || customerLoading) && (
           <div className="fixed inset-0 z-[80] overflow-y-auto bg-slate-950/90 p-4 backdrop-blur-sm">
-            <div className="mx-auto my-4 max-w-6xl rounded-3xl border border-white/15 bg-slate-950 p-6 shadow-2xl">
+            <div className="mx-auto my-0 max-w-6xl rounded-none border border-white/15 bg-slate-950 p-4 shadow-2xl sm:my-4 sm:rounded-3xl sm:p-6">
               {customerLoading && !customer ? <p className="text-slate-300">Loading customer record…</p> : customer && <>
                 <div className="flex items-start justify-between gap-4">
                   <div><p className="text-xs font-bold uppercase tracking-widest text-purple-300">360° customer record</p><h2 className="mt-2 text-2xl font-black text-white">{customer.profile?.preferred_name || customer.identity.email}</h2><p className="text-sm text-slate-400">{customer.identity.email} · {customer.identity.id}</p></div>

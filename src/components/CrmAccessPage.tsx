@@ -47,12 +47,12 @@ export function CrmAccessPage({ onUserSignedIn }: { onUserSignedIn: (user: AuthU
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 text-white">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-center">
+    <main className="min-h-dvh bg-slate-950 px-4 py-[max(2rem,env(safe-area-inset-top))] text-white">
+      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-md flex-col justify-center">
         <a href="/" className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white">
           <ArrowLeft className="h-4 w-4" /> Public site
         </a>
-        <section className="rounded-3xl border border-white/15 bg-white/5 p-6 shadow-2xl">
+        <section className="rounded-3xl border border-white/15 bg-white/5 p-4 shadow-2xl sm:p-6">
           <div className="flex items-center gap-3">
             <QLogo size="sm" />
             <div>

@@ -47,15 +47,15 @@ export const DeveloperPage: React.FC = () => (
             <Code2 className="h-3.5 w-3.5" />
             External developer documentation
           </div>
-          <h1 className="mt-5 max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">Q API Documentation</h1>
+          <h1 className="mt-5 max-w-3xl text-3xl font-black tracking-tight sm:text-5xl">Q API Documentation</h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
             Use Q's public APIs to read published content, Life Guides and Peer Knowledge. Approved publishing partners can also create News & Updates posts with a CRM-authorised API token.
           </p>
         </div>
 
-        <aside className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+        <aside className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
           <p className="font-bold text-white">Base URL</p>
-          <code className="mt-2 block rounded-xl bg-slate-900 p-3 text-xs text-purple-100">https://q-ai.online</code>
+          <code className="mt-2 block overflow-x-auto rounded-xl bg-slate-900 p-3 text-xs text-purple-100">https://q-ai.online</code>
           <p className="mt-4 font-bold text-white">Support</p>
           <p className="mt-2 text-xs leading-5">Request publishing access from the Q CRM administrator. Tokens are shown once and can be revoked.</p>
         </aside>
@@ -109,8 +109,8 @@ export const DeveloperPage: React.FC = () => (
             Public read endpoints do not require authentication. Publishing requires a CRM-authorised content API token sent as either:
           </p>
           <ul className="mt-3 space-y-2 text-sm text-slate-300">
-            <li><code className="text-purple-100">Authorization: Bearer &lt;token&gt;</code></li>
-            <li><code className="text-purple-100">x-q-content-api-key: &lt;token&gt;</code></li>
+            <li><code className="block overflow-x-auto text-purple-100">Authorization: Bearer &lt;token&gt;</code></li>
+            <li><code className="block overflow-x-auto text-purple-100">x-q-content-api-key: &lt;token&gt;</code></li>
           </ul>
           <p className="mt-4 text-sm leading-6 text-slate-300">
             Admins create and revoke publishing tokens in the CRM. Q stores only token hashes and prefixes; copy the token when it is created.

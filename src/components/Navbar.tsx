@@ -159,14 +159,15 @@ export const Navbar: React.FC<Props> = ({
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex min-h-16 flex-col items-center justify-center rounded-2xl px-1.5 py-2 text-center text-[10px] font-semibold transition ${
+                  aria-label={item.label}
+                  className={`flex min-h-16 min-w-0 flex-col items-center justify-center rounded-2xl px-1 py-2 text-center text-[9px] font-semibold transition min-[375px]:text-[10px] ${
                     active
                       ? `${item.activeClass} shadow-lg -translate-y-0.5`
                       : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 active:scale-95'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
-                  <span className="mt-1 leading-none">{item.shortLabel}</span>
+                  <span className="mt-1 w-full truncate leading-none">{item.shortLabel}</span>
                 </button>
               );
             })}
