@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, LogOut, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2, Newspaper, BookOpen } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 import { ContentPost } from '../types';
@@ -46,6 +46,66 @@ interface CrmCommunication {
   subject: string | null; body: string; created_at: string;
 }
 
+const CONTENT_DRAFT_STORAGE_KEY = 'q-crm-news-draft-v1';
+const emptyContentForm = {
+  title: '',
+  slug: '',
+  summary: '',
+  body: '',
+  contentType: 'update',
+  tags: '',
+  heroImageUrl: ''
+};
+
+type ContentFormState = typeof emptyContentForm;
+
+function hasContentDraft(form: ContentFormState) {
+  return Object.entries(form).some(([key, value]) => key !== 'contentType' && value.trim().length > 0) || form.contentType !== emptyContentForm.contentType;
+}
+
+function loadContentDraft(): ContentFormState {
+  if (typeof window === 'undefined') return emptyContentForm;
+  try {
+    const raw = window.localStorage.getItem(CONTENT_DRAFT_STORAGE_KEY);
+    if (!raw) return emptyContentForm;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return emptyContentForm;
+    return {
+      title: typeof parsed.title === 'string' ? parsed.title : '',
+      slug: typeof parsed.slug === 'string' ? parsed.slug : '',
+      summary: typeof parsed.summary === 'string' ? parsed.summary : '',
+      body: typeof parsed.body === 'string' ? parsed.body : '',
+      contentType: parsed.contentType === 'news' ? 'news' : 'update',
+      tags: typeof parsed.tags === 'string' ? parsed.tags : '',
+      heroImageUrl: typeof parsed.heroImageUrl === 'string' ? parsed.heroImageUrl : ''
+    };
+  } catch {
+    return emptyContentForm;
+  }
+}
+
+function saveContentDraft(form: ContentFormState) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (hasContentDraft(form)) {
+      window.localStorage.setItem(CONTENT_DRAFT_STORAGE_KEY, JSON.stringify(form));
+    } else {
+      window.localStorage.removeItem(CONTENT_DRAFT_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore local storage failures; the CRM form should still remain usable.
+  }
+}
+
+function clearContentDraft() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(CONTENT_DRAFT_STORAGE_KEY);
+  } catch {
+    // Ignore local storage failures; a stale draft is safer than blocking submit.
+  }
+}
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose, onPreview, onSignOut }) => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [requests, setRequests] = useState<any[]>([]);
@@ -89,15 +149,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [apiClients, setApiClients] = useState<any[]>([]);
   const [apiClientName, setApiClientName] = useState('');
   const [apiClientToken, setApiClientToken] = useState<string | null>(null);
-  const [contentForm, setContentForm] = useState({
-    title: '',
-    slug: '',
-    summary: '',
-    body: '',
-    contentType: 'update',
-    tags: '',
-    heroImageUrl: ''
-  });
+  const [contentForm, setContentForm] = useState<ContentFormState>(() => loadContentDraft());
+  const contentFormRef = useRef(contentForm);
   const [peerSubmissions, setPeerSubmissions] = useState<any[]>([]);
   const [peerMessage, setPeerMessage] = useState<string | null>(null);
   const [lifeGuides, setLifeGuides] = useState<any[]>([]);
@@ -507,7 +560,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       });
       const post = await parseJsonResponse(response);
       setContentPosts((current) => [post, ...current]);
-      setContentForm({ title: '', slug: '', summary: '', body: '', contentType: 'update', tags: '', heroImageUrl: '' });
+      clearContentDraft();
+      setContentForm(emptyContentForm);
       setContentMessage('Draft saved. Publish it when ready.');
     } catch (error: any) {
       setContentMessage(error.message || 'Unable to save content post.');
@@ -615,6 +669,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     void loadContactRequests();
     void loadPeerSubmissions();
     void loadLifeGuides();
+  }, []);
+
+  useEffect(() => {
+    contentFormRef.current = contentForm;
+  }, [contentForm]);
+
+  useEffect(() => {
+    const persistDraft = () => saveContentDraft(contentFormRef.current);
+    const timer = window.setInterval(persistDraft, 30_000);
+    window.addEventListener('beforeunload', persistDraft);
+    return () => {
+      persistDraft();
+      window.clearInterval(timer);
+      window.removeEventListener('beforeunload', persistDraft);
+    };
   }, []);
 
   useEffect(() => { if (staffRole === 'partner_admin') void loadStaff(); }, [staffRole]);
