@@ -55,7 +55,7 @@ export const NewsUpdatesPage: React.FC = () => {
     <main className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-sky-50 text-slate-950">
       <header className="pride-topline border-b border-violet-100 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <a href="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-violet-700">
+          <a href="/" className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-bold text-slate-700 hover:bg-violet-50 hover:text-violet-700">
             <ArrowLeft className="h-4 w-4" />
             Home
           </a>

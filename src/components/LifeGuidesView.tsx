@@ -45,6 +45,124 @@ function isGuideCategory(value: unknown): value is GuideCategory {
   return typeof value === 'string' && (guideCategories as readonly string[]).includes(value);
 }
 
+const categoryLabels: Record<GuideCategory, string> = {
+  healthcare: 'Healthcare',
+  rights: 'Rights',
+  social: 'Social support',
+  mental_health: 'Mental wellbeing',
+  career: 'Workplace',
+  housing: 'Housing and travel'
+};
+
+const offlineCategoryPlans: Record<GuideCategory, { steps: string[]; links: { name: string; detail: string }[] }> = {
+  healthcare: {
+    steps: [
+      'List the care outcome you want, your current provider or service, key dates, and any access needs',
+      'Gather relevant records, referral notes, prescriptions, names used, and questions you want answered',
+      'Check official local guidance or a qualified clinician before changing treatment, medication, or appointments',
+      'Choose one next contact to make, such as a GP, clinic, patient advice service, or trusted advocate',
+      'Keep a private note of what was agreed, who said it, and when to follow up'
+    ],
+    links: [
+      { name: 'Official health guidance', detail: 'Look for your local NHS, public health, insurer, or clinic information' },
+      { name: 'Patient support', detail: 'Find a patient advice, complaints, or advocacy service for the provider involved' }
+    ]
+  },
+  rights: {
+    steps: [
+      'Write down the decision, document, or right you need help with, including dates and people involved',
+      'Collect copies of letters, forms, policies, emails, IDs, or evidence that may matter',
+      'Check an official government, regulator, union, or legal-advice source before relying on legal conclusions',
+      'Draft the next message or request in plain language, asking for the outcome you need and a response date',
+      'Save a dated record of each action so you can explain the timeline later'
+    ],
+    links: [
+      { name: 'Official rights source', detail: 'Use government, regulator, ombudsman, union, or recognised advice pages' },
+      { name: 'Legal advice route', detail: 'Look for a qualified adviser before making high-stakes legal decisions' }
+    ]
+  },
+  social: {
+    steps: [
+      'Name the relationship, conversation, or social situation you want to handle more safely',
+      'Decide what you want to share, what stays private, and what boundary you need respected',
+      'Write a short script using calm, direct language and one clear request',
+      'Choose a support person or exit plan before the conversation if there is any risk of pressure or conflict',
+      'Afterwards, note what felt okay, what did not, and what support you want next'
+    ],
+    links: [
+      { name: 'Trusted support person', detail: 'Choose someone who respects your privacy and can help you debrief' },
+      { name: 'Community support', detail: 'Look for moderated LGBTQ+ peer groups or local community organisations' }
+    ]
+  },
+  mental_health: {
+    steps: [
+      'Describe what you are feeling, what triggered it, and what would make the next hour easier',
+      'Pick one grounding action you can do now, such as breathing, a drink, fresh air, or moving to a calmer space',
+      'Contact a trusted person, support line, GP, therapist, or community service if the feeling is hard to carry alone',
+      'Reduce immediate pressure by postponing non-urgent decisions and limiting messages or tasks',
+      'If there is any risk of immediate harm, use emergency or crisis support now instead of waiting'
+    ],
+    links: [
+      { name: 'Crisis support', detail: 'Use Q crisis resources or local emergency services for immediate danger' },
+      { name: 'Ongoing support', detail: 'Look for GP, therapist, counselling, or community mental-health routes' }
+    ]
+  },
+  career: {
+    steps: [
+      'Define the workplace issue, outcome you want, and whether this is about safety, inclusion, pay, or progression',
+      'Collect relevant policies, contracts, messages, dates, and examples while keeping copies somewhere private',
+      'Plan a concise request for your manager, HR, union, mentor, or another trusted workplace contact',
+      'Check official employment guidance or qualified advice before making major employment decisions',
+      'Set a follow-up date and decide what you will do if the first route does not respond'
+    ],
+    links: [
+      { name: 'Workplace policy', detail: 'Review HR, equality, absence, dress-code, grievance, or transition policies' },
+      { name: 'Employment support', detail: 'Consider union, adviser, mentor, ACAS-style, or regulator guidance' }
+    ]
+  },
+  housing: {
+    steps: [
+      'Clarify the housing, travel, or safety problem and what decision or deadline is coming up',
+      'Gather tenancy, booking, ID, address, travel, payment, or incident records that relate to the issue',
+      'Check official local housing, travel, or consumer guidance before relying on informal advice',
+      'Contact the safest practical support route, such as a landlord, provider, council, advice service, or trusted person',
+      'Make a backup plan for documents, transport, accommodation, money, and emergency contacts if needed'
+    ],
+    links: [
+      { name: 'Official local guidance', detail: 'Use council, housing, transport, government, or consumer-rights sources' },
+      { name: 'Practical support', detail: 'Look for tenant, travel, shelter, LGBTQ+ safety, or advice organisations' }
+    ]
+  }
+};
+
+function cleanGuideTopic(topic: string): string {
+  return topic.replace(/\s+/g, ' ').trim().slice(0, 140);
+}
+
+function buildOfflineLifeGuide(topic: string, category: GuideCategory): Omit<LifeGuide, 'id' | 'updatedAt'> {
+  const cleanTopic = cleanGuideTopic(topic) || 'this situation';
+  const categoryPlan = offlineCategoryPlans[category];
+  const readableCategory = categoryLabels[category];
+  const firstStep = `For "${cleanTopic}", write down the specific outcome you want, what feels urgent, and what would feel safe enough as a first step`;
+  const steps = [firstStep, ...categoryPlan.steps.slice(1)];
+
+  return {
+    title: `${readableCategory}: ${cleanTopic}`,
+    category,
+    summary: `Offline starter plan for "${cleanTopic}" with practical next steps, privacy-aware notes, and verified support routes.`,
+    steps: steps.map((text, index) => ({
+      id: `st-${index + 1}`,
+      text,
+      completed: false
+    })),
+    keyContactsOrLinks: categoryPlan.links,
+    aiGenerated: true,
+    savedOffline: true,
+    readProgressPct: 0,
+    isBookmarked: false
+  };
+}
+
 export const LifeGuidesView: React.FC = () => {
   const { userId } = usePremium();
   const [guides, setGuides] = useState<LifeGuide[]>([]);
@@ -57,6 +175,9 @@ export const LifeGuidesView: React.FC = () => {
   const [genCategory, setGenCategory] = useState<GuideCategory>('healthcare');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
+  const [guideProvider, setGuideProvider] = useState<'local' | 'hosted'>('local');
+  const [hasHostedGuideAccess, setHasHostedGuideAccess] = useState(false);
+  const [hostedGuideAccessLoading, setHostedGuideAccessLoading] = useState(true);
 
   useEffect(() => {
     const mergePublishedGuides = async () => {
@@ -81,6 +202,31 @@ export const LifeGuidesView: React.FC = () => {
     const refresh = () => { void mergePublishedGuides(); };
     window.addEventListener('q-cloud-applied', refresh);
     return () => window.removeEventListener('q-cloud-applied', refresh);
+  }, [userId]);
+
+  useEffect(() => {
+    let active = true;
+    const loadHostedGuideAccess = async () => {
+      try {
+        const supabase = getSupabaseClient();
+        const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
+        if (!data.session?.access_token) throw new Error('No active session');
+        const response = await fetch('/api/billing/paypal/status', { headers: { Authorization: `Bearer ${data.session.access_token}` } });
+        const result = await response.json();
+        if (!active) return;
+        const entitled = response.ok && result.status === 'ACTIVE';
+        setHasHostedGuideAccess(entitled);
+        if (!entitled) setGuideProvider('local');
+      } catch {
+        if (!active) return;
+        setHasHostedGuideAccess(false);
+        setGuideProvider('local');
+      } finally {
+        if (active) setHostedGuideAccessLoading(false);
+      }
+    };
+    void loadHostedGuideAccess();
+    return () => { active = false; };
   }, [userId]);
 
   const handleStepToggle = (guideId: string, stepId: string) => {
@@ -127,11 +273,28 @@ export const LifeGuidesView: React.FC = () => {
   };
 
   const handleGenerateCustomGuide = async () => {
-    if (!genTopic.trim() || isGenerating) return;
+    const topic = cleanGuideTopic(genTopic);
+    if (!topic || isGenerating) return;
 
     setIsGenerating(true);
     setGenerationError('');
     try {
+      if (guideProvider !== 'hosted' || !hasHostedGuideAccess) {
+        const localGuide: LifeGuide = {
+          id: `guide-local-${Date.now()}`,
+          ...buildOfflineLifeGuide(topic, genCategory),
+          updatedAt: new Date().toISOString(),
+        };
+        const updated = saveLifeGuide(localGuide, userId);
+        setGuides(updated);
+        setSelectedCategory('all');
+        setSearchQuery('');
+        setGenerationError('Q created and saved a prompt-specific local guide.');
+        setGenTopic('');
+        setShowGeneratorModal(false);
+        return;
+      }
+
       const supabase = getSupabaseClient();
       const { data: sessionData } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -140,22 +303,22 @@ export const LifeGuidesView: React.FC = () => {
       const res = await fetch('/api/q-ai/generate-guide', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ topic: genTopic, category: genCategory })
+        body: JSON.stringify({ topic, category: genCategory })
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Q guide generation is unavailable.');
       const steps = Array.isArray(data.steps) && data.steps.length > 0
-        ? data.steps
+        ? data.steps.map((step: unknown) => (typeof step === 'string' ? step.trim() : '')).filter(Boolean)
         : ['Clarify the goal and what would feel safe enough to do next', 'Gather verified local information before making decisions', 'Choose one small action and note who can support you'];
 
       const newGuide: LifeGuide = {
         id: `guide-gen-${Date.now()}`,
-        title: data.title || genTopic,
+        title: data.title || topic,
         category: isGuideCategory(data.category) ? data.category : genCategory,
-        summary: data.summary || `AI-generated step-by-step toolkit for ${genTopic}`,
+        summary: data.summary || `AI-generated step-by-step toolkit for ${topic}`,
         steps: steps.map((stepText: string, idx: number) => ({
-          id: `st-${idx}`,
+          id: `st-${idx + 1}`,
           text: stepText,
           completed: false
         })),
@@ -178,25 +341,14 @@ export const LifeGuidesView: React.FC = () => {
       console.warn('[Q Guides] AI Guide generation failed, using local offline generator:', reason);
       const fallbackGuide: LifeGuide = {
         id: `guide-off-${Date.now()}`,
-        title: `Toolkit: ${genTopic}`,
-        category: genCategory,
-        summary: `Action plan created offline for ${genTopic}`,
-        steps: [
-          { id: 'st-1', text: 'Identify official regional guidelines and verified contact channels', completed: false },
-          { id: 'st-2', text: 'Prepare documentation and secure offline digital copies', completed: false },
-          { id: 'st-3', text: 'Connect with community advocates for guidance', completed: false }
-        ],
-        aiGenerated: true,
-        savedOffline: true,
+        ...buildOfflineLifeGuide(topic, genCategory),
         updatedAt: new Date().toISOString(),
-        readProgressPct: 0,
-        isBookmarked: false
       };
       const updated = saveLifeGuide(fallbackGuide, userId);
       setGuides(updated);
       setSelectedCategory('all');
       setSearchQuery('');
-      setGenerationError('Hosted AI was unavailable, so Q created and saved an offline guide instead.');
+      setGenerationError('Hosted AI was unavailable, so Q created and saved a prompt-specific offline guide instead.');
       setGenTopic('');
       setShowGeneratorModal(false);
     } finally {
@@ -576,6 +728,26 @@ export const LifeGuidesView: React.FC = () => {
                   <option value="housing">Housing & Travel Safety</option>
                   <option value="mental_health">Mental Wellbeing</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">Generation Mode</label>
+                <select
+                  value={guideProvider}
+                  onChange={(e) => {
+                    const provider = e.target.value as 'local' | 'hosted';
+                    setGuideProvider(provider === 'hosted' && !hasHostedGuideAccess ? 'local' : provider);
+                  }}
+                  className="w-full p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-500 font-medium"
+                >
+                  <option value="local">Private local guide</option>
+                  <option value="hosted" disabled={!hasHostedGuideAccess}>
+                    {hasHostedGuideAccess ? 'Hosted AI guide' : 'Hosted AI guide - subscribers'}
+                  </option>
+                </select>
+                {!hostedGuideAccessLoading && !hasHostedGuideAccess && (
+                  <p className="mt-1 text-[11px] font-medium text-slate-500">Hosted guide generation is available to active subscribers. Local guide creation stays available.</p>
+                )}
               </div>
 
               <div>

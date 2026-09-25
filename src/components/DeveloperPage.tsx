@@ -32,7 +32,7 @@ export const DeveloperPage: React.FC = () => (
   <main className="min-h-screen bg-slate-950 text-white">
     <header className="border-b border-white/10 bg-slate-950/95">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <a href="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white">
+        <a href="/" className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white">
           <ArrowLeft className="h-4 w-4" />
           Home
         </a>

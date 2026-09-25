@@ -41,7 +41,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
   const [showMemoryModal, setShowMemoryModal] = useState(false);
   const [savedGuideNotice, setSavedGuideNotice] = useState<string | null>(null);
   const [reflectionPrompt, setReflectionPrompt] = useState(false);
-  const [aiProvider, setAiProvider] = useState<'local' | 'hosted'>(() => localStorage.getItem('q_ai_provider') === 'hosted' ? 'hosted' : 'local');
+  const [aiProvider, setAiProvider] = useState<'local' | 'hosted'>('local');
   const [hasHostedAccess, setHasHostedAccess] = useState(false);
   const [hostedAccessLoading, setHostedAccessLoading] = useState(true);
   const [hostedFallbackNotice, setHostedFallbackNotice] = useState<string | null>(null);
@@ -132,11 +132,16 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       // Only safeInput may leave the device when the hosted provider is explicitly selected.
       const safeInput = maskPII(query);
       const hostedCoolingDown = aiProvider === 'hosted' && isHostedAiCoolingDown();
-      let useHosted = aiProvider === 'hosted' && !hostedCoolingDown;
+      let useHosted = aiProvider === 'hosted' && hasHostedAccess && !hostedCoolingDown;
       if (hostedCoolingDown) {
         setAiProvider('local');
         localStorage.setItem('q_ai_provider', 'local');
         setHostedFallbackNotice(`Hosted AI is cooling down for about ${getHostedAiCooldownSeconds()} seconds, so Q is using reliable private guidance.`);
+      }
+      if (aiProvider === 'hosted' && !hasHostedAccess) {
+        setAiProvider('local');
+        localStorage.setItem('q_ai_provider', 'local');
+        setHostedFallbackNotice('Q starts in private local AI. Hosted AI is available after an active subscription is confirmed.');
       }
       let recentMemories = [];
       if (profile.optInMemory) {

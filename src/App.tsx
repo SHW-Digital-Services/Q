@@ -54,14 +54,14 @@ function LoadingView({ label = 'Loading...' }: { label?: string }) {
   );
 }
 
-function StatusPageButton() {
+function StatusPageButton({ placement = 'left' }: { placement?: 'left' | 'right' }) {
   return (
     <a
       href="https://status.q-ai.online"
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Open Q Status Page in a new tab"
-      className="q-fixed-top-left q-compact-fixed fixed z-[60] inline-flex min-h-11 items-center gap-1.5 rounded-full border border-purple-300/60 bg-slate-950/90 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur transition hover:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+      className={`${placement === 'right' ? 'q-fixed-top-right' : 'q-fixed-top-left'} q-compact-fixed fixed z-[60] inline-flex min-h-11 items-center gap-1.5 rounded-full border border-purple-300/60 bg-slate-950/90 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur transition hover:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2`}
     >
       <span className="q-fixed-label">Status Page</span>
       <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
@@ -348,8 +348,8 @@ export default function App() {
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
-  if (isNewsRoute) return <><StatusPageButton /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
-  if (isDeveloperRoute) return <><StatusPageButton /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
+  if (isNewsRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
+  if (isDeveloperRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
 
   if (isCrmRoute && !previewActive) {
     if (!currentUser) {
