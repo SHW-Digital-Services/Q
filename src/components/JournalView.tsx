@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   BookOpen,
   Plus,
@@ -17,11 +17,13 @@ import {
   MicOff,
   Radio,
   Volume2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { JournalEntry } from '../types';
 import { getJournalEntries, saveJournalEntry, deleteJournalEntry } from '../services/storage';
+import { getCloudJournalEntries, deleteCloudJournalEntry, mergeJournalEntries } from '../services/journal';
 import { deleteMemoryBlob, getMemoryBlobs, MemoryBlob } from '../services/memory';
 import { MoodTracker } from './MoodTracker';
 import { JournalInsights } from './JournalInsights';
@@ -34,7 +36,15 @@ interface JournalViewProps {
 
 export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId }) => {
   const { locale } = useLanguage();
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [localEntries, setEntries] = useState<JournalEntry[]>([]);
+  const [cloudEntries, setCloudEntries] = useState<JournalEntry[]>([]);
+  const [journalError, setJournalError] = useState<string | null>(null);
+  const [journalLoading, setJournalLoading] = useState(true);
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const [deletingEntry, setDeletingEntry] = useState<string | null>(null);
+  const cloudRequest = useRef<AbortController | null>(null);
+  const entries = useMemo(() => mergeJournalEntries(localEntries, cloudEntries), [localEntries, cloudEntries]);
+  const cloudIds = useMemo(() => new Set(cloudEntries.map(entry => entry.id)), [cloudEntries]);
   const [memoryBlobs, setMemoryBlobs] = useState<MemoryBlob[]>([]);
   const [memoryError, setMemoryError] = useState<string | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
@@ -54,11 +64,30 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setEntries(getJournalEntries(userId));
+    setCloudEntries([]);
+    setMemoryBlobs([]);
+    setMemoryError(null);
     getMemoryBlobs(userId)
-      .then(setMemoryBlobs)
-      .catch(() => setMemoryError('Cloud memories are not available right now.'));
+      .then(data => { if (!cancelled) setMemoryBlobs(data); })
+      .catch(() => { if (!cancelled) setMemoryError('Cloud memories are not available right now.'); });
+    return () => { cancelled = true; };
   }, [userId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    cloudRequest.current = controller;
+    setJournalLoading(true);
+    setJournalError(null);
+    getCloudJournalEntries(userId, controller.signal)
+      .then(data => { if (!controller.signal.aborted) setCloudEntries(data); })
+      .catch(() => {
+        if (!controller.signal.aborted) setJournalError('Account journal entries could not be loaded. Your browser entries are still available. Please refresh to try again.');
+      })
+      .finally(() => { if (!controller.signal.aborted) setJournalLoading(false); });
+    return () => controller.abort();
+  }, [userId, refreshVersion]);
 
   // Cleanup dictation on unmount or modal hide
   useEffect(() => {
@@ -184,9 +213,22 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
     setShowNewModal(false);
   };
 
-  const handleDeleteEntry = (id: string) => {
-    const updated = deleteJournalEntry(id, userId);
-    setEntries(updated);
+  const handleDeleteEntry = async (id: string) => {
+    setDeletingEntry(id);
+    setJournalError(null);
+    try {
+      if (cloudIds.has(id)) {
+        await deleteCloudJournalEntry(userId, id);
+        cloudRequest.current?.abort();
+        setJournalLoading(false);
+        setCloudEntries(current => current.filter(entry => entry.id !== id));
+      }
+      setEntries(deleteJournalEntry(id, userId));
+    } catch {
+      setJournalError('Could not delete that account journal entry. Please try again.');
+    } finally {
+      setDeletingEntry(null);
+    }
   };
 
   const handleDeleteMemory = async (memoryId: string) => {
@@ -258,7 +300,7 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
       doc.setFontSize(9);
       doc.setTextColor(100, 116, 139);
       doc.text(
-        `Date: ${entry.date} at ${entry.time} | Mood: ${moodEmoji} (${entry.moodRating}/5)`,
+        `Date: ${entry.date} at ${entry.time} | Mood: ${entry.moodRating ? `${moodEmoji} (${entry.moodRating}/5)` : 'Not recorded'}`,
         margin,
         y
       );
@@ -300,6 +342,7 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
   };
 
   const getMoodIcon = (rating: number) => {
+    if (!rating) return <BookOpen aria-label="No mood recorded" className="w-5 h-5 text-slate-500" />;
     if (rating >= 4) return <Smile className="w-5 h-5 text-emerald-600" />;
     if (rating === 3) return <Meh className="w-5 h-5 text-amber-600" />;
     return <Frown className="w-5 h-5 text-rose-600" />;
@@ -314,11 +357,14 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
             <BookOpen className="w-5 h-5 text-purple-600" /> Q Private Journal & Mood
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Private reflections stored in this browser. Track emotional wellbeing and transition milestones offline.
+            Your browser reflections and journal entries saved to your account. New entries are stored in this browser.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button type="button" onClick={() => setRefreshVersion(value => value + 1)} disabled={journalLoading || !!deletingEntry} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-xs font-semibold text-slate-700 disabled:opacity-50">
+            <RefreshCw className={`h-4 w-4 ${journalLoading ? 'animate-spin' : ''}`} /> Refresh journal
+          </button>
           <button
             onClick={handleExportPDF}
             disabled={entries.length === 0}
@@ -347,7 +393,7 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
       <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700">
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-emerald-600" />
-          <span className="font-medium">Browser storage • Device only • Not encrypted by Q</span>
+          <span className="font-medium">Browser entries stay on this device. Account entries are stored in the cloud.</span>
         </div>
         <div className="flex items-center gap-4">
           <span>Total Entries: <strong className="text-purple-600">{entries.length}</strong></span>
@@ -389,6 +435,8 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
       </section>
 
       {/* Journal Entries List */}
+      {journalLoading && <p role="status" className="text-xs text-slate-600">Loading account journal entries...</p>}
+      {journalError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">{journalError}</p>}
       <div className="space-y-3.5">
         {entries.map((entry) => (
           <div
@@ -410,9 +458,10 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
               </div>
 
               <button
-                onClick={() => handleDeleteEntry(entry.id)}
+                onClick={() => void handleDeleteEntry(entry.id)}
+                disabled={!!deletingEntry}
                 className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-95"
-                title="Delete Entry"
+                title={cloudIds.has(entry.id) ? 'Delete Entry from account' : 'Delete Entry'}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -435,7 +484,7 @@ export const JournalView: React.FC<JournalViewProps> = ({ onAskQSupport, userId 
                 ))}
               </div>
               <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
-                <Lock className="w-3 h-3 text-emerald-600" /> Private & Synced
+                <Lock className="w-3 h-3 text-emerald-600" /> {cloudIds.has(entry.id) ? 'Account storage' : 'Browser storage'}
               </span>
             </div>
           </div>

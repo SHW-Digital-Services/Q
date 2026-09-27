@@ -21,6 +21,13 @@ Playwright starts and tests the parent application in `D:\Dev\Q`. The test
 suite remains a separate Node project in
 `D:\Dev\Q\site-tests\q-playwright-tests`.
 
+The local test server returns an enabled launch setting so authentication
+tests work before the public launch. This is confined to the test server;
+it does not update Supabase or change the deployed application's launch gate.
+Tests for the waitlist can override the launch response with `page.route`.
+Authenticated tests still require an active Supabase test project and valid
+test-account credentials.
+
 ## Prerequisites
 
 Install the following before continuing:

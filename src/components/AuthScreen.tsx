@@ -343,7 +343,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               </button>
               <div className="flex items-center gap-3 py-1" aria-hidden="true">
                 <div className="h-px flex-1 bg-slate-200" />
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Or</span>
+                <span className="text-[10px] uppercase font-bold text-slate-600 tracking-wider">Or</span>
                 <div className="h-px flex-1 bg-slate-200" />
               </div>
             </>

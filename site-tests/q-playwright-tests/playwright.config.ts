@@ -42,7 +42,7 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1'
     ? undefined
     : {
-        command: 'npm run dev --prefix ../..',
+        command: 'node --import tsx scripts/start-test-server.mjs',
         cwd: __dirname,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
