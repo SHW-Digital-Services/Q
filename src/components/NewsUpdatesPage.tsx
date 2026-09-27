@@ -3,20 +3,13 @@ import { ArrowLeft, CalendarDays, Newspaper, RefreshCw, Sparkles } from 'lucide-
 import { ContentPost } from '../types';
 import { QLogo } from './QLogo';
 import { LegalFooter } from './LegalFooter';
+import { PostMarkdown } from './PostMarkdown';
 
 type Filter = 'all' | 'news' | 'update';
 
 function formatDate(value: string | null) {
   if (!value) return 'Draft';
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value));
-}
-
-function renderBody(body: string) {
-  return body.split(/\n{2,}/).map((paragraph, index) => (
-    <p key={`${paragraph.slice(0, 18)}-${index}`} className="mt-4 text-sm leading-7 text-slate-700">
-      {paragraph}
-    </p>
-  ));
 }
 
 export const NewsUpdatesPage: React.FC = () => {
@@ -146,7 +139,7 @@ export const NewsUpdatesPage: React.FC = () => {
                 </div>
                 <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{selectedPost.title}</h2>
                 <p className="mt-3 text-base font-semibold leading-7 text-slate-700">{selectedPost.summary}</p>
-                <div className="mt-6 border-t border-slate-200 pt-2">{renderBody(selectedPost.body)}</div>
+                <div className="mt-6 border-t border-slate-200 pt-4"><PostMarkdown body={selectedPost.body} /></div>
                 {selectedPost.tags.length > 0 && (
                   <div className="mt-8 flex flex-wrap gap-2">
                     {selectedPost.tags.map((tag) => <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{tag}</span>)}

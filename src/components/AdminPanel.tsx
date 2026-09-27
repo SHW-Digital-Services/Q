@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, LogOut, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2, Newspaper, BookOpen } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 import { ContentPost } from '../types';
+import { PostMarkdown } from './PostMarkdown';
 
 interface AdminPanelProps {
   enabled: boolean;
@@ -772,7 +773,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             <input maxLength={120} value={contentForm.slug} onChange={(event) => setContentForm({ ...contentForm, slug: event.target.value })} placeholder="Slug, optional" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2" />
             <select value={contentForm.contentType} onChange={(event) => setContentForm({ ...contentForm, contentType: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="update">Update</option><option value="news">News</option></select>
             <textarea required maxLength={500} value={contentForm.summary} onChange={(event) => setContentForm({ ...contentForm, summary: event.target.value })} placeholder="Short summary" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white md:col-span-3" />
-            <textarea required maxLength={20000} value={contentForm.body} onChange={(event) => setContentForm({ ...contentForm, body: event.target.value })} placeholder="Full post body" className="min-h-32 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white md:col-span-3" />
+            <div className="min-w-0 md:col-span-3">
+              <label htmlFor="post-body" className="mb-2 block text-xs font-bold text-slate-200">Post body (Markdown)</label>
+              <textarea id="post-body" aria-describedby="post-body-help" required maxLength={20000} value={contentForm.body} onChange={(event) => setContentForm({ ...contentForm, body: event.target.value })} placeholder="Write your post in Markdown..." className="min-h-48 w-full rounded-xl border border-white/10 bg-slate-950 p-3 font-mono text-xs text-white" />
+              <p id="post-body-help" className="mt-2 text-xs leading-5 text-slate-400">Use # for headings, **bold**, *italic*, - for lists, and [link text](https://example.com) for links.</p>
+            </div>
+            <details className="min-w-0 rounded-xl border border-white/10 p-3 md:col-span-6">
+              <summary className="cursor-pointer text-xs font-bold text-slate-200">Preview Markdown</summary>
+              <div className="mt-3 rounded-lg bg-white p-5">
+                {contentForm.body.trim() ? <PostMarkdown body={contentForm.body} /> : <p className="text-sm text-slate-500">Write a post body to see a preview.</p>}
+              </div>
+            </details>
             <input value={contentForm.tags} onChange={(event) => setContentForm({ ...contentForm, tags: event.target.value })} placeholder="Tags, comma separated" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-3" />
             <input value={contentForm.heroImageUrl} onChange={(event) => setContentForm({ ...contentForm, heroImageUrl: event.target.value })} placeholder="Hero image URL, optional" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2" />
             <button disabled={contentSaving} className="rounded-xl bg-fuchsia-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{contentSaving ? 'Saving...' : 'Save draft'}</button>
