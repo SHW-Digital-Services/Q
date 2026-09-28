@@ -11,7 +11,7 @@ Q is a privacy-conscious LGBTQ+ wellbeing, life-guidance, and personal-reflectio
 
 - **Premium programmes, insights and continuity:** Self-paced guided programmes, mood/tag insights, and opt-in cross-device snapshots with conflict protection. See [premium features and deployment](docs/premium-features.md).
 
-- **Private local AI:** WebLLM runs Llama 3.2 1B in a Web Worker using WebGPU. After the initial model download, generation can run without sending prompts to an AI API.
+- **Private local AI:** WebLLM runs Qwen2.5 1.5B in a Web Worker using WebGPU. After the initial model download, generation can run without sending prompts to an AI API.
 - **Optional hosted AI:** Users can explicitly select the server-hosted OpenAI provider when local WebGPU is unavailable or unsuitable. Client-side PII masking is applied before hosted requests.
 - **Per-user memory:** User-approved memories are stored in Supabase and protected by Row Level Security. Relevant memories are retrieved only for the authenticated user.
 - **Crisis support:** A static, offline-capable country directory provides one-tap emergency, phone, text, and chat actions. Crisis intent is checked before model inference.
@@ -56,14 +56,17 @@ AI_EMBEDDING_MODEL=text-embedding-3-small
 
 ## WebLLM behavior
 
-The first local-AI request downloads and caches approximately 900 MB of model assets. Actual storage and memory requirements vary by browser and device. Local AI requires WebGPU and may be unavailable on older devices, private browsing configurations, or browsers that disable hardware acceleration.
+The first local-AI request downloads and caches approximately 1 GB of model assets. Actual storage and memory requirements vary by browser and device. Local AI requires WebGPU and may be unavailable on older devices, private browsing configurations, or browsers that disable hardware acceleration.
 
 The model is loaded in a dedicated worker from `src/workers/webllm.worker.ts`. Provider orchestration is in `src/services/webLlm.ts`.
+
+Chat and Life Guides both use real model inference in private local mode; neither substitutes fixed checklists or canned answers. Local mode is the default for both features. Model loading progress is shown, and a failed guide retains its prompt for retry without saving a replacement. GPUs without half-precision shader support use the compatible float32 model. Hosted AI remains optional and requires a funded API account.
 
 ## Validation
 
 ```powershell
 npm run lint
+npm run check:local-ai
 npm run build
 git diff --check
 ```

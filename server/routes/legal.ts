@@ -30,11 +30,13 @@ legalRouter.get('/:page', asyncHandler(async (req, res) => {
     const filePath = path.join(process.cwd(), 'docs', `${page}.md`);
     let html = renderMarkdown(await fs.readFile(filePath, 'utf8'));
     if (page === 'third_party_notices') {
-      const [llamaLicense, webLlmLicense] = await Promise.all([
+      const [llamaLicense, webLlmLicense, qwenLicense] = await Promise.all([
         fs.readFile(path.join(process.cwd(), 'docs', 'LLAMA-3.2-LICENSE.txt'), 'utf8'),
-        fs.readFile(path.join(process.cwd(), 'node_modules', '@mlc-ai', 'web-llm', 'LICENSE'), 'utf8')
+        fs.readFile(path.join(process.cwd(), 'node_modules', '@mlc-ai', 'web-llm', 'LICENSE'), 'utf8'),
+        fs.readFile(path.join(process.cwd(), 'docs', 'QWEN2.5-LICENSE.txt'), 'utf8')
       ]);
       const escapeLicense = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+      html += `<h2>Qwen2.5 — Apache License 2.0</h2><pre>${escapeLicense(qwenLicense)}</pre>`;
       html += `<h2>Llama 3.2 Community License</h2><pre>${escapeLicense(llamaLicense)}</pre>`;
       html += `<h2>WebLLM — Apache License 2.0</h2><pre>${escapeLicense(webLlmLicense)}</pre>`;
     }

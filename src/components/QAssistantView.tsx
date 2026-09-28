@@ -20,8 +20,7 @@ import { getRelevantMemoryBlobs, saveMemoryBlob } from '../services/memory';
 import { QLogo } from './QLogo';
 import { detectUserCountry } from '../services/localeDetection';
 import { generateLocalReply, isWebLlmSupported, WEBLLM_MODEL } from '../services/webLlm';
-import { generateInstantLocalReply } from '../services/instantLocalAi';
-import { buildReliableLocalReply, clearHostedAiCooldown, getHostedAiCooldownSeconds, isHostedAiCoolingDown, isHostedLimitError, setHostedAiCooldown } from '../services/aiResilience';
+import { clearHostedAiCooldown, getHostedAiCooldownSeconds, isHostedAiCoolingDown, isHostedLimitError, setHostedAiCooldown } from '../services/aiResilience';
 import { hasCrisisIntent } from '../services/crisisDetection';
 import { getSupabaseClient } from '../services/supabase';
 import { CategoryScroller } from './CategoryScroller';
@@ -136,7 +135,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       if (hostedCoolingDown) {
         setAiProvider('local');
         localStorage.setItem('q_ai_provider', 'local');
-        setHostedFallbackNotice(`Hosted AI is cooling down for about ${getHostedAiCooldownSeconds()} seconds, so Q is using reliable private guidance.`);
+        setHostedFallbackNotice(`Hosted AI is cooling down for about ${getHostedAiCooldownSeconds()} seconds, so Q is using on-device AI.`);
       }
       if (aiProvider === 'hosted' && !hasHostedAccess) {
         setAiProvider('local');
@@ -163,7 +162,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
             useHosted = false;
             setAiProvider('local');
             localStorage.setItem('q_ai_provider', 'local');
-            setHostedFallbackNotice('Hosted knowledge search hit its limit, so Q is using private guidance for now.');
+            setHostedFallbackNotice('Hosted knowledge search hit its limit, so Q is using on-device AI for now.');
           }
         }
       }
@@ -178,19 +177,8 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       const finalPrompt = `${knowledgePrompt}${memoryContext}`;
       let data: any;
       if (!useHosted) {
-        const instantReply = generateInstantLocalReply(query, profile);
-        if (instantReply) {
-          data = instantReply;
-        } else {
-          try {
-            const reply = await generateLocalReply(finalPrompt, updatedMessages.slice(-4, -1), report => setModelProgress(report.text));
-            data = { reply, actionItems: [], model: WEBLLM_MODEL };
-          } catch (localError) {
-            const reason = localError instanceof Error ? localError.message : 'The browser model could not start on this device.';
-            console.warn('[Q Local AI] Advanced local model unavailable, using reliable private mode:', reason);
-            data = buildReliableLocalReply(query, profile, reason);
-          }
-        }
+        const reply = await generateLocalReply(finalPrompt, updatedMessages.slice(-4, -1), report => setModelProgress(report.text));
+        data = { reply, actionItems: [], model: WEBLLM_MODEL };
         setModelProgress(null);
       } else {
         const supabase = getSupabaseClient();
@@ -201,13 +189,13 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         if (!response.ok) {
           const retryAfterSeconds = Number(data.retryAfterSeconds || response.headers.get('Retry-After') || 180);
           const detail = [data.error, data.detail, data.model ? `Model: ${data.model}` : '', data.reasonCode].filter(Boolean).join('\n');
-          if (response.status === 429 || data.fallback === 'local' || isHostedLimitError(detail)) {
+          if (response.status === 429 || data.reasonCode === 'HOSTED_PROVIDER_BILLING' || data.fallback === 'local' || isHostedLimitError(detail)) {
             setHostedAiCooldown(Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : 180);
             setAiProvider('local');
             localStorage.setItem('q_ai_provider', 'local');
             const reason = data.error || 'Hosted AI hit its usage limit.';
-            setHostedFallbackNotice(`${reason} Q has switched to reliable private guidance for now.`);
-            data = generateInstantLocalReply(query, profile) || buildReliableLocalReply(query, profile, reason);
+            setHostedFallbackNotice(`${reason} Q has switched to on-device AI for now.`);
+            data = { reply: await generateLocalReply(finalPrompt, updatedMessages.slice(-4, -1), report => setModelProgress(report.text)), actionItems: [], model: WEBLLM_MODEL };
           } else {
             throw new Error(detail || 'Q chat service unavailable.');
           }
@@ -243,22 +231,14 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         ? 'Private local AI could not load in this browser. Check WebGPU support and model-download access.'
         : 'Q chat service unavailable.');
       console.warn('[Q Client] Server call failed:', errorMessage);
-      let fallbackData: { reply: string; actionItems: string[] } | null = null;
-      if (aiProvider === 'hosted' && isHostedLimitError(errorMessage)) {
-        setHostedAiCooldown(180);
-        setAiProvider('local');
-        localStorage.setItem('q_ai_provider', 'local');
-        setHostedFallbackNotice('Hosted AI hit its provider limit, so Q is using reliable private guidance.');
-        fallbackData = generateInstantLocalReply(query, profile) || buildReliableLocalReply(query, profile, errorMessage);
-      }
       const fallbackMsg: ChatMessage = {
         id: `q-off-${Date.now()}`,
         sender: 'q_ai',
-        text: fallbackData?.reply || (aiProvider === 'local'
+        text: (aiProvider === 'local'
           ? `Q could not generate a private local AI response right now.\n\nReason: ${errorMessage}\n\nTry Hosted AI if you have access, or check that this browser supports WebGPU.`
           : `Q could not generate a live AI response right now.\n\nReason: ${errorMessage}\n\nPlease try again in a moment. If this keeps happening, the server AI provider or API key needs checking.`),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        actionItems: fallbackData?.actionItems
+        actionItems: []
       };
       setMessages((prev) => [...prev, fallbackMsg]);
       saveChatMessage(fallbackMsg, userId);
@@ -277,10 +257,9 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       title: `Q Insight: ${msg.text.slice(0, 45)}...`,
       category: 'social',
       summary: msg.text.slice(0, 140),
-      steps: [
-        { id: 'st-1', text: 'Review key recommendations', completed: false },
-        { id: 'st-2', text: 'Apply strategies to personal situation', completed: false }
-      ],
+      steps: msg.text.split(/\n\s*\n/).filter(Boolean).map((text, index) => ({
+        id: `st-${index + 1}`, text, completed: false
+      })),
       aiGenerated: true,
       savedOffline: true,
       updatedAt: new Date().toISOString()
@@ -390,9 +369,9 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
       <div role="status" className={`px-3 py-2 rounded-xl border text-[11px] ${aiProvider === 'local' ? (isWebLlmSupported() ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-amber-50 border-amber-200 text-amber-800') : 'bg-purple-50 border-purple-200 text-purple-900'}`}>
         <strong>{aiProvider === 'local' ? 'Selected: Private local processing.' : 'Selected: Hosted OpenAI processing.'}</strong>{' '}
         {aiProvider === 'local'
-          ? (isWebLlmSupported() ? 'Common guidance and drafting prompts answer instantly on this device. More open-ended local prompts may load the private browser model.' : 'Common guidance and drafting prompts still work privately on this device. More open-ended local prompts need a WebGPU-capable browser.')
+          ? (isWebLlmSupported() ? 'Real AI runs on this device without an API key. First use downloads the model (around 1.5 GB); keep this tab open. Later requests reuse it.' : 'On-device AI needs Chrome or Edge with WebGPU and graphics acceleration enabled. This browser cannot run the model.')
           : 'PII-masked prompt, recent chat context, selected profile context, and relevant opted-in memory are sent to Q’s server and OpenAI. Subscriber usage limits apply.'}
-        {aiProvider === 'local' && <span className="ml-1 font-semibold">Advanced private model built with Llama.</span>}
+        {aiProvider === 'local' && <span className="ml-1 font-semibold">On-device model: Qwen2.5.</span>}
         {!hostedAccessLoading && !hasHostedAccess && onOpenSubscription && (
           <button type="button" onClick={onOpenSubscription} className="ml-2 font-bold underline underline-offset-2">Subscribe for hosted AI</button>
         )}

@@ -1,6 +1,6 @@
 # Local AI, Memory, and Safety
 
-Last updated: 26 August 2026
+Last updated: 28 September 2026
 
 ## AI provider modes
 
@@ -13,7 +13,7 @@ Q offers two user-selectable inference modes:
 
 Private local AI is the default. Q does not silently fall back to hosted AI when WebGPU is unavailable; the user must select hosted mode.
 
-The current local model is `Llama-3.2-1B-Instruct-q4f16_1-MLC`. Its assets are cached by WebLLM after the initial download. Browser eviction policies may remove that cache, requiring another download.
+Chat and Life Guides both run real model inference; fixed response templates are not used as AI fallbacks. The current local model is `Qwen2.5-1.5B-Instruct-q4f16_1-MLC`, with `Qwen2.5-1.5B-Instruct-q4f32_1-MLC` selected for GPUs without shader-f16 support. Its assets are cached by WebLLM after the initial download. Browser eviction policies may remove that cache, requiring another download.
 
 ## Memory flow
 
@@ -29,7 +29,7 @@ This relevance step is currently lexical. The existing pgvector-backed vetted-kn
 
 ## Crisis handling
 
-Crisis detection runs before both WebLLM and hosted inference. When triggered, Q displays the static country-specific crisis directory immediately. The directory is bundled with the client so it remains available when the network or AI provider is unavailable.
+Crisis detection runs before both WebLLM and hosted inference. In chat, Q opens the static country-specific crisis directory. Local guide generation stops and directs the user to crisis resources instead of generating a guide. The directory is bundled with the client so it remains available when the network or AI provider is unavailable.
 
 Country selection follows this order:
 
