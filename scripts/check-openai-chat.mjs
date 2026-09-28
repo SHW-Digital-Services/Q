@@ -19,7 +19,8 @@ if (!apiKey) {
     const response = await client.responses.create({
       model,
       input: 'Reply with only: ok',
-      max_output_tokens: 20
+      ...(/^gpt-5(?:-|$)/.test(model) ? { reasoning: { effort: 'low' } } : {}),
+      max_output_tokens: 4096
     });
 
     const text = response.output_text?.trim();

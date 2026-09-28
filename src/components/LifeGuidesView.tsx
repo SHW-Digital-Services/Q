@@ -136,7 +136,7 @@ const offlineCategoryPlans: Record<GuideCategory, { steps: string[]; links: { na
 };
 
 function cleanGuideTopic(topic: string): string {
-  return topic.replace(/\s+/g, ' ').trim().slice(0, 140);
+  return topic.replace(/\s+/g, ' ').trim();
 }
 
 function buildOfflineLifeGuide(topic: string, category: GuideCategory): Omit<LifeGuide, 'id' | 'updatedAt'> {
@@ -147,9 +147,9 @@ function buildOfflineLifeGuide(topic: string, category: GuideCategory): Omit<Lif
   const steps = [firstStep, ...categoryPlan.steps.slice(1)];
 
   return {
-    title: `${readableCategory}: ${cleanTopic}`,
+    title: `${readableCategory}: ${cleanTopic.slice(0, 100)}`,
     category,
-    summary: `Offline starter plan for "${cleanTopic}" with practical next steps, privacy-aware notes, and verified support routes.`,
+    summary: `General ${readableCategory.toLowerCase()} checklist. This is a saved template, not a personalised AI guide.`,
     steps: steps.map((text, index) => ({
       id: `st-${index + 1}`,
       text,
@@ -216,7 +216,7 @@ export const LifeGuidesView: React.FC = () => {
         if (!active) return;
         const entitled = response.ok && result.status === 'ACTIVE';
         setHasHostedGuideAccess(entitled);
-        if (!entitled) setGuideProvider('local');
+        setGuideProvider(entitled ? 'hosted' : 'local');
       } catch {
         if (!active) return;
         setHasHostedGuideAccess(false);
@@ -289,7 +289,7 @@ export const LifeGuidesView: React.FC = () => {
         setGuides(updated);
         setSelectedCategory('all');
         setSearchQuery('');
-        setGenerationError('Q created and saved a prompt-specific local guide.');
+        setGenerationError('Saved a general offline checklist. Choose Hosted AI for a personalised guide.');
         setGenTopic('');
         setShowGeneratorModal(false);
         return;
@@ -308,9 +308,10 @@ export const LifeGuidesView: React.FC = () => {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Q guide generation is unavailable.');
-      const steps = Array.isArray(data.steps) && data.steps.length > 0
+      const steps = Array.isArray(data.steps)
         ? data.steps.map((step: unknown) => (typeof step === 'string' ? step.trim() : '')).filter(Boolean)
-        : ['Clarify the goal and what would feel safe enough to do next', 'Gather verified local information before making decisions', 'Choose one small action and note who can support you'];
+        : [];
+      if (!steps.length) throw new Error('Q returned an incomplete guide. Please retry.');
 
       const newGuide: LifeGuide = {
         id: `guide-gen-${Date.now()}`,
@@ -338,19 +339,8 @@ export const LifeGuidesView: React.FC = () => {
       setShowGeneratorModal(false);
     } catch (err: any) {
       const reason = err?.message || 'Q guide generation is unavailable.';
-      console.warn('[Q Guides] AI Guide generation failed, using local offline generator:', reason);
-      const fallbackGuide: LifeGuide = {
-        id: `guide-off-${Date.now()}`,
-        ...buildOfflineLifeGuide(topic, genCategory),
-        updatedAt: new Date().toISOString(),
-      };
-      const updated = saveLifeGuide(fallbackGuide, userId);
-      setGuides(updated);
-      setSelectedCategory('all');
-      setSearchQuery('');
-      setGenerationError('Hosted AI was unavailable, so Q created and saved a prompt-specific offline guide instead.');
-      setGenTopic('');
-      setShowGeneratorModal(false);
+      console.warn('[Q Guides] Guide generation failed:', reason);
+      setGenerationError(`${reason} Your prompt has been kept. No guide was saved.`);
     } finally {
       setIsGenerating(false);
     }
@@ -740,7 +730,7 @@ export const LifeGuidesView: React.FC = () => {
                   }}
                   className="w-full p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-500 font-medium"
                 >
-                  <option value="local">Private local guide</option>
+                  <option value="local">General offline checklist (no AI)</option>
                   <option value="hosted" disabled={!hasHostedGuideAccess}>
                     {hasHostedGuideAccess ? 'Hosted AI guide' : 'Hosted AI guide - subscribers'}
                   </option>
@@ -753,6 +743,7 @@ export const LifeGuidesView: React.FC = () => {
               <div>
                 <label className="block text-slate-600 font-medium mb-1">What life challenge or task do you need a step-by-step guide for?</label>
                 <textarea
+                  maxLength={1200}
                   value={genTopic}
                   onChange={(e) => setGenTopic(e.target.value)}
                   placeholder="e.g. Navigating insurance pre-authorization for gender care, or explaining my identity to my landlord..."
@@ -762,6 +753,7 @@ export const LifeGuidesView: React.FC = () => {
               </div>
             </div>
 
+            {generationError && <p role="alert" className="text-sm text-amber-800">{generationError}</p>}
             <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
               <button
                 onClick={() => setShowGeneratorModal(false)}
@@ -771,7 +763,7 @@ export const LifeGuidesView: React.FC = () => {
               </button>
               <button
                 onClick={handleGenerateCustomGuide}
-                disabled={!genTopic.trim() || isGenerating}
+                disabled={!genTopic.trim() || isGenerating || hostedGuideAccessLoading}
                 className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs disabled:opacity-50 flex items-center gap-2 shadow-sm"
               >
                 {isGenerating ? 'Generating Toolkit...' : 'Generate & Save Offline'}

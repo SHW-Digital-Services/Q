@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict';
-import { buildChatPrompt } from '../server/routes/ai.js';
+import { buildChatPrompt, isProviderBillingFailure, normalizeGuidePayload } from '../server/routes/ai.js';
+
+assert.equal(isProviderBillingFailure({ status: 429, code: 'credit_balance_exhausted', type: 'insufficient_quota' }), true);
+assert.equal(isProviderBillingFailure({ status: 429, code: 'rate_limit_exceeded' }), false);
+assert.throws(() => normalizeGuidePayload({ steps: [] }, 'A specific request', 'social'), /incomplete guide/);
+assert.throws(() => normalizeGuidePayload({ steps: ['Only one step'] }, 'A specific request', 'social'), /incomplete guide/);
+assert.deepEqual(normalizeGuidePayload({ steps: ['First action', 'Second action', 'Third action'] }, 'A specific request', 'social').steps, ['First action', 'Second action', 'Third action']);
 import { aiPromptInjectionFixtures } from '../server/aiPromptInjectionFixtures.js';
 
 for (const fixture of aiPromptInjectionFixtures) {
