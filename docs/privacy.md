@@ -519,7 +519,7 @@ Current providers include:
 |-----------|---------|
 | Supabase | Authentication, database, storage |
 | Groq | Optional hosted AI processing when configured |
-| OpenAI | Optional hosted AI fallback and vetted-knowledge embeddings when configured |
+| OpenAI | Optional hosted AI fallback and, when configured, separate vetted-knowledge embeddings |
 | PayPal | Payment processing |
 | Brevo (formerly Sendinblue) | Website support through Brevo Conversations; optional marketing emails, newsletters and community updates; mailing-list, delivery and unsubscribe management |
 | Email providers | Transactional email delivery |
@@ -706,13 +706,7 @@ Financial records, invoices, transaction references, and related accounting info
 
 ## 17.3 AI Conversations
 
-Locally generated prompts and responses may be retained in browser storage to provide conversation continuity. User-approved memory may be stored in the user's RLS-protected Supabase records. When hosted AI is selected, prompts, responses, and related processing logs may also be retained for:
-
-- service continuity
-- troubleshooting
-- abuse prevention
-- security investigations
-- system improvements
+Locally generated prompts and responses may be retained in browser storage to provide conversation continuity. User-approved memory may be stored in the user's RLS-protected Supabase records. Hosted conversations may be saved in Q only when the user has enabled the relevant continuity feature. Q's hosted-AI safety events contain request identifiers and technical metadata, not prompt or response text. The selected provider may retain hosted request data under its own retention policy; Groq and OpenAI retention details are set out in the Hosted AI Processing Disclosure and Processor Register.
 
 Where technically feasible, users may delete conversations through the Service. Deleted content may remain in secure backups for a limited period before permanent removal.
 
@@ -1005,7 +999,7 @@ When you use the referral programme, Q processes your referral code, the invited
 
 # Hosted AI Processing Disclosure
 
-Q Intelligence displays the selected processing mode before a user sends an AI message. Local mode performs generation in the browser. When a user explicitly selects hosted processing, Q sends the PII-masked prompt, recent chat context, selected profile context, relevant opted-in memory, and necessary technical metadata to Q's server and the configured provider. Q uses Groq when `GROQ_API_KEY` is configured, otherwise OpenAI when `OPENAI_API_KEY` is configured. Only the provider used for that request receives its prompt.
+Q Intelligence displays the selected processing mode before a user sends an AI message. Local mode performs generation in the browser. When a user explicitly selects hosted processing, Q sends the PII-masked prompt, recent chat context, selected profile context, relevant opted-in memory, and necessary technical metadata to Q's server and the configured generation provider. Q uses Groq when `GROQ_API_KEY` is configured, otherwise OpenAI when `OPENAI_API_KEY` is configured. If an OpenAI key is configured, Q may also send the PII-masked user message to OpenAI to create an embedding for optional vetted-knowledge retrieval, including when Groq generates the response. Without an OpenAI key, hosted chat continues without this optional context.
 
 When Groq is used, its published policy says inference requests are not retained by default. Groq may temporarily log inputs, outputs and related state for reliability troubleshooting or suspected abuse for up to 30 days, unless its Zero Data Retention control is enabled. Groq says retained customer data is stored in US Google Cloud Platform buckets. When OpenAI is used, OpenAI states that API inputs and outputs are not used to train its models by default unless the API customer explicitly opts in; standard abuse-monitoring logs may retain customer content and associated metadata for up to 30 days, subject to approved retention controls and legal requirements. Provider terms, data-processing terms, retention information and sub-processors are listed in the Processor Register.
 
