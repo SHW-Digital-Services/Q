@@ -11,8 +11,8 @@ Q is a privacy-conscious LGBTQ+ wellbeing, life-guidance, and personal-reflectio
 
 - **Premium programmes, insights and continuity:** Self-paced guided programmes, mood/tag insights, and opt-in cross-device snapshots with conflict protection. See [premium features and deployment](docs/premium-features.md).
 
-- **Private local AI:** WebLLM runs Qwen2.5 1.5B in a Web Worker using WebGPU. After the initial model download, generation can run without sending prompts to an AI API.
-- **Optional hosted AI:** Users can explicitly select the server-hosted OpenAI provider when local WebGPU is unavailable or unsuitable. Client-side PII masking is applied before hosted requests.
+- **Private local AI:** WebLLM runs Llama 3.2 1B in a Web Worker using WebGPU. After the initial model download, generation can run without sending prompts to an AI API.
+- **Optional hosted AI:** Users can explicitly select server-hosted AI through Groq (when `GROQ_API_KEY` is configured) or OpenAI as a fallback. Client-side PII masking is applied before hosted requests.
 - **Per-user memory:** User-approved memories are stored in Supabase and protected by Row Level Security. Relevant memories are retrieved only for the authenticated user.
 - **Crisis support:** A static, offline-capable country directory provides one-tap emergency, phone, text, and chat actions. Crisis intent is checked before model inference.
 - **Safety controls:** a single discreet Notes mode, privacy lock, and local-data controls are built into the application.
@@ -26,7 +26,7 @@ See [Local AI, memory, and safety](docs/local-ai-memory-safety.md) and the [user
 - Node.js 20 or later
 - A WebGPU-capable browser for local AI
 - Supabase credentials for authentication and cloud memory
-- An OpenAI API key only if hosted AI is enabled
+- A Groq API key for the hosted AI free tier, or an OpenAI API key if using OpenAI
 
 ## Local development
 
@@ -52,7 +52,7 @@ AI_PAID_MODEL=gpt-5-mini
 AI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
-`OPENAI_API_KEY` is not required for WebLLM. It is required for explicitly selected hosted AI and server-side vetted-knowledge embeddings.
+`GROQ_API_KEY` enables hosted chat and guide generation through Groq. If it is absent, `OPENAI_API_KEY` enables the existing OpenAI provider. OpenAI is still required for server-side vetted-knowledge embeddings; hosted chat works without those optional embeddings.
 
 ## WebLLM behavior
 
@@ -77,7 +77,7 @@ The production build currently emits a large-chunk warning because the WebLLM ru
 
 - Frontend: React 19, TypeScript, Tailwind CSS, Motion
 - Local AI: `@mlc-ai/web-llm`, WebGPU, Web Workers
-- Hosted AI: OpenAI Responses API through the Express server
+- Hosted AI: Groq OpenAI-compatible Chat Completions API (preferred when configured), with OpenAI Responses API fallback through the Express server
 - Data: Supabase Auth, PostgreSQL, pgvector, and RLS
 - Backend: Node.js and Express
 - Deployment: Vercel-compatible and conventional Node hosting

@@ -12,6 +12,7 @@ export const aiRouter = express.Router();
 
 const DEFAULT_FREE_MODEL = 'gpt-5-nano';
 const DEFAULT_PAID_MODEL = 'gpt-5-mini';
+const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-20b';
 const DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small';
 const MAX_MESSAGE_CHARACTERS = 8_000;
 const MAX_GUIDE_TOPIC_CHARACTERS = 1_200;
@@ -42,6 +43,20 @@ function getOpenAIClient() {
   }
 }
 
+function getHostedAIClient() {
+  const groqApiKey = process.env.GROQ_API_KEY;
+  if (groqApiKey) {
+    try {
+      return { client: new OpenAI({ apiKey: groqApiKey, baseURL: 'https://api.groq.com/openai/v1' }), provider: 'groq' as const };
+    } catch (err) {
+      console.warn('[AI] Groq client init warning:', err);
+      return null;
+    }
+  }
+  const client = getOpenAIClient();
+  return client ? { client, provider: 'openai' as const } : null;
+}
+
 function getAiSupabaseClient(authorization?: string) {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -60,7 +75,7 @@ aiRouter.use((req, _res, next) => {
 });
 
 aiRouter.get('/health', (_req, res) => {
-  res.json({ status: 'operational', aiEnabled: !!getOpenAIClient(), knowledgeBaseEnabled: !!getAiSupabaseClient() });
+  res.json({ status: 'operational', aiEnabled: !!getHostedAIClient(), provider: process.env.GROQ_API_KEY ? 'groq' : process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY ? 'openai' : null, knowledgeBaseEnabled: !!getOpenAIClient() && !!getAiSupabaseClient() });
 });
 
 function getChatModel(tier: unknown) {
@@ -68,6 +83,12 @@ function getChatModel(tier: unknown) {
     return process.env.AI_PAID_MODEL || DEFAULT_PAID_MODEL;
   }
   return process.env.AI_FREE_MODEL || DEFAULT_FREE_MODEL;
+}
+
+function getHostedModel(tier: unknown, provider: 'groq' | 'openai') {
+  return provider === 'groq'
+    ? process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL
+    : getChatModel(tier);
 }
 
 function isAllowedModel(model: string) {
@@ -237,14 +258,20 @@ aiRouter.post('/chat', asyncHandler(async (req, res) => {
     return res.status(429).json({ error: 'Hosted AI usage limit reached. Private local AI remains available.', usage: allowance });
   }
 
-  const openai = getOpenAIClient();
-  if (!openai) return res.status(503).json({ error: 'AI chat model is not configured. Missing OPENAI_API_KEY.' });
+  const hostedAI = getHostedAIClient();
+  if (!hostedAI) return res.status(503).json({ error: 'Hosted AI is not configured. Add GROQ_API_KEY or OPENAI_API_KEY to the server environment.' });
 
-  const model = getChatModel(allowance.tier);
-  if (!isAllowedModel(model)) { await recordAiSafetyEvent(req, 'model_rejected', identity.user.id, model); return res.status(503).json({ error: 'The configured AI model is not approved.' }); }
+  const { client, provider } = hostedAI;
+  const model = getHostedModel(allowance.tier, provider);
+  const allowedModels = provider === 'groq'
+    ? (process.env.GROQ_ALLOWED_MODELS || DEFAULT_GROQ_MODEL).split(',').map((value) => value.trim()).filter(Boolean)
+    : null;
+  if (provider === 'groq' ? !allowedModels?.includes(model) : !isAllowedModel(model)) { await recordAiSafetyEvent(req, 'model_rejected', identity.user.id, model); return res.status(503).json({ error: 'The configured AI model is not approved.' }); }
 
   let trustedItems: any[] = [];
   try {
+    const openai = provider === 'openai' ? client : getOpenAIClient();
+    if (!openai) throw new Error('OpenAI embeddings are not configured; continuing without optional vetted context.');
     const embedding = await openai.embeddings.create({ model: process.env.AI_EMBEDDING_MODEL || DEFAULT_EMBEDDING_MODEL, input: message, dimensions: 768 });
     const knowledge = getAiSupabaseClient(req.headers.authorization);
     const matched = knowledge ? await knowledge.rpc('match_vetted_knowledge', { query_embedding: embedding.data?.[0]?.embedding, match_threshold: 0.65, match_count: 5 }) : { data: [], error: null };
@@ -255,26 +282,21 @@ aiRouter.post('/chat', asyncHandler(async (req, res) => {
   const { prompt } = buildChatPrompt(req.body, trustedItems);
 
   try {
-    const result = await openai.responses.create({
-      model,
-      input: prompt,
-      ...(/^gpt-5(?:-|$)/.test(model) ? { reasoning: { effort: 'low' as const } } : {}),
-      max_output_tokens: MAX_OUTPUT_TOKENS
-    });
+    const reply = provider === 'groq'
+      ? (await client.chat.completions.create({ model, messages: [{ role: 'user', content: prompt }], max_completion_tokens: MAX_OUTPUT_TOKENS })).choices[0]?.message?.content?.trim()
+      : (await client.responses.create({ model, input: prompt, ...(/^gpt-5(?:-|$)/.test(model) ? { reasoning: { effort: 'low' as const } } : {}), max_output_tokens: MAX_OUTPUT_TOKENS })).output_text?.trim();
+    if (!reply) throw new Error(`${provider} returned an empty response.`);
 
-    const reply = result.output_text?.trim();
-    if (!reply) throw new Error('OpenAI returned an empty response.');
-
-    return res.json({ reply, actionItems: [], model, processing: 'hosted', usage: allowance });
+    return res.json({ reply, actionItems: [], model, provider, processing: 'hosted', usage: allowance });
   } catch (error) {
     await recordAiSafetyEvent(req, 'provider_failure', identity.user.id, model);
     const providerError = getProviderError(error);
-    if (isProviderBillingFailure(error)) return sendProviderBillingFailure(res);
+    if (isProviderBillingFailure(error)) return res.status(503).json({ error: `${provider === 'groq' ? 'Groq' : 'OpenAI'} hosted AI account billing needs attention.`, reasonCode: 'HOSTED_PROVIDER_BILLING' });
     if (isProviderLimit(error, providerError)) {
       const retryAfterSeconds = getRetryAfterSeconds(error);
       res.setHeader('Retry-After', String(retryAfterSeconds));
       return res.status(429).json({
-        error: 'Hosted AI provider limit reached. Private local AI remains available.',
+        error: `${provider === 'groq' ? 'Groq free-tier' : 'OpenAI'} hosted AI limit reached. Private local AI remains available.`,
         reasonCode: 'HOSTED_PROVIDER_LIMIT',
         fallback: 'local',
         retryAfterSeconds,
@@ -330,11 +352,15 @@ aiRouter.post('/generate-guide', asyncHandler(async (req, res) => {
     return res.status(429).json({ error: 'Hosted AI usage limit reached. Offline guide creation remains available.', usage: allowance });
   }
 
-  const openai = getOpenAIClient();
-  if (!openai) return res.status(503).json({ error: 'AI guide model is not configured. Missing OPENAI_API_KEY.' });
+  const hostedAI = getHostedAIClient();
+  if (!hostedAI) return res.status(503).json({ error: 'Hosted AI is not configured. Add GROQ_API_KEY or OPENAI_API_KEY to the server environment.' });
 
-  const model = getChatModel(allowance.tier);
-  if (!isAllowedModel(model)) { await recordAiSafetyEvent(req, 'model_rejected', identity.user.id, model); return res.status(503).json({ error: 'The configured AI model is not approved.' }); }
+  const { client, provider } = hostedAI;
+  const model = getHostedModel(allowance.tier, provider);
+  const allowedModels = provider === 'groq'
+    ? (process.env.GROQ_ALLOWED_MODELS || DEFAULT_GROQ_MODEL).split(',').map((value) => value.trim()).filter(Boolean)
+    : null;
+  if (provider === 'groq' ? !allowedModels?.includes(model) : !isAllowedModel(model)) { await recordAiSafetyEvent(req, 'model_rejected', identity.user.id, model); return res.status(503).json({ error: 'The configured AI model is not approved.' }); }
 
   const prompt = [
     'You are Q Intelligence, a private, affirming AI life companion for LGBTQ+ users.',
@@ -351,28 +377,25 @@ aiRouter.post('/generate-guide', asyncHandler(async (req, res) => {
   ].join('\n');
 
   try {
-    const result = await openai.responses.create({
-      model,
-      input: prompt,
-      ...(/^gpt-5(?:-|$)/.test(model) ? { reasoning: { effort: 'low' as const } } : {}),
-      text: { format: { type: 'json_object' } },
-      max_output_tokens: MAX_OUTPUT_TOKENS
-    });
-
-    if (result.status === 'incomplete') throw new Error(`OpenAI guide incomplete: ${result.incomplete_details?.reason}`);
-    const reply = result.output_text?.trim();
-    if (!reply) throw new Error('OpenAI returned an empty guide response.');
+    const reply = provider === 'groq'
+      ? (await client.chat.completions.create({ model, messages: [{ role: 'user', content: prompt }], response_format: { type: 'json_object' }, max_completion_tokens: MAX_OUTPUT_TOKENS })).choices[0]?.message?.content?.trim()
+      : await (async () => {
+        const result = await client.responses.create({ model, input: prompt, ...(/^gpt-5(?:-|$)/.test(model) ? { reasoning: { effort: 'low' as const } } : {}), text: { format: { type: 'json_object' } }, max_output_tokens: MAX_OUTPUT_TOKENS });
+        if (result.status === 'incomplete') throw new Error(`OpenAI guide incomplete: ${result.incomplete_details?.reason}`);
+        return result.output_text?.trim();
+      })();
+    if (!reply) throw new Error(`${provider} returned an empty guide response.`);
     const guide = normalizeGuidePayload(parseJsonObject(reply), topic, category);
-    return res.json({ ...guide, model, processing: 'hosted', usage: allowance });
+    return res.json({ ...guide, model, provider, processing: 'hosted', usage: allowance });
   } catch (error) {
     await recordAiSafetyEvent(req, 'provider_failure', identity.user.id, model);
     const providerError = getProviderError(error);
-    if (isProviderBillingFailure(error)) return sendProviderBillingFailure(res);
+    if (isProviderBillingFailure(error)) return res.status(503).json({ error: `${provider === 'groq' ? 'Groq' : 'OpenAI'} hosted AI account billing needs attention.`, reasonCode: 'HOSTED_PROVIDER_BILLING' });
     if (isProviderLimit(error, providerError)) {
       const retryAfterSeconds = getRetryAfterSeconds(error);
       res.setHeader('Retry-After', String(retryAfterSeconds));
       return res.status(429).json({
-        error: 'Hosted AI provider limit reached. Offline guide creation remains available.',
+        error: `${provider === 'groq' ? 'Groq free-tier' : 'OpenAI'} hosted AI limit reached. Offline guide creation remains available.`,
         reasonCode: 'HOSTED_PROVIDER_LIMIT',
         fallback: 'offline_guide',
         retryAfterSeconds,

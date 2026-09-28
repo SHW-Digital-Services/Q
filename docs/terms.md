@@ -1,7 +1,7 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.4.0
+version: 1.5.0
 effective_date: 02/08/2026
 last_updated: 28/09/2026
 website: https://q-ai.online
@@ -84,9 +84,9 @@ Additional requirements are set out in our Acceptable Use Policy, which forms pa
 
 # 6. AI Services
 
-Q Intelligence provides AI-assisted features through on-device WebLLM models and optional hosted language models, currently supplied through OpenAI when selected and configured.
+Q Intelligence provides AI-assisted features through on-device WebLLM models and optional hosted language models. Hosted generation uses Groq when configured, with OpenAI as a fallback when Groq is not configured and OpenAI is available.
 
-The processing mode displayed in Q Intelligence controls where AI generation occurs. In local mode, generation occurs in the user's browser. In hosted mode, the masked prompt and disclosed context are transmitted to Q Intelligence and OpenAI. Hosted use requires an authenticated account and is subject to per-minute and daily usage limits. OpenAI's current Services Agreement, Service Terms, and Data Processing Addendum apply to our API use and are linked from the Processor Register.
+The processing mode displayed in Q Intelligence controls where AI generation occurs. In local mode, generation occurs in the user's browser. In hosted mode, the masked prompt and disclosed context are transmitted to Q Intelligence and the configured provider (Groq or OpenAI). Hosted use requires an authenticated account and is subject to per-minute and daily usage limits. The selected provider's terms and data processing terms apply to its processing; Groq's published inference retention and data-location disclosures are summarised in the Processor Register.
 
 AI responses are generated automatically and may:
 
@@ -420,6 +420,7 @@ Where there is any inconsistency between these Terms and mandatory data protecti
 The Service integrates with third-party providers including, but not limited to:
 
 - Supabase;
+- Groq, when hosted AI is configured to use it;
 - OpenAI, when hosted AI is selected;
 - WebLLM and model-distribution services;
 - PayPal;
@@ -598,6 +599,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.5.0 | 28/09/2026 | Added Groq hosted AI provider and provider-specific processing disclosures. |
 | 1.4.0 | 28/09/2026 | Added Brevo Conversations support-chat scope and privacy boundaries. |
 | 1.3.0 | 16/09/2026 | Added Brevo and distinguished optional marketing/community emails from necessary service notices. |
 | 1.2.0 | 28/08/2026 | Added hosted-processing, OpenAI, and usage-limit disclosures. |
@@ -615,7 +617,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 **Operator:** Scott Harvey-Whittle trading as SHW Digital Services  
 **Availability:** Worldwide  
 **Governing Law:** England & Wales  
-**Current Version:** 1.4.0
+**Current Version:** 1.5.0
 
 ---
 

@@ -514,6 +514,8 @@ PAYPAL_LIVE_PLAN_ID_MONTHLY=
 PAYPAL_LIVE_PLAN_ID_YEARLY=
 PAYPAL_LIVE_WEBHOOK_ID=
 OPENAI_API_KEY=
+GROQ_API_KEY=
+GROQ_MODEL=openai/gpt-oss-20b
 AI_FREE_MODEL=gpt-5-nano
 AI_PAID_MODEL=gpt-5-mini
 AI_EMBEDDING_MODEL=text-embedding-3-small
@@ -525,7 +527,7 @@ and PayPal API endpoint. Legacy unprefixed PayPal variables remain a migration
 fallback, but cannot support one-variable switching and should be removed after
 both groups are configured. Never expose either client secret in a `VITE_` variable.
 
-`OPENAI_API_KEY` is optional for local-only WebLLM deployments. Without it, explicitly selected hosted AI and hosted vetted-knowledge embedding queries are unavailable. Local AI requires no provider key, but users need WebGPU and must download the cached model assets on first use.
+`GROQ_API_KEY` enables hosted chat and guide generation at no API charge within Groq's current free-tier limits. If it is absent, `OPENAI_API_KEY` enables hosted generation through OpenAI. OpenAI is also required for vetted-knowledge embeddings. Local AI requires no provider key, but users need WebGPU and must download the cached model assets on first use. Keep all provider keys server-side; never use a `VITE_` prefix.
 
 Set Supabase Edge Function secrets:
 

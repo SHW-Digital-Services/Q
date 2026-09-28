@@ -1,9 +1,9 @@
 ---
 title: AI Disclaimer
 description: AI Disclaimer for Q Intelligence
-version: 1.2.0
+version: 1.3.0
 effective_date: 02/08/2026
-last_updated: 18/09/2026
+last_updated: 28/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -48,7 +48,7 @@ Features such as the Notes interface and the app-lock PIN are designed to reduce
 
 ### Cloud Continuity and Hosted Processing Risks
 
-If you opt into premium cloud continuity, your data is backed up to Q's cloud servers, but these backups are not end-to-end encrypted. If you explicitly select hosted AI processing, your conversation context is sent to OpenAI. Q applies personal-information masking and sanitisation controls to these requests, but absolute anonymity cannot be guaranteed, particularly if free-text journal entries or chat prompts contain identifiable details.
+If you opt into premium cloud continuity, your data is backed up to Q's cloud servers, but these backups are not end-to-end encrypted. If you explicitly select hosted AI processing, your conversation context is sent to the configured provider: Groq when configured, otherwise OpenAI. Q applies personal-information masking and sanitisation controls to these requests, but absolute anonymity cannot be guaranteed, particularly if free-text journal entries or chat prompts contain identifiable details. Provider retention and location details appear in the Processor Register.
 
 ---
 
@@ -136,7 +136,7 @@ You are responsible for carrying out appropriate legal and commercial checks bef
 
 # 8. Availability of AI Services
 
-Local AI depends on compatible browser hardware, WebGPU support, sufficient storage, and the availability of model-download infrastructure. Hosted AI depends on configured third-party providers, currently OpenAI, and network availability.
+Local AI depends on compatible browser hardware, WebGPU support, sufficient storage, and the availability of model-download infrastructure. Hosted AI depends on configured third-party providers (Groq or OpenAI) and network availability.
 
 We may:
 
@@ -225,6 +225,7 @@ This AI Disclaimer should be read together with:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.3.0 | 28/09/2026 | Added Groq hosted AI provider and provider-specific data-processing disclosure. |
 | 1.2.0 | 18/09/2026 | Added medical, crisis-support, local-processing, discretion and cloud-continuity disclosures. |
 | 1.0.0 | 02/08/2026 | Initial release. |
 

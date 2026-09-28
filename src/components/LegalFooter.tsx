@@ -39,8 +39,8 @@ export const LegalFooter = () => {
     </div>
 
     <div className="mt-6 text-slate-400">
-      © {new Date().getFullYear()} Q Life Operating System. All rights reserved.
+      Â© {new Date().getFullYear()} Q Life Operating System. All rights reserved.
     </div>
-    <div className="mt-2 text-slate-400 font-semibold">On-device AI powered by Qwen2.5 and WebLLM</div>
+    <div className="mt-2 text-slate-400 font-semibold">Built with Llama</div>
   </footer>;
 };

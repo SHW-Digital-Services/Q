@@ -1,7 +1,7 @@
 ---
 title: Processor Register
 description: Sub-processor and Processor Register for Q Intelligence
-version: 1.4.0
+version: 1.5.0
 effective_date: 02/08/2026
 last_updated: 28/09/2026
 website: https://q-ai.online
@@ -24,16 +24,22 @@ This register supports transparency under applicable data protection legislation
 | Provider | Purpose | Data Processed |
 |----------|---------|----------------|
 | Supabase | Authentication, PostgreSQL database, object storage, user sessions | Account information, authentication data, uploaded files, application data |
-| OpenAI | Optional hosted AI model processing explicitly selected by the user | PII-masked prompts, recent chat context, selected profile context, relevant opted-in memory, AI responses, and technical usage metadata |
+| Groq | Optional hosted AI model processing explicitly selected by the user when `GROQ_API_KEY` is configured | PII-masked prompts, recent chat context, selected profile context, relevant opted-in memory, AI responses, and technical usage metadata |
+| OpenAI | Optional hosted AI fallback when Groq is not configured; also used for optional vetted-knowledge embeddings when configured | PII-masked prompts, recent chat context, selected profile context, relevant opted-in memory, AI responses, embeddings, and technical usage metadata |
 | PayPal | Subscription billing and payment processing | Billing information, payment identifiers, transaction records |
 | Brevo (formerly Sendinblue) | Optional marketing emails, newsletters and community updates; mailing-list and unsubscribe management | Email address, name if supplied, communication choices, consent/source records, email content, delivery/bounce/complaint records, suppression status; open/click and associated technical data where tracking is enabled and lawfully permitted |
 | Brevo Conversations | Website support chat and conversation continuity | Submitted messages, attachments and contact details; conversation history; IP address, visitor identifier and browser information; page/referrer, visit timing and approximate location depending on enabled features |
 
 WebLLM performs inference on the user's device and is not used by Q as a processor of prompts on Q's behalf. A user's browser contacts model-distribution infrastructure to download the WebLLM runtime and model assets; those services may process ordinary network metadata under their own policies.
 
-For hosted OpenAI processing, OpenAI acts as a processor under its Services Agreement and Data Processing Addendum. OpenAI states that API inputs and outputs are not used to train its models by default unless the API customer explicitly opts in. Standard API abuse-monitoring logs may retain customer content and associated metadata for up to 30 days unless a different approved retention control applies or law requires longer retention.
+For hosted AI requests, Q uses Groq when `GROQ_API_KEY` is configured and otherwise uses OpenAI when `OPENAI_API_KEY` is configured. Only the selected provider receives a generation request. Groq states that inference requests are not retained by default but may be temporarily logged for reliability troubleshooting or abuse investigations for up to 30 days; Groq offers an organisation-level Zero Data Retention control, which is not enabled by Q unless separately configured. Groq states that retained customer data is stored in US Google Cloud Platform buckets. Review the Groq terms and transfer safeguards before use. OpenAI's API processing terms and retention disclosures apply when OpenAI is selected. OpenAI states that API inputs and outputs are not used to train its models by default unless the API customer explicitly opts in; standard API abuse-monitoring logs may retain customer content and associated metadata for up to 30 days unless a different approved retention control applies or law requires longer retention.
 
 Current governing and transparency documents:
+
+- Groq Data Processing Addendum: https://console.groq.com/docs/legal/customer-data-processing-addendum
+- Groq data retention and location: https://console.groq.com/docs/your-data
+- Groq Services Agreement: https://console.groq.com/docs/legal/services-agreement
+- Groq sub-processors and security information: https://trust.groq.com/
 
 - OpenAI Services Agreement: https://openai.com/en-GB/policies/services-agreement/
 - OpenAI Service Terms: https://openai.com/policies/service-terms/
@@ -177,6 +183,7 @@ This Register should be read together with:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.5.0 | 28/09/2026 | Added Groq hosted AI processing, data retention and US data-location disclosures. |
 | 1.4.0 | 28/09/2026 | Added Brevo Conversations purposes, data categories and support-record handling. |
 | 1.3.0 | 16/09/2026 | Added Brevo marketing/community email processing, data categories and provider references. |
 | 1.2.0 | 28/08/2026 | Added current OpenAI API terms, DPA, retention, and sub-processor disclosures. |

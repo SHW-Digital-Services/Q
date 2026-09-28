@@ -1,7 +1,7 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.4.0
+version: 1.5.0
 effective_date: 02/08/2026
 last_updated: 28/09/2026
 applies_to: https://q-ai.online
@@ -472,7 +472,7 @@ AI features may process:
 - contextual information
 - generated outputs
 
-Private local AI is provided through WebLLM and runs model inference in the user's browser. The browser downloads model assets from third-party distribution infrastructure, but Q does not send the conversation prompt to its AI server in this mode. If the user explicitly selects hosted AI, PII-masked prompt context is processed through supporting infrastructure operated by SHW Digital Services and the configured hosted provider, currently OpenAI.
+Private local AI is provided through WebLLM and runs model inference in the user's browser. The browser downloads model assets from third-party distribution infrastructure, but Q does not send the conversation prompt to its AI server in this mode. If the user explicitly selects hosted AI, PII-masked prompt context is processed through supporting infrastructure operated by SHW Digital Services and the configured hosted provider. Q uses Groq when `GROQ_API_KEY` is configured, otherwise OpenAI when its key is configured.
 
 AI-generated content may:
 
@@ -518,7 +518,8 @@ Current providers include:
 | Provider | Purpose |
 |-----------|---------|
 | Supabase | Authentication, database, storage |
-| OpenAI | Optional hosted AI processing selected by the user |
+| Groq | Optional hosted AI processing when configured |
+| OpenAI | Optional hosted AI fallback and vetted-knowledge embeddings when configured |
 | PayPal | Payment processing |
 | Brevo (formerly Sendinblue) | Website support through Brevo Conversations; optional marketing emails, newsletters and community updates; mailing-list, delivery and unsubscribe management |
 | Email providers | Transactional email delivery |
@@ -990,6 +991,7 @@ This Privacy Policy should be read together with the Terms of Service,Cookie Pol
 
 Version   Date         Summary
 
+1.5.0     28/09/2026   Added Groq hosted AI provider, retention, data-location and transfer disclosures.
 1.4.0     28/09/2026   Added Brevo Conversations support chat, visitor data, storage, retention and privacy-request disclosures.
 1.3.0     16/09/2026   Added Brevo marketing/community email, consent, tracking, suppression and rights disclosures.
 1.2.0     28/08/2026   Added hosted AI processing and current processor disclosures.
@@ -1003,9 +1005,9 @@ When you use the referral programme, Q processes your referral code, the invited
 
 # Hosted AI Processing Disclosure
 
-Q Intelligence displays the selected processing mode before a user sends an AI message. Local mode performs generation in the browser. When a user explicitly selects hosted processing, Q sends the PII-masked prompt, recent chat context, selected profile context, relevant opted-in memory, and necessary technical metadata to Q's server and OpenAI for response generation.
+Q Intelligence displays the selected processing mode before a user sends an AI message. Local mode performs generation in the browser. When a user explicitly selects hosted processing, Q sends the PII-masked prompt, recent chat context, selected profile context, relevant opted-in memory, and necessary technical metadata to Q's server and the configured provider. Q uses Groq when `GROQ_API_KEY` is configured, otherwise OpenAI when `OPENAI_API_KEY` is configured. Only the provider used for that request receives its prompt.
 
-OpenAI states that API inputs and outputs are not used to train its models by default unless the API customer explicitly opts in. Standard abuse-monitoring logs may retain customer content and associated metadata for up to 30 days, subject to approved retention controls and legal requirements. Current OpenAI contractual terms, data-processing terms, retention information, and sub-processors are listed in the Processor Register.
+When Groq is used, its published policy says inference requests are not retained by default. Groq may temporarily log inputs, outputs and related state for reliability troubleshooting or suspected abuse for up to 30 days, unless its Zero Data Retention control is enabled. Groq says retained customer data is stored in US Google Cloud Platform buckets. When OpenAI is used, OpenAI states that API inputs and outputs are not used to train its models by default unless the API customer explicitly opts in; standard abuse-monitoring logs may retain customer content and associated metadata for up to 30 days, subject to approved retention controls and legal requirements. Provider terms, data-processing terms, retention information and sub-processors are listed in the Processor Register.
 
 # Account exports, deletion, and retention controls
 

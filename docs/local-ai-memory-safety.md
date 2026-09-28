@@ -9,11 +9,11 @@ Q offers two user-selectable inference modes:
 | Mode | Processing location | Network behavior | Requirement |
 | --- | --- | --- | --- |
 | Private local AI | User's browser through WebLLM | Downloads model assets on first use; prompts are not sent to Q's AI server | WebGPU and sufficient device storage/memory |
-| Hosted AI | Q Express server and configured OpenAI API | Sends PII-masked prompt context to `/api/q-ai/chat` | `OPENAI_API_KEY` |
+| Hosted AI | Q Express server and configured Groq or OpenAI API | Sends PII-masked prompt context to `/api/q-ai/chat` | `GROQ_API_KEY` (preferred), or `OPENAI_API_KEY` |
 
 Private local AI is the default. Q does not silently fall back to hosted AI when WebGPU is unavailable; the user must select hosted mode.
 
-Chat and Life Guides both run real model inference; fixed response templates are not used as AI fallbacks. The current local model is `Qwen2.5-1.5B-Instruct-q4f16_1-MLC`, with `Qwen2.5-1.5B-Instruct-q4f32_1-MLC` selected for GPUs without shader-f16 support. Its assets are cached by WebLLM after the initial download. Browser eviction policies may remove that cache, requiring another download.
+Chat and Life Guides both run real model inference; fixed response templates are not used as AI fallbacks. The current local model is `Llama-3.2-1B-Instruct-q4f16_1-MLC`, with `Llama-3.2-1B-Instruct-q4f32_1-MLC` selected for GPUs without shader-f16 support. Its assets are cached by WebLLM after the initial download. Browser eviction policies may remove that cache, requiring another download.
 
 ## Memory flow
 
@@ -60,7 +60,7 @@ Browser history predating the current entry, operating-system logs, DNS/network 
 1. Apply all Supabase migrations, particularly `20260801000000_privacy_rls.sql`.
 2. Confirm RLS is enabled on `memory_entries`, `journal_entries`, `daily_mood_logs`, and `chat_messages`.
 3. Serve the application over HTTPS; WebGPU availability is browser- and secure-context-dependent.
-4. Keep `OPENAI_API_KEY` server-side and omit it entirely for a local-only deployment.
+4. Keep `GROQ_API_KEY` or `OPENAI_API_KEY` server-side and omit them for a local-only deployment.
 5. Test first-load model progress, cached offline generation, unsupported-WebGPU messaging, and explicit hosted selection.
 6. Test crisis interception with the hosted API unavailable.
 7. Test Notes mode and its discreet return control on mobile and desktop.
