@@ -1,9 +1,9 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.3.0
+version: 1.4.0
 effective_date: 02/08/2026
-last_updated: 16/09/2026
+last_updated: 28/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -424,12 +424,14 @@ The Service integrates with third-party providers including, but not limited to:
 - WebLLM and model-distribution services;
 - PayPal;
 - Zoho Bigin;
-- Brevo (formerly Sendinblue), for optional marketing and community-update emails;
+- Brevo (formerly Sendinblue), for website support chat through Brevo Conversations and optional marketing and community-update emails;
 - email delivery providers;
 - cloud hosting providers;
 - analytics providers.
 
 Those services are governed by their own terms and privacy policies.
+
+Brevo Conversations provides website support. Availability and response times may vary; the widget is not an emergency or crisis service. It is separate from Q's AI assistant, and Q's local AI mode and PII Shield do not apply to support-chat messages. Share only information necessary for your enquiry. The Privacy Policy and Cookie Policy explain chat processing, browser storage and your choices. Using chat does not enrol you in marketing or provide consent to non-essential tracking.
 
 SHW Digital Services is not responsible for the acts or omissions of independent third-party providers beyond our legal responsibilities.
 
@@ -596,6 +598,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.4.0 | 28/09/2026 | Added Brevo Conversations support-chat scope and privacy boundaries. |
 | 1.3.0 | 16/09/2026 | Added Brevo and distinguished optional marketing/community emails from necessary service notices. |
 | 1.2.0 | 28/08/2026 | Added hosted-processing, OpenAI, and usage-limit disclosures. |
 | 1.1.0 | 26/08/2026 | Added local AI, memory, safety, CRM, and subscription disclosures. |
@@ -612,7 +615,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 **Operator:** Scott Harvey-Whittle trading as SHW Digital Services  
 **Availability:** Worldwide  
 **Governing Law:** England & Wales  
-**Current Version:** 1.3.0
+**Current Version:** 1.4.0
 
 ---
 

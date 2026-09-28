@@ -1,9 +1,9 @@
 ---
 title: Processor Register
 description: Sub-processor and Processor Register for Q Intelligence
-version: 1.3.0
+version: 1.4.0
 effective_date: 02/08/2026
-last_updated: 16/09/2026
+last_updated: 28/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 jurisdiction: Worldwide
@@ -27,6 +27,7 @@ This register supports transparency under applicable data protection legislation
 | OpenAI | Optional hosted AI model processing explicitly selected by the user | PII-masked prompts, recent chat context, selected profile context, relevant opted-in memory, AI responses, and technical usage metadata |
 | PayPal | Subscription billing and payment processing | Billing information, payment identifiers, transaction records |
 | Brevo (formerly Sendinblue) | Optional marketing emails, newsletters and community updates; mailing-list and unsubscribe management | Email address, name if supplied, communication choices, consent/source records, email content, delivery/bounce/complaint records, suppression status; open/click and associated technical data where tracking is enabled and lawfully permitted |
+| Brevo Conversations | Website support chat and conversation continuity | Submitted messages, attachments and contact details; conversation history; IP address, visitor identifier and browser information; page/referrer, visit timing and approximate location depending on enabled features |
 
 WebLLM performs inference on the user's device and is not used by Q as a processor of prompts on Q's behalf. A user's browser contacts model-distribution infrastructure to download the WebLLM runtime and model assets; those services may process ordinary network metadata under their own policies.
 
@@ -57,6 +58,16 @@ Provider references:
 - Brevo DPA location guidance: https://help.brevo.com/hc/en-us/articles/15403782599570-Where-can-I-find-the-Data-Processing-Agreement-DPA
 - Brevo data storage information: https://help.brevo.com/hc/en-us/articles/360001005510-Data-storage-location
 - Brevo email tracking and consent controls: https://help.brevo.com/hc/en-us/articles/37114679474706-About-email-tracking-pixels-and-the-CNIL-recommendation-in-Brevo
+
+---
+
+## 2.2 Brevo Conversations Support Chat
+
+Brevo Conversations also processes support records on Q's behalf under the applicable provider agreement. Its widget connects to Brevo when an application page loads. The integration does not automatically supply Q account profiles, private journals or AI conversation history. Chat contact details must not be repurposed for marketing without the separately required permission.
+
+Requests concerning Brevo chat records are handled through privacy@q-ai.online. Q account export and deletion do not automatically export or erase these separate records. Support retention, international transfers and provider access remain subject to the applicable agreement and configured service; no fixed chat-retention period or exclusively UK hosting is asserted here.
+
+Brevo visitor-data guidance: https://help.brevo.com/hc/en-us/articles/4608779872018-Understand-the-Visitors-online-page
 
 ---
 
@@ -166,6 +177,7 @@ This Register should be read together with:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.4.0 | 28/09/2026 | Added Brevo Conversations purposes, data categories and support-record handling. |
 | 1.3.0 | 16/09/2026 | Added Brevo marketing/community email processing, data categories and provider references. |
 | 1.2.0 | 28/08/2026 | Added current OpenAI API terms, DPA, retention, and sub-processor disclosures. |
 | 1.1.0 | 26/08/2026 | Added local and hosted AI processing disclosures. |

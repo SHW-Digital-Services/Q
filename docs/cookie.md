@@ -1,9 +1,9 @@
 ---
 title: Cookie Policy
 description: Cookie Policy for Q Intelligence
-version: 1.1.0
+version: 1.2.0
 effective_date: 02/08/2026
-last_updated: 16/09/2026
+last_updated: 28/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -133,6 +133,7 @@ Examples include:
 
 - **Supabase** (authentication and session management);
 - **PayPal** (payment processing);
+- **Brevo Conversations** (support-chat visitor identifiers and conversation continuity);
 - approved analytics providers (where enabled).
 
 Each third-party provider operates under its own privacy and cookie policies.
@@ -145,7 +146,17 @@ Q uses **Brevo (formerly Sendinblue)** for marketing and community-update emails
 
 Consent to receive emails is separate from any consent required for non-essential tracking. Where applicable law requires it, tracking must not occur before the relevant consent has been obtained. You may withdraw tracking consent through the email's available controls or contact **privacy@q-ai.online**. You can separately stop marketing and community-update emails using their unsubscribe link. Blocking remote images in your email application may limit pixel loading but does not necessarily prevent tracked-link measurement.
 
-Email delivery, bounce and unsubscribe records are distinct from optional engagement tracking. Using Brevo to send emails does not itself mean that a Brevo website tracker is installed on Q. If you follow a link to a Brevo-hosted subscription or preference page, the information and controls presented on that page also apply. Any non-essential Brevo website tracking introduced on Q must be disclosed and subject to the applicable consent requirements before use.
+Email delivery, bounce and unsubscribe records are distinct from optional engagement tracking. Q also embeds the Brevo Conversations support widget described below; this is separate from email tracking. If you follow a link to a Brevo-hosted subscription or preference page, the information and controls presented on that page also apply.
+
+## 5.2 Brevo Conversations Support Widget
+
+The widget loads from conversations-widget.brevo.com on application pages. Loading it connects your browser to Brevo even before you open a conversation. It may use cookies or local storage to recognise a returning browser, maintain conversation continuity and remember the widget's state. Associated visitor information may include pages visited, referrer, visit times, browser details and approximate location, depending on the enabled features.
+
+Storage strictly necessary to provide a chat you request must be distinguished from optional visitor tracking or analytics. Optional storage or tracking must not be treated as essential merely because it belongs to a support widget; where consent is required, it must be obtained before that activity. Reading this policy, visiting Q or agreeing to the Terms does not itself provide that consent.
+
+You can inspect, block or clear cookies and site storage through your browser, including third-party storage associated with Brevo. Doing so may interrupt chat or prevent recognition of a previous conversation. Closing the widget does not itself delete its storage or server-side messages, and clearing browser storage does not delete Brevo's conversation records. Storage lifetimes depend on the widget and browser settings; server-side retention is described in the Privacy Policy. Contact **privacy@q-ai.online** for help with chat-data requests or **support@q-ai.online** to request support by email.
+
+Provider information: https://www.brevo.com/legal/privacypolicy/
 
 ---
 
@@ -225,6 +236,7 @@ Support: office@q-ai.online
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.2.0 | 28/09/2026 | Added Brevo Conversations loading, browser storage, consent boundaries and deletion disclosures. |
 | 1.1.0 | 16/09/2026 | Added Brevo email pixels, tracked links, hosted-page context and separate consent choices. |
 | 1.0.0 | 02/08/2026 | Initial release. |
 

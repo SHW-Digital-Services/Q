@@ -5,6 +5,21 @@ Organization:
 Date:
 Notes / Requested changes:
 
+## 28 September 2026: Brevo Conversations disclosure update
+
+Added the operator-supplied Brevo Conversations snippet to the application entry page and permitted its script and frame host in the Content Security Policy. Updated Privacy, Cookie, Terms and Processor Register disclosures for support chat, loading before interaction, visitor metadata, browser storage, support-message handling, marketing separation and provider privacy requests. This records an implementation and documentation change, not legal approval.
+
+The Brevo account settings, accepted DPA, actual storage lifetimes, visitor-tracking options and support retention schedule were not inspected. The supplied snippet loads automatically and is not gated by a consent mechanism. Before release, verify the actual widget behaviour and disable non-essential storage/tracking or place it behind any required prior consent. A policy notice does not supply consent. Do not classify all widget storage as strictly necessary merely because the widget provides support.
+
+Q's existing account export and deletion do not demonstrate automatic export or deletion of Brevo conversation records. Handle those requests separately with the provider. No fixed retention period, automatic deletion, local-only chat processing or PII masking is promised for Brevo support messages.
+
+References checked:
+
+- Brevo visitor data: https://help.brevo.com/hc/en-us/articles/4608779872018-Understand-the-Visitors-online-page
+- Brevo widget integration: https://developers.brevo.com/docs/customize-the-widget
+- Brevo privacy information: https://www.brevo.com/legal/privacypolicy/
+- ICO storage/access exceptions: https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/
+
 ## 16 September 2026: Brevo disclosure update
 
 The operator confirmed Brevo (formerly Sendinblue) is used for marketing and community-update emails. The Privacy Policy, Processor Register, Cookie Policy and Terms now disclose that use, consent boundaries, unsubscribe/suppression handling and conditional email-tracking behaviour. This entry records a documentation change, not legal approval or verification of the Brevo account.

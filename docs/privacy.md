@@ -1,9 +1,9 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.3.0
+version: 1.4.0
 effective_date: 02/08/2026
-last_updated: 16/09/2026
+last_updated: 28/09/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -287,6 +287,16 @@ When contacting support we may collect:
 
 This enables us to respond effectively and improve customer service.
 
+### Brevo Conversations live chat
+
+We use **Brevo Conversations** to provide website support chat. The widget loads when you visit an application page, so your browser connects to Brevo before you send a message. Brevo receives network information such as your IP address. Depending on widget settings, it may also process a visitor identifier, browser and device details, page URL, referrer, visit times and approximate location to operate the widget and provide context for support.
+
+If you use the chat, Q and Brevo process the messages, attachments and contact details you choose to submit, together with conversation history and delivery information. We use these records to answer enquiries, follow up and resolve support issues. We rely on contract where necessary to provide support for your service, or our legitimate interests in responding to other enquiries and maintaining secure support, subject to your rights. Any non-essential device tracking requires the consent described in the Cookie Policy.
+
+Brevo support chat is separate from Q's AI assistant. Q's local AI processing and PII Shield do not apply to messages sent through this widget. The integration does not automatically attach your private journal, AI conversations or Q account profile to support messages. Please share only what is needed for your enquiry and avoid passwords, payment details, private journal entries or sensitive health and identity information. Voluntarily providing sensitive information does not itself supply any additional legal condition required to process it.
+
+Using support chat or supplying an email address for a reply does not subscribe you to marketing. You can also contact support@q-ai.online. The Processor Register and Cookie Policy describe the provider and browser-storage arrangements.
+
 ---
 
 ## 5.10 Cookies and Similar Technologies
@@ -510,7 +520,7 @@ Current providers include:
 | Supabase | Authentication, database, storage |
 | OpenAI | Optional hosted AI processing selected by the user |
 | PayPal | Payment processing |
-| Brevo (formerly Sendinblue) | Optional marketing emails, newsletters and community updates; mailing-list, delivery and unsubscribe management |
+| Brevo (formerly Sendinblue) | Website support through Brevo Conversations; optional marketing emails, newsletters and community updates; mailing-list, delivery and unsubscribe management |
 | Email providers | Transactional email delivery |
 | Cloud hosting providers | Infrastructure and security |
 | Analytics providers | Performance and usage monitoring |
@@ -729,6 +739,14 @@ Authentication records, audit logs, and security events may be retained for an a
 We keep active mailing-list information while it is needed to provide the updates you requested and review it for continued relevance. On unsubscribe or objection, we stop using your details for those campaigns. We may retain the minimum email address or equivalent identifier, opt-out date and suppression status needed to honour your choice and prevent accidental re-enrolment, together with proportionate consent evidence where needed for accountability or legal claims. Suppression records are not used to send marketing.
 
 Requests for access, correction or deletion of mailing-list data can be sent to **privacy@q-ai.online**. These requests cover relevant Brevo records as well as records held directly by Q. Deleting app data is not a substitute for managing a separate mailing-list subscription; you can use the email unsubscribe link or ask us to handle both. Retained provider logs and backups remain subject to the applicable contractual retention and deletion arrangements.
+
+---
+
+## 17.7 Brevo Support Conversations
+
+Support messages and associated visitor records are retained for as long as needed to handle the enquiry and relevant follow-up, security or legal obligations. Retention depends on the support purpose and applicable provider arrangements; the retention periods for Q's own contact form do not automatically apply to Brevo conversations.
+
+For access, correction or deletion of support-chat records, contact **privacy@q-ai.online** and provide enough information to locate the conversation. Q handles relevant requests with Brevo. Clearing browser storage, closing the chat, exporting Q account data or deleting your Q account does not automatically export or delete the separate Brevo conversation history. Provider backups and logs remain subject to applicable retention and deletion arrangements.
 
 ---
 
@@ -972,6 +990,7 @@ This Privacy Policy should be read together with the Terms of Service,Cookie Pol
 
 Version   Date         Summary
 
+1.4.0     28/09/2026   Added Brevo Conversations support chat, visitor data, storage, retention and privacy-request disclosures.
 1.3.0     16/09/2026   Added Brevo marketing/community email, consent, tracking, suppression and rights disclosures.
 1.2.0     28/08/2026   Added hosted AI processing and current processor disclosures.
 1.1.0     26/08/2026   Added local AI, memory, safety, CRM, and subscription disclosures.
