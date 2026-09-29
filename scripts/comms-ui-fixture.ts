@@ -19,8 +19,9 @@ app.use('/api/v1/admin', (req, res) => {
   if (req.path === '/me') return res.json({ role: req.headers.authorization === 'Bearer fixture-staff' ? 'staff' : 'partner_admin' });
   if (req.path === '/crm/users') return res.json({ users: [person], metrics: { users: 1, confirmed: 0, activeSubscriptions: 0, signedIn: 0 } });
   if (req.path.startsWith('/crm/users/')) return res.json({ identity: person, profile: { role: 'user', preferred_name: 'Example visitor' }, subscription: null, notes: [], tasks: [], payments: [], entitlements: [], activities: [], communications: [], referralCredits: [], peerKnowledgeContributions: [] });
+  if (req.path === '/brevo-webhooks/dashboard') return res.json({ total: 2, awaitingReview: 2, reviewed: 0, today: 2, updatedAt: new Date().toISOString() });
   if (req.path === '/brevo-webhooks/endpoints') return res.json({ endpoints: [] });
-  if (req.path === '/brevo-webhooks/events') return res.json({ events: [], hasMore: false });
+  if (req.path === '/brevo-webhooks/events') { const events = [{ id: '00000000-0000-4000-8000-000000000011', endpoint_id: 'fixture', event_type: 'delivered', email: 'visitor@example.test', status: 'received', received_at: new Date().toISOString() }, { id: '00000000-0000-4000-8000-000000000012', endpoint_id: 'fixture', event_type: 'opened', email: 'visitor@example.test', status: 'received', received_at: new Date().toISOString() }].filter(event => !req.query.eventType || event.event_type === req.query.eventType); return res.json({ events, total: events.length, hasMore: false }); }
   if (req.path === '/help-videos') return res.json({ videos: [] });
   if (req.path === '/content') return res.json([{ id: 'fixture-news', title: req.query.archived === 'true' ? 'Archived Q news example' : 'Published Q news example', slug: 'fixture-news', contentType: 'news', status: req.query.archived === 'true' ? 'archived' : 'published', summary: 'A news item used only for local validation.', body: 'Example news body for local validation.', tags: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), publishedAt: new Date().toISOString() }]);
   return res.json([]);

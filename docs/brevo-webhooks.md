@@ -13,3 +13,7 @@ The inbox displays receipt time, event type, email where supplied and received/r
 For a setup check, send a permitted test event through Brevo and verify it appears once, then retry the identical payload and verify the duplicate count. Confirm Staff cannot list endpoints or view event details. Keep tokens and payloads out of screenshots, support requests and logs.
 
 Reference: [Brevo transactional payloads](https://developers.brevo.com/docs/transactional-webhooks).
+
+## Events dashboard
+
+The Admin Only page shows exact totals across all stored Brevo webhook events: all events, awaiting review, reviewed and received today (UTC). These totals are independent of event-list filters. Refresh reloads the summaries, endpoints and latest events. The list supports endpoint, review status, exact event type, exact recipient email and inclusive UTC date filters, with a matching total and 50-event pages. Events from disabled endpoints remain visible. Q can only show events sent to its configured webhook endpoints; it does not import historical Brevo account activity. The dashboard uses the existing incoming-webhooks migration and needs no additional migration.

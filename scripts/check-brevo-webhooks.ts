@@ -45,10 +45,10 @@ try {
   await db.exec('reset role; set role service_role');
   const adapter = {
     from(table: string) {
-      let columns = '*'; const values: unknown[] = []; const filters: string[] = [];
-      const query: any = { select: (value: string) => { columns = value; return query; }, eq: (field: string, value: unknown) => { values.push(value); filters.push(`${field}=$${values.length}`); return query; }, order: () => query,
+      let columns = '*'; let countRequested = false; let head = false; let offset = 0; let limit: number | null = null; const values: unknown[] = []; const filters: string[] = [];
+      const query: any = { select: (value: string, options?: any) => { columns = value; countRequested = options?.count === 'exact'; head = Boolean(options?.head); return query; }, eq: (field: string, value: unknown) => { values.push(value); filters.push(`${field}=$${values.length}`); return query; }, order: () => query, range: (start: number, end: number) => { offset = start; limit = end - start + 1; return query; }, gte: (field: string, value: unknown) => { values.push(value); filters.push(`${field}>=$${values.length}`); return query; }, lt: (field: string, value: unknown) => { values.push(value); filters.push(`${field}<$${values.length}`); return query; },
         maybeSingle: async () => { const result = await query; return { ...result, data: result.data[0] || null }; },
-        then: (resolve: any) => db.query(`select ${columns} from public.${table}${filters.length ? ` where ${filters.join(' and ')}` : ''}`, values).then(result => ({ data: result.rows, error: null })).then(resolve)
+        then: (resolve: any) => (async () => { const where = filters.length ? ` where ${filters.join(' and ')}` : ''; const counted = countRequested ? (await db.query<{ total: number }>(`select count(*)::int as total from public.${table}${where}`, values)).rows[0].total : null; const rows = head ? null : (await db.query(`select ${columns} from public.${table}${where}${limit !== null ? ` limit ${limit} offset ${offset}` : ''}`, values)).rows; return { data: rows, count: counted, error: null }; })().then(resolve)
       }; return query;
     },
     rpc: async (_name: string, params: any) => ({ data: await callRpc(params.p_token_hash, params.p_events), error: null })
@@ -67,6 +67,21 @@ try {
     const receipt = await post(rotated.token, first); assert.equal(receipt.status, 200); assert.equal((await receipt.json()).duplicates, 1);
     assert.equal((await fetch(`${origin}/admin/endpoints`)).status, 401);
     assert.equal((await fetch(`${origin}/admin/endpoints`, { headers: { Authorization: 'Bearer fixture-staff' } })).status, 403);
+    for (const path of ['/dashboard', '/events']) {
+      assert.equal((await fetch(`${origin}/admin${path}`)).status, 401);
+      assert.equal((await fetch(`${origin}/admin${path}`, { headers: { Authorization: 'Bearer fixture-staff' } })).status, 403);
+    }
+    const adminGet = async (path: string) => { const response = await fetch(`${origin}/admin${path}`, { headers: { Authorization: 'Bearer fixture-admin' } }); assert.equal(response.status, 200); return response.json(); };
+    const summary = await adminGet('/dashboard'); assert.equal(summary.total, 3); assert.equal(summary.awaitingReview, 3); assert.equal(summary.reviewed, 0); assert.equal(summary.today, 3);
+    const all = await adminGet('/events'); assert.equal(all.total, 3); assert.equal(all.events.length, 3); assert.equal(all.hasMore, false); assert(!JSON.stringify(all).includes('payload'));
+    assert.equal((await adminGet('/events?eventType=opened')).total, 1);
+    assert.equal((await adminGet('/events?email=missing%40example.test')).total, 0);
+    assert.equal((await adminGet('/events?from=2000-01-01&to=2000-01-02')).total, 0);
+    assert.equal((await adminGet('/events?offset=2')).events.length, 1);
+    for (const filter of ['from=2026-02-30', 'from=2026-09-29&to=2026-09-28', 'eventType=' + 'x'.repeat(121)]) assert.equal((await fetch(`${origin}/admin/events?${filter}`, { headers: { Authorization: 'Bearer fixture-admin' } })).status, 400);
+    await db.query("update public.brevo_webhook_events set status='reviewed' where event_type='opened'");
+    assert.equal((await adminGet('/dashboard')).reviewed, 1);
+    assert.equal((await adminGet('/events?status=reviewed')).total, 1);
     const list = await fetch(`${origin}/admin/endpoints`, { headers: { Authorization: 'Bearer fixture-admin' } });
     assert.equal(list.status, 200); const body = await list.text(); assert(!body.includes('token_hash')); assert(!body.includes(rotated.token)); assert(body.includes('@q-ai.online'));
   } finally { await new Promise<void>(resolve => server.close(() => resolve())); }

@@ -72,19 +72,40 @@ export function createBrevoWebhookRouters(dependencies: Dependencies) {
     if (!data) return res.status(404).json({ error: 'Webhook endpoint not found.' });
     return res.json({ endpoint: endpointWithUrl(data), token: secret.token });
   }));
+  admin.get('/dashboard', asyncHandler(async (req, res) => {
+    const { serviceSupabase: db } = res.locals.webhookAdmin;
+    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+    const count = () => db.from('brevo_webhook_events').select('id', { count: 'exact', head: true });
+    const results = await Promise.all([
+      count(), count().eq('status', 'received'), count().eq('status', 'reviewed'),
+      count().gte('received_at', today.toISOString()),
+    ]);
+    const failed = results.find((result) => result.error);
+    if (failed) return databaseError(req, res, failed.error, 'Webhook Dashboard');
+    return res.json({ total: results[0].count ?? 0, awaitingReview: results[1].count ?? 0, reviewed: results[2].count ?? 0, today: results[3].count ?? 0, updatedAt: new Date().toISOString() });
+  }));
   admin.get('/events', asyncHandler(async (req, res) => {
     const endpointId = String(req.query.endpointId ?? '');
     const status = String(req.query.status ?? 'all');
-    if ((endpointId && !isUuid(endpointId)) || !['all', 'received', 'reviewed'].includes(status)) return res.status(400).json({ error: 'Invalid event filter.' });
+    const eventType = String(req.query.eventType ?? '').trim();
+    const email = String(req.query.email ?? '').trim();
+    const from = String(req.query.from ?? '');
+    const to = String(req.query.to ?? '');
+    const validDate = (value: string) => !value || (/^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value);
+    if ((endpointId && !isUuid(endpointId)) || !['all', 'received', 'reviewed'].includes(status) || eventType.length > 120 || email.length > 320 || !validDate(from) || !validDate(to) || (from && to && from > to)) return res.status(400).json({ error: 'Invalid event filter.' });
     const requestedOffset = Number(req.query.offset ?? 0);
     const offset = Number.isSafeInteger(requestedOffset) && requestedOffset >= 0 ? requestedOffset : 0;
     const { serviceSupabase: db } = res.locals.webhookAdmin;
-    let query = db.from('brevo_webhook_events').select(eventColumns).order('received_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + pageSize - 1);
+    let query = db.from('brevo_webhook_events').select(eventColumns, { count: 'exact' }).order('received_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + pageSize - 1);
     if (endpointId) query = query.eq('endpoint_id', endpointId);
     if (status !== 'all') query = query.eq('status', status);
-    const { data, error } = await query;
+    if (eventType) query = query.eq('event_type', eventType);
+    if (email) query = query.eq('email', email);
+    if (from) query = query.gte('received_at', `${from}T00:00:00.000Z`);
+    if (to) query = query.lt('received_at', new Date(Date.parse(to) + 86400000).toISOString());
+    const { data, error, count } = await query;
     if (error) return databaseError(req, res, error, 'Webhook Event List');
-    return res.json({ events: data ?? [], hasMore: data?.length === pageSize });
+    return res.json({ events: data ?? [], total: count ?? 0, hasMore: offset + (data?.length ?? 0) < (count ?? 0) });
   }));
   admin.get('/events/:id', asyncHandler(async (req, res) => {
     if (!isUuid(req.params.id)) return res.status(400).json({ error: 'Invalid event ID.' });
