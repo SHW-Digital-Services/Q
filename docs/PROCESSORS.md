@@ -1,7 +1,7 @@
 ---
 title: Processor Register
 description: Sub-processor and Processor Register for Q Intelligence
-version: 1.6.1
+version: 1.6.2
 effective_date: 02/08/2026
 last_updated: 29/09/2026
 website: https://q-ai.online
@@ -23,6 +23,7 @@ This register supports transparency under applicable data protection legislation
 
 | Provider | Purpose | Data Processed |
 |----------|---------|----------------|
+| Zoho Mail | Staff/Admin mailbox hosting and OAuth-authorised mail operations through Q's CRM portal | Mailbox content, recipients, send/reply/draft actions, folders, attachments and authentication metadata; Q relays content temporarily without copying mailbox content into Supabase |
 | Supabase | Authentication, PostgreSQL database, object storage, user sessions | Account information, authentication data, uploaded files, application data |
 | Groq | Optional hosted AI model processing explicitly selected by the user when `GROQ_API_KEY` is configured | PII-masked prompts, recent chat context, selected profile context, relevant opted-in memory, AI responses, and technical usage metadata |
 | OpenAI | Optional hosted AI fallback when Groq is not configured; may also create optional vetted-knowledge embeddings when its key is configured | PII-masked prompts and embedding inputs, recent chat context, selected profile context, relevant opted-in memory, AI responses, embeddings, and technical usage metadata |
@@ -51,6 +52,8 @@ Current governing and transparency documents:
 ---
 
 ## 2.1 Brevo Email Communications
+
+Optional incoming Brevo webhooks store provider payloads, supplied email addresses, event type and receipt/review metadata in Supabase for Admin review. Known credential fields are redacted. This is separate from Zoho mailbox access, which does not import mail into Supabase. Verify the Zoho contracting entity, hosting configuration, retention and applicable processing agreement against the operator's account. This entry does not assert execution of an agreement or exclusive processing in a particular country.
 
 Q acts as controller for its marketing and community mailing lists. Brevo processes mailing data on Q's instructions under the applicable Brevo data-processing agreement. Its exact contracting entity and applicable terms depend on Q's Brevo account agreement; the brand name alone does not determine the contracting entity.
 

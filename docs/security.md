@@ -1,7 +1,7 @@
 ---
 title: Security Policy
 description: Security Policy for Q Intelligence
-version: 1.2.1
+version: 1.2.2
 effective_date: 26/08/2026
 last_updated: 29/09/2026
 applies_to: https://q-ai.online
@@ -10,6 +10,14 @@ product: Q Intelligence
 ---
 
 # Security Policy
+
+## CRM communications, receiving and deletion
+
+Zoho mail actions recheck a valid Q session and current Staff/Admin role. OAuth state is encrypted and bound to the verified identity; connection tokens are encrypted in HttpOnly cookies, never returned to page JavaScript or stored in Supabase. Fixed Zoho hosts prevent callback parameters selecting arbitrary credential-exchange servers. The portal does not persist mailbox content or attachments in Supabase. HTML is sanitised with a formatting-only allowlist; remote images, links and active content are removed. Attachments are downloaded rather than served inline.
+
+Brevo endpoint management/event access requires Admin authorisation. Receiving checks the active state and bearer secret transactionally; only token hashes/prefixes are retained. Known credential fields are redacted and exact payload retries deduplicated. Direct Supabase client access to endpoint/event tables is revoked. Event review does not execute billing/customer actions.
+
+The Admin Only page groups privileged functions, with server checks independent of button visibility. Deletion requires Admin access and exact target-email confirmation, protects the current operator and Admin accounts, checks unresolved subscriptions and records security outcomes. Existing deletion/Storage constraints apply. Deletion does not cancel external payments or erase Zoho mail.
 
 ## 1. Purpose
 

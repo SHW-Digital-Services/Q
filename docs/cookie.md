@@ -1,7 +1,7 @@
 ---
 title: Cookie Policy
 description: Cookie Policy for Q Intelligence
-version: 1.3.1
+version: 1.3.2
 effective_date: 02/08/2026
 last_updated: 29/09/2026
 website: https://q-ai.online
@@ -9,6 +9,10 @@ operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
 
 # Cookie Policy
+
+## CRM Zoho Mail connection cookies
+
+Staff/Admin mailbox connections use necessary first-party cookies on `/api/comms`: `q_zoho_state` holds encrypted OAuth state for up to ten minutes, and `q_zoho_mail` holds encrypted, account-bound connection credentials for up to eight hours. They are HttpOnly and SameSite=Lax, with Secure on HTTPS. They contain no email bodies, subjects or attachments. Disconnect clears them and attempts token revocation; Q sign-out attempts the same. They are created when an operator starts a connection and do not depend on optional analytics consent. Personalised drafts and template previews are not saved to local/session storage. Zoho's own sign-in pages may set cookies under Zoho's policies.
 
 ## 1. Introduction
 

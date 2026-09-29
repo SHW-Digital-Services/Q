@@ -4,6 +4,11 @@ import { QLogo } from './QLogo';
 import { LegalFooter } from './LegalFooter';
 
 const endpoints = [
+  { method: 'POST', path: '/api/webhooks/brevo/:endpointId', auth: 'Endpoint bearer token', description: 'Receive and store one Brevo event or a batch of 1–100. Admins create endpoints under CRM → Admin Only. The generated @q-ai.online identifier is not a mailbox or receiving URL.' },
+  { method: 'GET', path: '/api/v1/admin/brevo-webhooks/events', auth: 'Admin session', description: 'Inspect received/reviewed events with endpointId, status and offset filters. Event detail and endpoint management remain Admin-only.' },
+  { method: 'GET', path: '/api/comms/status', auth: 'Staff/Admin session', description: 'Report Zoho connection status without exposing tokens. The communications portal relays mailbox content without saving it in Supabase.' },
+  { method: 'POST', path: '/api/comms/oauth/start', auth: 'Staff/Admin session', description: 'Start an individual Zoho Mail connection. Requires server-only Zoho client credentials, region and cookie encryption key; the callback is /api/comms/oauth/callback.' },
+  { method: 'DELETE', path: '/api/v1/admin/delete-users/:id', auth: 'Admin session', description: 'Permanently delete a non-Admin Q account after exact email confirmation and subscription checks. Does not cancel external payments or delete Zoho mail.' },
   { method: 'GET', path: '/api/help-videos', auth: 'Public', description: 'List published Help Videos with titles, written steps and one-hour playback URLs for uploaded videos.' },
   { method: 'POST', path: '/api/v1/admin/help-videos', auth: 'Admin session', description: 'Create a Help Video with title, steps, draft/published status and either videoUrl or videoPath.' },
   { method: 'POST', path: '/api/v1/admin/help-videos/upload', auth: 'Admin session', description: 'Create a signed upload token for an MP4, WebM or Ogg file up to 100 MB. Upload directly to the private help-videos bucket.' },

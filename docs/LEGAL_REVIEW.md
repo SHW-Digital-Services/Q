@@ -1,5 +1,9 @@
 Use this file to record legal reviews and approvals for the policies in docs/.
 
+## 29 September 2026: Communications and Admin functions
+
+Added implementation disclosures for the Zoho mail relay, encrypted session/state cookies, 30 generic templates, separate stored Brevo events, integration identifiers and Admin-only deletion. The Zoho portal writes no mailbox content, attachments or personalised drafts to Supabase; existing CRM support records and Brevo events remain distinct. Updated Privacy, Cookie, Security, Terms, Processor Register and third-party notices. This records behaviour, not legal approval or verification of a Zoho processing agreement. Verify the operator's contract, data-centre settings, API entitlement and retention before production connection. Free-plan REST API access has not been tested against the user's account. References: https://www.zoho.com/mail/help/api/using-oauth-2.html and https://www.zoho.com/mail/zohomail-pricing.html.
+
 Reviewer:
 Organization:
 Date:

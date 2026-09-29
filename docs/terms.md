@@ -1,7 +1,7 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.5.1
+version: 1.5.2
 effective_date: 02/08/2026
 last_updated: 29/09/2026
 website: https://q-ai.online
@@ -9,6 +9,12 @@ operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
 
 # Terms of Service
+
+## CRM communications and administration
+
+Staff and Admins may connect their own Zoho mailbox through the CRM. Actions operate under its permissions and provider limits. Q temporarily relays content without saving mailbox content or attachments in Supabase. Drafts remain on the current page until explicitly saved to Zoho or sent. Operators should verify recipients, placeholders, facts and links before sending, and check Zoho Sent before repeating an uncertain send. Generic templates do not authorise marketing or replace required consent.
+
+Admin webhook integrations retain provider event records for review. Generated address-shaped identifiers are not mailboxes. Admin user deletion is irreversible through the CRM and does not cancel external payments or erase Zoho mail; existing constraints and retained operational records may apply. Staff cannot delete users or change public launch status.
 
 ## 1. Introduction
 

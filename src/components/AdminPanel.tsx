@@ -4,8 +4,11 @@ import { getSupabaseClient } from '../services/supabase';
 import { ContentPost } from '../types';
 import { PostMarkdown } from './PostMarkdown';
 import { HelpVideoAdmin } from './HelpVideoAdmin';
+import { BrevoWebhookAdmin } from './BrevoWebhookAdmin';
+import { AdminDeleteUser } from './AdminDeleteUser';
 
 interface AdminPanelProps {
+  adminMode?: boolean;
   enabled: boolean;
   onToggle: (value: boolean) => void;
   onClose: () => void;
@@ -110,7 +113,7 @@ function clearContentDraft() {
   }
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose, onPreview, onSignOut }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose, onPreview, onSignOut, adminMode = false }) => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [requests, setRequests] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
@@ -136,6 +139,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [entitlementProduct, setEntitlementProduct] = useState('');
   const [payment, setPayment] = useState({ amount: '', currency: 'GBP', transactionId: '', description: '' });
   const [staffRole, setStaffRole] = useState<'staff' | 'partner_admin' | null>(null);
+  const showAdminFunctions = adminMode && staffRole === 'partner_admin';
   const [staffAccounts, setStaffAccounts] = useState<any[]>([]);
   const [staffMessage, setStaffMessage] = useState<string | null>(null);
   const [paypalApprovalUrl, setPaypalApprovalUrl] = useState<string | null>(null);
@@ -148,6 +152,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [communicationMessage, setCommunicationMessage] = useState<string | null>(null);
   const [newCommunication, setNewCommunication] = useState({ recipientEmail: '', subject: '', body: '', channel: 'email', status: 'sent' });
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
+  const [archivedContentPosts, setArchivedContentPosts] = useState<ContentPost[]>([]);
+  const [showArchivedContent, setShowArchivedContent] = useState(false);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [contentHasMore, setContentHasMore] = useState(false);
+  const [archivedContentHasMore, setArchivedContentHasMore] = useState(false);
+  const [contentRelationshipsAvailable, setContentRelationshipsAvailable] = useState(true);
+  const contentRequestId = useRef(0);
   const [contentMessage, setContentMessage] = useState<string | null>(null);
   const [contentSaving, setContentSaving] = useState(false);
   const [apiClients, setApiClients] = useState<any[]>([]);
@@ -491,13 +502,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     }
   };
 
-  const loadContentPosts = async () => {
+  const loadContentPosts = async (archived = showArchivedContent, append = false) => {
+    const requestId = ++contentRequestId.current;
+    setContentLoading(true);
+    setContentMessage(null);
     try {
-      const response = await fetch('/api/v1/admin/content', { headers: await getAuthHeaders() });
-      setContentPosts(await parseJsonResponse(response));
+      const offset = append ? (archived ? archivedContentPosts.length : contentPosts.length) : 0;
+      const response = await fetch(`/api/v1/admin/content?archived=${archived}&limit=100&offset=${offset}`, { headers: await getAuthHeaders(), cache: 'no-store' });
+      const posts: ContentPost[] = await parseJsonResponse(response);
+      if (requestId !== contentRequestId.current) return;
+      setContentRelationshipsAvailable(response.headers.get('X-Q-Content-Relationships') !== 'unavailable');
+      const setPosts = archived ? setArchivedContentPosts : setContentPosts;
+      setPosts((current) => append ? [...current, ...posts.filter((post) => !current.some((item) => item.id === post.id))] : posts);
+      (archived ? setArchivedContentHasMore : setContentHasMore)(posts.length === 100);
     } catch (error: any) {
+      if (requestId !== contentRequestId.current) return;
       setContentMessage(error.message || 'Unable to load content posts.');
-    }
+    } finally { if (requestId === contentRequestId.current) setContentLoading(false); }
   };
 
   const loadApiClients = async () => {
@@ -565,6 +586,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       });
       const post = await parseJsonResponse(response);
       setContentPosts((current) => [post, ...current]);
+      setShowArchivedContent(false);
       clearContentDraft();
       setContentForm(emptyContentForm);
       setContentMessage('Draft saved. Publish it when ready.');
@@ -597,6 +619,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       const payload = await parseJsonResponse(response);
       if (action === 'archive') {
         setContentPosts((current) => current.filter((item) => item.id !== post.id));
+        setArchivedContentPosts((current) => [{ ...post, status: 'archived', published_at: null }, ...current.filter((item) => item.id !== post.id)]);
       } else {
         setContentPosts((current) => current.map((item) => item.id === post.id ? payload : item));
       }
@@ -704,12 +727,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
 
   useEffect(() => { if (staffRole === 'partner_admin') void loadStaff(); }, [staffRole]);
   useEffect(() => {
-    if (staffRole === 'partner_admin') {
+    if (showAdminFunctions) {
       void loadContentPosts();
       void loadApiClients();
     }
-  }, [staffRole]);
+  }, [showAdminFunctions]);
 
+  const displayedContentPosts = (showArchivedContent ? archivedContentPosts : contentPosts)
+    .filter((post) => showArchivedContent ? post.status === 'archived' : post.status === 'draft' || post.status === 'published');
   const visibleCrmUsers = crmUsers.filter((user) => {
     const query = crmSearch.trim().toLowerCase();
     return !query || user.email.toLowerCase().includes(query) || user.name.toLowerCase().includes(query);
@@ -723,6 +748,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     } catch (error: any) { setCrmMessage(error.message || 'Unable to update launch status.'); }
   };
 
+  if (adminMode && staffRole !== 'partner_admin') return <main className="mx-auto max-w-2xl p-6 text-slate-100"><h1 className="text-xl font-bold">Admin Only</h1><p className="mt-3 text-sm text-slate-300">{staffRole ? 'An Admin account is required to open this page.' : crmMessage || 'Checking Admin access…'}</p><a href="/crm" className="mt-4 inline-block text-purple-200 underline">Back to CRM</a></main>;
+
   return (
     <div className="mx-auto w-full max-w-6xl rounded-none border border-white/15 bg-slate-950 p-3 text-slate-100 shadow-2xl sm:rounded-3xl sm:p-6">
       <div>
@@ -730,12 +757,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-purple-200">
               <ShieldCheck className="h-4 w-4" />
-              {staffRole === 'partner_admin' ? 'Admin Controls' : 'Staff CRM'}
+              {adminMode ? 'Admin Only' : 'Staff CRM'}
             </div>
             <h2 className="mt-2 text-xl font-bold text-white">Q Customer Operations</h2>
             <p className="mt-1 text-sm text-slate-300">Manage customers, subscriptions, payments, tasks, and support activity.</p>
           </div>
           <div className="flex shrink-0 flex-wrap justify-end gap-2">
+            {staffRole && <a href="/crm/comms" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-purple-200 hover:bg-white/10"><Mail className="h-3.5 w-3.5" /> Communications</a>}
+            {staffRole === 'partner_admin' && !adminMode && <a href="/crm/admin" className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white hover:bg-purple-500">Admin Only</a>}
+            {adminMode && <a href="/crm" className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10">Back to CRM</a>}
             <button type="button" onClick={() => void onSignOut()} className="inline-flex items-center gap-2 rounded-xl border border-rose-300/20 px-3 py-2 text-xs font-bold text-rose-100 transition hover:bg-rose-500/10 hover:text-white">
               <LogOut className="h-3.5 w-3.5" /> Log out
             </button>
@@ -746,7 +776,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         </div>
 
         {staffRole && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
-          {staffRole === 'partner_admin' && <div className="flex items-center justify-between gap-4">
+          {showAdminFunctions && <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-white">Live site</p>
               <p className="mt-1 text-sm text-slate-400">When on, the public can access the site. When off, visitors can only see the waitlist.</p>
@@ -771,23 +801,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           <p className="mt-2 text-xs text-slate-400">Sign in again with your CRM account to preview in this tab. Refreshing or signing out ends the preview.</p>
         </div>}
 
-        {staffRole === 'partner_admin' && <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+        {showAdminFunctions && <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
           Current status: {enabled ? 'Live site enabled' : 'Waitlist enabled'}
         </div>}
 
-        {staffRole === 'partner_admin' && <HelpVideoAdmin />}
-        {staffRole === 'partner_admin' && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {showAdminFunctions && <HelpVideoAdmin />}
+        {showAdminFunctions && <BrevoWebhookAdmin />}
+        {showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2 text-white"><Newspaper className="h-4 w-4 text-fuchsia-300" /><p className="text-sm font-semibold">News &amp; Updates</p></div>
               <p className="mt-1 text-sm text-slate-400">Create drafts and publish public posts to <a href="/news" target="_blank" rel="noreferrer" className="font-bold text-purple-200 underline">/news</a>.</p>
             </div>
-            <button type="button" onClick={() => void loadContentPosts()} className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10"><RefreshCw className="h-3.5 w-3.5" />Refresh</button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" disabled={contentLoading} aria-pressed={showArchivedContent} onClick={() => { const archived = !showArchivedContent; setShowArchivedContent(archived); void loadContentPosts(archived); }} className="rounded-full border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10 disabled:opacity-50">{showArchivedContent ? 'View Published & Drafts' : 'View Archived'}</button>
+              <button type="button" disabled={contentLoading} onClick={() => void loadContentPosts()} className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10 disabled:opacity-50"><RefreshCw className={`h-3.5 w-3.5 ${contentLoading ? 'animate-spin' : ''}`} />Refresh</button>
+            </div>
           </div>
           <form onSubmit={saveContentPost} className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 md:grid-cols-6">
             <input required maxLength={180} value={contentForm.title} onChange={(event) => setContentForm({ ...contentForm, title: event.target.value })} placeholder="Post title" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-3" />
             <input maxLength={120} value={contentForm.slug} onChange={(event) => setContentForm({ ...contentForm, slug: event.target.value })} placeholder="Slug, optional" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2" />
-            <select aria-label="Post type" value={contentForm.contentType} onChange={(event) => setContentForm({ ...contentForm, contentType: event.target.value, parentNewsId: '' })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="news">News</option><option value="update">Update</option></select>
+            <select aria-label="Post type" value={contentForm.contentType} onChange={(event) => setContentForm({ ...contentForm, contentType: event.target.value, parentNewsId: '' })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="news">News</option><option value="update" disabled={!contentRelationshipsAvailable}>Update</option></select>
             {contentForm.contentType === 'update' && <label className="text-xs text-slate-200 md:col-span-6">Related news item
               <select required value={contentForm.parentNewsId} onChange={(event) => setContentForm({ ...contentForm, parentNewsId: event.target.value })} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-white">
                 <option value="">Choose a news item</option>
@@ -843,8 +877,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             </div>
           </div>
           {contentMessage && <p className="mt-3 rounded-xl bg-purple-500/10 p-3 text-xs text-purple-100">{contentMessage}</p>}
+          {!contentRelationshipsAvailable && <p role="status" className="mt-3 rounded-xl bg-amber-500/10 p-3 text-xs text-amber-200">Existing news is available. This database does not yet expose the related-news field; apply the news item updates migration to this site's Supabase project before linking updates.</p>}
+          <h3 className="mt-5 text-sm font-bold text-white">{showArchivedContent ? 'Archived news & updates' : 'Published & draft news & updates'}</h3>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {contentPosts.length === 0 ? <p className="text-xs text-slate-400">No content posts yet.</p> : contentPosts.map((post) => (
+            {contentLoading && displayedContentPosts.length === 0 ? <p role="status" className="text-xs text-slate-400">Loading news &amp; updates...</p> : displayedContentPosts.length === 0 ? <p className="text-xs text-slate-400">{showArchivedContent ? 'No archived news or updates.' : 'No published or draft news or updates.'}</p> : displayedContentPosts.map((post) => (
               <article key={post.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -855,7 +891,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                     <h3 className="mt-2 truncate text-sm font-bold text-white">{post.title}</h3>
                     <p className="mt-1 line-clamp-2 text-xs text-slate-400">{post.summary}</p>
                     <p className="mt-2 text-[10px] text-slate-500">/{post.slug}</p>
-                    {post.content_type === 'update' && <label className="mt-3 block text-xs text-slate-200">Related news
+                    {post.content_type === 'update' && !showArchivedContent && contentRelationshipsAvailable && <label className="mt-3 block text-xs text-slate-200">Related news
                       <select aria-label={`Related news for ${post.title}`} value={post.parent_news_id ?? ''} onChange={(event) => void linkContentUpdate(post, event.target.value)} className="mt-1 w-full rounded-lg bg-slate-950 p-2 text-white">
                         <option value="" disabled>Choose a news item before publishing</option>
                         {contentPosts.filter((item) => item.content_type === 'news' && item.status !== 'archived').map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
@@ -863,13 +899,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                     </label>}
                   </div>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                {!showArchivedContent && <div className="mt-3 flex flex-wrap gap-2">
                   {post.status === 'published' ? <button type="button" onClick={() => void contentAction(post, 'unpublish')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Unpublish</button> : <button type="button" onClick={() => void contentAction(post, 'publish')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Publish</button>}
                   <button type="button" onClick={() => void contentAction(post, 'archive')} className="rounded-xl bg-rose-600/80 px-3 py-2 text-xs font-bold text-white">Archive</button>
-                </div>
+                </div>}
               </article>
             ))}
           </div>
+          {(showArchivedContent ? archivedContentHasMore : contentHasMore) && <button type="button" disabled={contentLoading} onClick={() => void loadContentPosts(showArchivedContent, true)} className="mt-4 rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">{contentLoading ? 'Loading...' : 'Load more news & updates'}</button>}
         </section>}
 
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
@@ -889,7 +926,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><BookOpen className="h-4 w-4 text-orange-300" /><p className="text-sm font-semibold">Life Guides catalogue</p></div><p className="mt-1 text-sm text-slate-400">Admin-only catalogue controls for creating, publishing, unpublishing and archiving Life Guides. Published guides appear in the Life Guides section.</p></div><button type="button" onClick={() => void loadLifeGuides()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh Life Guides"><RefreshCw className="h-4 w-4" /></button></div>
           {lifeGuideMessage && <p className="mt-3 rounded-xl bg-orange-500/10 p-3 text-xs text-orange-100">{lifeGuideMessage}</p>}
-          {staffRole === 'partner_admin' && <form onSubmit={saveCrmLifeGuide} className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 md:grid-cols-6">
+          {showAdminFunctions && <form onSubmit={saveCrmLifeGuide} className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 md:grid-cols-6">
             <input required maxLength={180} value={lifeGuideForm.title} onChange={event => setLifeGuideForm({ ...lifeGuideForm, title: event.target.value })} placeholder="Guide title" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-3" />
             <select value={lifeGuideForm.category} onChange={event => setLifeGuideForm({ ...lifeGuideForm, category: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="healthcare">Healthcare</option><option value="rights">Rights</option><option value="social">Social</option><option value="mental_health">Mental health</option><option value="career">Career</option><option value="housing">Housing</option></select>
             <select value={lifeGuideForm.status} onChange={event => setLifeGuideForm({ ...lifeGuideForm, status: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="draft">Draft</option><option value="published">Published</option></select>
@@ -902,7 +939,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${guide.status === 'published' ? 'bg-emerald-500/15 text-emerald-200' : 'bg-amber-500/15 text-amber-200'}`}>{guide.status}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{guide.category}</span></div>
               <h3 className="mt-2 text-sm font-bold text-white">{guide.title}</h3>
               <p className="mt-1 line-clamp-2 text-xs text-slate-400">{guide.summary}</p>
-              {staffRole === 'partner_admin' ? <div className="mt-3 flex flex-wrap gap-2">{guide.status === 'published' ? <button type="button" onClick={() => void lifeGuideAction(guide, 'draft')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Unpublish</button> : <button type="button" onClick={() => void lifeGuideAction(guide, 'published')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Publish</button>}<button type="button" onClick={() => void lifeGuideAction(guide, 'archived')} className="rounded-xl bg-rose-600/80 px-3 py-2 text-xs font-bold text-white">Archive</button></div> : <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Admin-only controls</p>}
+              {showAdminFunctions ? <div className="mt-3 flex flex-wrap gap-2">{guide.status === 'published' ? <button type="button" onClick={() => void lifeGuideAction(guide, 'draft')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Unpublish</button> : <button type="button" onClick={() => void lifeGuideAction(guide, 'published')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Publish</button>}<button type="button" onClick={() => void lifeGuideAction(guide, 'archived')} className="rounded-xl bg-rose-600/80 px-3 py-2 text-xs font-bold text-white">Archive</button></div> : <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Admin-only controls</p>}
             </article>)}
           </div>
         </section>
@@ -920,7 +957,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           </div>
         </section>
 
-        {staffRole === 'partner_admin' && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><UserCog className="h-4 w-4 text-purple-300"/><p className="text-sm font-semibold">Staff management</p></div><p className="mt-1 text-sm text-slate-400">Promote, demote, and review authorised CRM accounts.</p></div><button onClick={() => void loadStaff()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10"><RefreshCw className="h-4 w-4"/></button></div>
           {staffMessage && <p className="mt-3 rounded-xl bg-purple-500/10 p-3 text-xs text-purple-100">{staffMessage}</p>}
           <div className="mt-4 grid gap-3 md:grid-cols-2">{staffAccounts.map((account) => <div key={account.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/70 p-3"><div className="min-w-0"><p className="truncate text-sm font-semibold text-white">{account.preferred_name || account.email}</p><p className="truncate text-xs text-slate-500">{account.email}</p></div><select value={account.role} onChange={(event) => void changeRole(account.id, event.target.value as any)} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="staff">Staff</option><option value="partner_admin">Admin</option><option value="user">User</option></select></div>)}</div>
@@ -942,7 +979,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             <div className="flex items-center gap-2 text-xs font-bold text-white md:col-span-5"><UserPlus className="h-4 w-4 text-purple-300"/>Add user</div>
             <input value={newUser.name} onChange={(event) => setNewUser({ ...newUser, name: event.target.value })} placeholder="Name" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2"/>
             <input required type="email" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} placeholder="Email address" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2"/>
-            {staffRole === 'partner_admin' ? <select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="user">User</option><option value="staff">Staff</option><option value="partner_admin">Admin</option></select> : <input readOnly value="User" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-slate-400"/>}
+            {showAdminFunctions ? <select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="user">User</option><option value="staff">Staff</option><option value="partner_admin">Admin</option></select> : <input readOnly value="User" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-slate-400"/>}
             <p className="text-xs text-slate-400 md:col-span-4">Q sends a single-use invitation. Passwords are never created or displayed in the CRM.</p>
             <button disabled={addingUser} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50 md:col-start-5">{addingUser ? 'Sending…' : 'Send invitation'}</button>
           </form>
@@ -994,7 +1031,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           </div>
         </section>
 
-        {staffRole === 'partner_admin' && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center gap-2 text-white"><Package className="h-4 w-4 text-purple-300" /><p className="text-sm font-semibold">Product management</p></div>
           <p className="mt-1 text-sm text-slate-400">Manage Q products and connect recurring products to their PayPal plan IDs.</p>
 
@@ -1120,6 +1157,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                 </div>
                 {customerMessage && <div className="mt-4 rounded-xl border border-purple-400/20 bg-purple-500/10 p-3 text-xs text-purple-100">{customerMessage}</div>}
                 <button type="button" onClick={() => setTaskModalOpen(true)} className="mt-4 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add task</button>
+                {showAdminFunctions && <AdminDeleteUser key={customer.identity.id} id={customer.identity.id} email={customer.identity.email} role={customer.profile?.role || 'user'} onDeleted={() => { setCustomer(null); setCrmMessage('User deleted from Q.'); void loadCrm(); void loadStaff(); }} />}
                 <section className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><h3 className="font-bold text-white">Temporary password</h3><p className="mt-1 text-xs text-emerald-100/80">Issue a temporary Supabase Auth password for this customer. Q shows it once and logs the CRM action without storing the password.</p></div>
@@ -1132,19 +1170,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Personal details</h3><dl className="mt-3 space-y-2 text-xs text-slate-300">
                     <div><dt className="text-slate-500">Email</dt><dd>{customer.identity.email}</dd></div><div><dt className="text-slate-500">Phone</dt><dd>{customer.profile?.phone || customer.identity.phone || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Pronouns</dt><dd>{customer.profile?.pronouns || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Region</dt><dd>{customer.profile?.location_region || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Company</dt><dd>{customer.profile?.company || 'Not supplied'}</dd></div><div><dt className="text-slate-500">CRM status</dt><dd>{customer.profile?.crm_status || 'customer'}</dd></div>
                   </dl></section>
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Account</h3><dl className="mt-3 space-y-2 text-xs text-slate-300"><div><dt className="text-slate-500">Created</dt><dd>{new Date(customer.identity.signupAt).toLocaleString()}</dd></div><div><dt className="text-slate-500">Last login</dt><dd>{customer.identity.lastLoginAt ? new Date(customer.identity.lastLoginAt).toLocaleString() : 'Never'}</dd></div><div><dt className="text-slate-500">Email</dt><dd>{customer.identity.emailConfirmedAt ? 'Verified' : 'Unverified'}</dd></div><div><dt className="text-slate-500">Role</dt><dd>{customer.profile?.role}</dd></div></dl>{staffRole === 'partner_admin' && <div className="mt-4"><label className="text-[10px] uppercase tracking-wider text-slate-500">Change access role</label><select value={customer.profile?.role || 'user'} onChange={(event) => void changeRole(customer.identity.id, event.target.value as any)} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white"><option value="user">User</option><option value="staff">Staff</option><option value="partner_admin">Admin</option></select></div>}</section>
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Account</h3><dl className="mt-3 space-y-2 text-xs text-slate-300"><div><dt className="text-slate-500">Created</dt><dd>{new Date(customer.identity.signupAt).toLocaleString()}</dd></div><div><dt className="text-slate-500">Last login</dt><dd>{customer.identity.lastLoginAt ? new Date(customer.identity.lastLoginAt).toLocaleString() : 'Never'}</dd></div><div><dt className="text-slate-500">Email</dt><dd>{customer.identity.emailConfirmedAt ? 'Verified' : 'Unverified'}</dd></div><div><dt className="text-slate-500">Role</dt><dd>{customer.profile?.role}</dd></div></dl>{showAdminFunctions && <div className="mt-4"><label className="text-[10px] uppercase tracking-wider text-slate-500">Change access role</label><select value={customer.profile?.role || 'user'} onChange={(event) => void changeRole(customer.identity.id, event.target.value as any)} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white"><option value="user">User</option><option value="staff">Staff</option><option value="partner_admin">Admin</option></select></div>}</section>
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">PayPal subscription</h3>{customer.subscription ? <dl className="mt-3 space-y-2 text-xs text-slate-300"><div><dt className="text-slate-500">Status</dt><dd>{customer.subscription.status}</dd></div><div><dt className="text-slate-500">Plan</dt><dd>{customer.subscription.paypal_plan_id}</dd></div><div><dt className="text-slate-500">Subscription ID</dt><dd>{customer.subscription.paypal_subscription_id}</dd></div><div><dt className="text-slate-500">Next billing</dt><dd>{customer.subscription.current_period_end ? new Date(customer.subscription.current_period_end).toLocaleDateString() : 'Unknown'}</dd></div></dl> : <p className="mt-3 text-xs text-slate-400">No PayPal subscription.</p>}</section>
                 </div>
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Assign access or subscription</h3><select value={entitlementProduct} onChange={(e) => { setEntitlementProduct(e.target.value); setPaypalApprovalUrl(null); }} className="mt-3 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white"><option value="">Choose product</option>{products.filter(p=>p.active).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>{staffRole === 'partner_admin' && <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-500/10 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-amber-200">Optional admin discount</p><div className="mt-2 grid grid-cols-2 gap-2"><input type="number" min="1" max="100" value={manualDiscount.percent} onChange={e=>setManualDiscount({...manualDiscount,percent:e.target.value})} placeholder="Discount %" className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-white"/><input type="number" min="1" max="999" value={manualDiscount.cycles} onChange={e=>setManualDiscount({...manualDiscount,cycles:e.target.value})} placeholder="Billing cycles" className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-white"/></div><p className="mt-2 text-[10px] text-slate-400">Leave both blank for standard pricing. The customer must approve the schedule in PayPal.</p></div>}<div className="mt-2 flex gap-2"><button onClick={() => void customerAction('entitlements',{productId: entitlementProduct},'Access assigned.')} disabled={!entitlementProduct} className="flex-1 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Assign manual access</button><button onClick={() => void createPayPalSubscription()} disabled={!entitlementProduct} className="flex-1 rounded-xl bg-[#0070ba] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Create PayPal subscription</button></div>{paypalApprovalUrl && <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-xs text-emerald-100"><p className="font-bold">Customer approval required</p><div className="mt-2 flex gap-2"><input readOnly value={paypalApprovalUrl} className="min-w-0 flex-1 rounded-lg bg-slate-950 px-2 py-1 text-[10px]"/><button onClick={() => navigator.clipboard.writeText(paypalApprovalUrl)} className="font-bold">Copy</button></div></div>}<div className="mt-3 space-y-2">{customer.entitlements.map((item:any)=><div key={item.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><b className="text-white">{item.crm_products?.name}</b> · {item.status} · {item.source}{item.ends_at ? ` · ends ${new Date(item.ends_at).toLocaleDateString()}` : ''}</div>)}</div></section>
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Assign access or subscription</h3><select value={entitlementProduct} onChange={(e) => { setEntitlementProduct(e.target.value); setPaypalApprovalUrl(null); }} className="mt-3 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white"><option value="">Choose product</option>{products.filter(p=>p.active).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>{showAdminFunctions && <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-500/10 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-amber-200">Optional admin discount</p><div className="mt-2 grid grid-cols-2 gap-2"><input type="number" min="1" max="100" value={manualDiscount.percent} onChange={e=>setManualDiscount({...manualDiscount,percent:e.target.value})} placeholder="Discount %" className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-white"/><input type="number" min="1" max="999" value={manualDiscount.cycles} onChange={e=>setManualDiscount({...manualDiscount,cycles:e.target.value})} placeholder="Billing cycles" className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-white"/></div><p className="mt-2 text-[10px] text-slate-400">Leave both blank for standard pricing. The customer must approve the schedule in PayPal.</p></div>}<div className="mt-2 flex gap-2"><button onClick={() => void customerAction('entitlements',{productId: entitlementProduct},'Access assigned.')} disabled={!entitlementProduct} className="flex-1 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Assign manual access</button><button onClick={() => void createPayPalSubscription()} disabled={!entitlementProduct} className="flex-1 rounded-xl bg-[#0070ba] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Create PayPal subscription</button></div>{paypalApprovalUrl && <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-xs text-emerald-100"><p className="font-bold">Customer approval required</p><div className="mt-2 flex gap-2"><input readOnly value={paypalApprovalUrl} className="min-w-0 flex-1 rounded-lg bg-slate-950 px-2 py-1 text-[10px]"/><button onClick={() => navigator.clipboard.writeText(paypalApprovalUrl)} className="font-bold">Copy</button></div></div>}<div className="mt-3 space-y-2">{customer.entitlements.map((item:any)=><div key={item.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><b className="text-white">{item.crm_products?.name}</b> · {item.status} · {item.source}{item.ends_at ? ` · ends ${new Date(item.ends_at).toLocaleDateString()}` : ''}</div>)}</div></section>
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center justify-between"><h3 className="font-bold text-white">Take a card payment</h3><a href="https://www.paypal.com/mep/dashboard" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl bg-[#0070ba] px-3 py-2 text-xs font-bold text-white">Open PayPal Virtual Terminal <ExternalLink className="h-3 w-3" /></a></div><p className="mt-2 text-xs text-slate-400">Enter card details only in PayPal. After approval, record the PayPal transaction below.</p><div className="mt-3 grid grid-cols-2 gap-2"><input value={payment.amount} onChange={e=>setPayment({...payment,amount:e.target.value})} type="number" step="0.01" placeholder="Amount" className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><select value={payment.currency} onChange={e=>setPayment({...payment,currency:e.target.value})} className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"><option>GBP</option><option>USD</option><option>EUR</option></select><input value={payment.transactionId} onChange={e=>setPayment({...payment,transactionId:e.target.value})} placeholder="PayPal transaction ID" className="col-span-2 rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><input value={payment.description} onChange={e=>setPayment({...payment,description:e.target.value})} placeholder="Description" className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><button onClick={() => void customerAction('payments',{amountMinor:Math.round(Number(payment.amount)*100),currency:payment.currency,providerTransactionId:payment.transactionId,description:payment.description},'Payment recorded.')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Record payment</button></div></section>
                 </div>
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-3">
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Notes</h3><textarea value={noteBody} onChange={e=>setNoteBody(e.target.value)} placeholder="Add a non-sensitive CRM note" className="mt-3 w-full rounded-xl bg-slate-900 p-3 text-xs text-white"/><button onClick={() => { void customerAction('notes',{body:noteBody},'Note added.'); setNoteBody(''); }} className="mt-2 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add note</button><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.notes.map((n:any)=><div key={n.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300">{n.body}<p className="mt-1 text-[10px] text-slate-500">{new Date(n.created_at).toLocaleString()}</p></div>)}</div></section>
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Tasks</h3><div className="mt-3 flex gap-2"><input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="Follow-up task" className="min-w-0 flex-1 rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><button onClick={() => { void customerAction('tasks',{title:taskTitle},'Task created.'); setTaskTitle(''); }} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add</button></div><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.tasks.map((t:any)=><div key={t.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><ClipboardList className="mr-1 inline h-3 w-3"/>{t.title} · {t.status}</div>)}</div></section>
-                  {staffRole === 'partner_admin' && <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Audit and activity timeline</h3><div className="mt-3 max-h-72 space-y-3 overflow-y-auto">{customer.activities.map((a:any)=><div key={a.id} className="border-l border-purple-500/40 pl-3 text-xs text-slate-300"><b className="text-white">{a.summary}</b><p className="text-[10px] text-slate-500">{new Date(a.created_at).toLocaleString()}</p></div>)}</div></section>}
+                  {showAdminFunctions && <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Audit and activity timeline</h3><div className="mt-3 max-h-72 space-y-3 overflow-y-auto">{customer.activities.map((a:any)=><div key={a.id} className="border-l border-purple-500/40 pl-3 text-xs text-slate-300"><b className="text-white">{a.summary}</b><p className="text-[10px] text-slate-500">{new Date(a.created_at).toLocaleString()}</p></div>)}</div></section>}
                 </div>
 
                 <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Referral credit ledger</h3><div className="mt-3 overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-slate-500"><tr><th className="p-2">Date</th><th>Type</th><th>Status</th><th>Note</th><th className="text-right">Amount</th></tr></thead><tbody>{customer.referralCredits?.map((c:any)=><tr key={c.id} className="border-t border-white/10 text-slate-300"><td className="p-2">{new Date(c.created_at).toLocaleDateString()}</td><td>{c.kind}</td><td>{c.status}</td><td>{c.note || '—'}</td><td className="text-right">{new Intl.NumberFormat('en-GB',{style:'currency',currency:c.currency}).format(c.amount_minor/100)}</td></tr>)}</tbody></table></div></section>

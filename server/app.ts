@@ -15,6 +15,9 @@ import { contentRouter } from './routes/content.js';
 import { peerKnowledgeRouter } from './routes/peerKnowledge.js';
 import { lifeGuidesRouter } from './routes/lifeGuides.js';
 import { helpVideosRouter, helpVideosAdminRouter } from './routes/helpVideos.js';
+import { brevoWebhookReceiver, brevoWebhookAdminRouter } from './routes/brevoWebhooks.js';
+import { commsRouter } from './routes/comms.js';
+import { adminDeleteUsersRouter } from './routes/adminDeleteUsers.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -155,9 +158,9 @@ app.use((req, res, next) => {
     return next();
   }
   express.json({
-    limit: req.path.startsWith('/api/premium/') ? '1mb' : /^\/api\/(?:v1\/)?admin\/help-videos(?:\/|$)/.test(req.path) ? '512kb' : '32kb',
+    limit: req.path.startsWith('/api/comms/') ? '256kb' : req.path.startsWith('/api/webhooks/brevo/') ? '256kb' : req.path.startsWith('/api/premium/') ? '1mb' : /^\/api\/(?:v1\/)?admin\/help-videos(?:\/|$)/.test(req.path) ? '512kb' : '32kb',
     verify: (request, _response, buffer) => {
-      (request as express.Request & { rawBody?: string }).rawBody = buffer.toString('utf8');
+      if (!request.url?.startsWith('/api/comms/')) (request as express.Request & { rawBody?: string }).rawBody = buffer.toString('utf8');
     }
   })(req, res, next);
 });
@@ -183,9 +186,13 @@ app.get('/api/health/supabase', async (_req, res) => {
 });
 
 app.use(['/api/billing'], billingRouter);
+app.use('/api/comms', commsRouter);
 app.use(['/api/q-ai', '/api/ai'], aiRouter);
 app.use(['/api/v1/admin', '/api/admin'], adminRouter);
+app.use(['/api/v1/admin/delete-users', '/api/admin/delete-users'], adminDeleteUsersRouter);
 app.use(['/api/v1/admin/help-videos', '/api/admin/help-videos'], helpVideosAdminRouter);
+app.use(['/api/v1/admin/brevo-webhooks', '/api/admin/brevo-webhooks'], brevoWebhookAdminRouter);
+app.use('/api/webhooks/brevo', brevoWebhookReceiver);
 app.use('/api/referrals', referralsRouter);
 app.use('/api/privacy', privacyRouter);
 app.use('/api/premium', premiumRouter);
@@ -206,11 +213,13 @@ if (process.env.VERCEL !== '1' && process.env.NODE_ENV === 'production') {
   app.get('*', (_req, res) => res.sendFile(path.join(clientDirectory, 'index.html')));
 }
 
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const requestId = randomUUID();
-  console.error(`[Server Uncaught Error] requestId=${requestId}:`, err instanceof Error ? err.message : err);
+  const mailRequest = req.path.startsWith('/api/comms/');
+  if (!mailRequest && err?.type !== 'entity.parse.failed') console.error(`[Server Uncaught Error] requestId=${requestId}:`, err instanceof Error ? err.message : err);
   if (!res.headersSent) {
     res.setHeader('X-Request-Id', requestId);
+    if (err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'Send a valid JSON request.' });
     if (err?.type === 'entity.too.large' || err?.status === 413) {
       return res.status(413).json({ error: 'Request body is too large.' });
     }

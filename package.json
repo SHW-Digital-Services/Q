@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "check:comms": "tsx scripts/check-comms.ts",
+    "check:webhooks": "tsx scripts/check-brevo-webhooks.ts",
     "check:premium": "tsx scripts/check-premium.ts",
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
@@ -20,6 +22,7 @@
     "@supabase/supabase-js": "^2.111.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
+    "dompurify": "^3.4.16",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "jspdf": "^4.2.1",

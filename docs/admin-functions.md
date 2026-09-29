@@ -1,0 +1,11 @@
+# CRM admin functions
+
+The main CRM at `/crm` contains a button labelled **Admin Only** only after the current account is verified as an Admin (`partner_admin`). It opens `/crm/admin`. Direct navigation by Staff is denied by the page, and each admin API operation separately enforces access. Communications at `/crm/comms` remains available to Staff and Admins.
+
+The admin page groups the live-site switch, Help Video management, news/update publishing and content API clients, Brevo webhook setup/inbox, Staff/access-role management, product controls, Life Guide publishing, customer role changes, admin discounts, audit history and user deletion. Shared customer operations are also available there so an Admin can open a customer's record. Site preview remains available to both Staff and Admins; switching between the waitlist and live site is Admin-only.
+
+## Delete User
+
+On the admin page, open a user’s customer record. **Delete User · Admin Only** requires the exact account email and a final irreversible-deletion confirmation. The server rejects unauthenticated/Staff requests, deleting the signed-in Admin, deleting an Admin-role account, invalid confirmations and accounts whose subscription has a status other than CANCELLED/EXPIRED. Another Admin must first change an Admin account’s role if it needs to be deleted. Resolve subscriptions with PayPal and confirm Q’s status before attempting deletion; account deletion does not cancel PayPal payments.
+
+The endpoint is `DELETE /api/v1/admin/delete-users/:id`, JSON `{ "confirmation": "exact-account-email" }`. It performs Supabase Auth hard deletion after checks; linked records follow the existing foreign-key deletion rules. Retained support, financial and operational records are not claimed to be fully erased, and locally downloaded/exported data and Zoho mail remain outside this action. Owned Storage objects or retained database references may prevent deletion; failure is reported without claiming success. Review storage and retention through the applicable operator procedure. Security audit entries record the operator, technical target and outcome without storing a mail body or credential. This CRM feature is distinct from the user's privacy-request process.

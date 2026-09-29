@@ -30,6 +30,7 @@ const JournalView = lazy(() => import('./components/JournalView').then(({ Journa
 const ProfileView = lazy(() => import('./components/ProfileView').then(({ ProfileView }) => ({ default: ProfileView })));
 const HelpView = lazy(() => import('./components/HelpView').then(({ HelpView }) => ({ default: HelpView })));
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel }) => ({ default: AdminPanel })));
+const CommsPortal = lazy(() => import('./components/CommsPortal'));
 const DeveloperPage = lazy(() => import('./components/DeveloperPage').then(({ DeveloperPage }) => ({ default: DeveloperPage })));
 const NewsUpdatesPage = lazy(() => import('./components/NewsUpdatesPage').then(({ NewsUpdatesPage }) => ({ default: NewsUpdatesPage })));
 const GuidedProgrammes = lazy(() => import('./components/GuidedProgrammes').then(({ GuidedProgrammes }) => ({ default: GuidedProgrammes })));
@@ -100,7 +101,9 @@ export default function App() {
   const previewActive = !!currentUser && previewUserId === currentUser.id;
   const isAppRoute = previewActive || (launchEnabled && isViewAppRequest());
   const isNewsRoute = typeof window !== 'undefined' && ['/news', '/updates'].includes(window.location.pathname);
-  const isCrmRoute = typeof window !== 'undefined' && ['/crm', '/admin/crm'].includes(window.location.pathname);
+  const isCrmRoute = typeof window !== 'undefined' && ['/crm', '/admin/crm', '/crm/admin', '/admin/crm/admin', '/crm/comms'].includes(window.location.pathname);
+  const isAdminFunctionsRoute = typeof window !== 'undefined' && ['/crm/admin', '/admin/crm/admin'].includes(window.location.pathname);
+  const isCommsRoute = typeof window !== 'undefined' && window.location.pathname === '/crm/comms';
   const isDeveloperRoute = typeof window !== 'undefined' && window.location.pathname === '/developer';
 
   useEffect(() => {
@@ -360,6 +363,8 @@ export default function App() {
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) await fetch('/api/comms/disconnect', { method: 'POST', headers: { Authorization: `Bearer ${data.session.access_token}` }, signal: AbortSignal.timeout(12000) }).catch(() => undefined);
         await supabase.auth.signOut();
       } catch (error) {
         console.warn('Sign out failed:', error);
@@ -396,7 +401,7 @@ export default function App() {
       <div className="q-scroll-page bg-slate-950 p-0 text-slate-100 sm:p-6">
         <StatusPageButton />
         <Suspense fallback={<LoadingView label="Loading CRM..." />}>
-          <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />
+          {isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />}
         </Suspense>
       </div>
     );

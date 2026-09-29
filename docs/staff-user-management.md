@@ -7,11 +7,11 @@ Staff should not need Supabase dashboard access. Supabase remains the identity d
 The owner or technical admin does this once.
 
 1. Create the staff user in the Q app using the normal sign-up flow, or invite them through Supabase Auth.
-2. Mark the staff user as an app admin in the protected `profiles` table:
+2. Assign the Staff role in the protected `profiles` table. Use `partner_admin` only for an operator who should have Admin-only controls:
 
 ```sql
 update public.profiles
-set role = 'partner_admin'
+set role = 'staff'
 where id = (
   select id
   from auth.users
@@ -22,6 +22,8 @@ where id = (
 3. Confirm the server environment has `SUPABASE_SERVICE_ROLE_KEY` set.
 4. Do not give staff the Supabase service-role key.
 5. Do not give staff direct Supabase dashboard access unless they are technical owners.
+
+Staff and Admins can connect their own Zoho mailbox through **Communications** in the CRM. Mailbox content is not saved to Supabase. Follow [Zoho setup](zoho-mail-comms.md). Only Admins see **Admin Only**; this page groups publishing, launch settings, webhook receiving and user deletion. Open a customer record there to delete a non-Admin account with exact-email confirmation. Subscriptions must be resolved first, and deletion does not cancel PayPal payments or erase Zoho mail. See [Admin functions](admin-functions.md).
 
 ## Staff Password Reset Flow
 

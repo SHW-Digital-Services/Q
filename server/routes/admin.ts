@@ -5,6 +5,7 @@ import { getAuthenticatedUser, asyncHandler, getCanonicalAppUrl, sendOpaqueError
 import { buildAnalyticsExport } from '../analyticsEngine.js';
 import { getPayPalAccessToken, getPaypalBaseUrl } from './billing.js';
 import { createAdminSecurityMiddleware, requireExactObject } from '../security.js';
+import { listAdminContent } from '../adminContentList.js';
 
 export const adminRouter = express.Router();
 
@@ -312,7 +313,7 @@ export async function requireAdmin(req: express.Request, res: express.Response) 
   }
 }
 
-async function requireStaff(req: express.Request, res: express.Response) {
+export async function requireStaff(req: express.Request, res: express.Response) {
   try {
     const identity = await getAuthenticatedUser(req);
     if (!identity) { res.status(401).json({ error: 'Authentication required.' }); return null; }
@@ -352,15 +353,17 @@ adminRouter.get('/content', asyncHandler(async (req, res) => {
   const adminCtx = await requireStaff(req, res); if (!adminCtx) return;
   const requestedLimit = Number.parseInt(String(req.query.limit ?? '100'), 10);
   const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 250) : 100;
-  const { data, error } = await adminCtx.serviceSupabase
-    .from('content_posts')
-    .select('id,slug,title,summary,body,content_type,parent_news_id,status,tags,hero_image_url,published_at,updated_at,created_at')
-    .order('updated_at', { ascending: false })
-    .limit(limit);
+  const requestedOffset = Number.parseInt(String(req.query.offset ?? '0'), 10);
+  const offset = Number.isSafeInteger(requestedOffset) && requestedOffset >= 0 ? requestedOffset : 0;
+  const { data, error, relationshipsAvailable } = await listAdminContent(adminCtx.serviceSupabase, {
+    archived: req.query.archived === 'true', limit, offset
+  });
   if (error) {
     if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
     return sendOpaqueError(req, res, 500, 'Unable to load content posts.', 'Admin Content List', error);
   }
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Q-Content-Relationships', relationshipsAvailable ? 'available' : 'unavailable');
   return res.json(data ?? []);
 }));
 

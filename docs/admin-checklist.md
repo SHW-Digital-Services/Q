@@ -4,6 +4,10 @@ This checklist is for authorised Q operators. Record the date, operator, environ
 
 ## Daily or on each production change
 
+- [ ] Verify Staff/Admin can open Communications and normal users cannot call mail APIs. Confirm mail credentials exist only in server configuration and encrypted cookies.
+- [ ] Apply the incoming-webhooks migration before enabling Brevo receiving; verify bearer authentication, duplicate handling and Staff access denial.
+- [ ] Confirm user deletion remains Admin-only. Resolve subscriptions and existing retention/Storage constraints before deletion; deletion does not cancel PayPal payments.
+
 - [ ] Check the production health endpoint: `GET https://www.q-ai.online/api/health/supabase` returns `200` and reports database and authentication as up.
 - [ ] Review deployment status and error-rate alerts. Investigate unexplained 5xx responses, authentication failures, payment failures, or privacy-job failures.
 - [ ] Review recent `security_events` entries for unexpected administrator actions, repeated denials, AAL2 failures, or rate-limit spikes.

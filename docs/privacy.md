@@ -1,7 +1,7 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.5.1
+version: 1.5.2
 effective_date: 02/08/2026
 last_updated: 29/09/2026
 applies_to: https://q-ai.online
@@ -10,6 +10,16 @@ product: Q Intelligence
 ---
 
 # Privacy Policy
+
+## Staff communications and incoming service events
+
+Authorised Staff and Admins can connect their own Zoho Mail account. Zoho holds the mailbox data. Q temporarily relays email content, addresses, folders and attachments between the browser and Zoho to display mail and perform the operator's selected action. This portal does not save mailbox content, attachments, personalised templates or drafts to Supabase, browser local/session storage or Q application logs. An explicit draft-save action writes to Zoho. Generic starter templates are product copy; downloaded attachments are saved on the operator's device.
+
+Encrypted connection credentials are held in an HttpOnly cookie for up to eight hours, bound to the signed-in Q account. Q uses Supabase to authenticate the account and verify its Staff/Admin role. Disconnect clears the cookie and attempts Zoho token revocation; the operator can also revoke Q's access in Zoho. Zoho mailbox retention and account terms continue to apply.
+
+Separately, Admin-configured Brevo webhooks store event data in Supabase: event type, receipt/review times, email if supplied and provider payload. Known credential fields are redacted. Events support review and do not automatically change accounts, subscriptions or consent. Retained event data remains subject to the operator's retention procedure. Generated `@q-ai.online` integration identifiers are labels, not inboxes. Existing CRM support/contact records are distinct from the Zoho mailbox portal.
+
+Admin deletion removes a Q authentication account and linked data according to existing deletion rules. Retained operational records may remain; this action does not erase Zoho mail, local exports or provider payment history. Unresolved subscriptions must be addressed first. It does not replace the privacy-request process below.
 
 ## 1. Introduction
 
