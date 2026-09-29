@@ -6,6 +6,7 @@ import { buildAnalyticsExport } from '../analyticsEngine.js';
 import { getPayPalAccessToken, getPaypalBaseUrl } from './billing.js';
 import { createAdminSecurityMiddleware, requireExactObject } from '../security.js';
 import { listAdminContent } from '../adminContentList.js';
+import { syncPayPalProductStatus } from '../paypalProductStatus.js';
 
 export const adminRouter = express.Router();
 
@@ -71,7 +72,11 @@ async function paypalRequest(path: string, init: RequestInit = {}) {
   const token = await getPayPalAccessToken();
   const response = await fetch(`${getPaypalBaseUrl()}${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(15000) });
   const data = response.status === 204 ? null : await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.message || data?.details?.[0]?.description || `PayPal request failed (${response.status}).`);
+  if (!response.ok) {
+    const detail = data?.details?.[0];
+    const description = detail?.description || data?.message || `PayPal request failed (${response.status}).`;
+    throw new Error(`${description}${detail?.issue ? ` (${detail.issue})` : ''}${data?.debug_id ? ` Reference: ${data.debug_id}` : ''}`);
+  }
   return data;
 }
 
@@ -854,6 +859,16 @@ adminRouter.patch('/crm/products/:id', asyncHandler(async (req, res) => {
   if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No valid product changes supplied.' });
   const { data, error } = await adminCtx.serviceSupabase.from('crm_products').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(500).json({ error: error.message });
+  if (Object.keys(updates).length === 1 && typeof updates.active === 'boolean') {
+    try {
+      await syncPayPalProductStatus(data, paypalRequest);
+      const { data: updated, error: statusError } = await adminCtx.serviceSupabase.from('crm_products').update({ paypal_founder_plan_active: Boolean(data.paypal_founder_plan_id && data.active) }).eq('id', data.id).select().single();
+      if (statusError) return res.status(500).json({ error: 'Product status saved, but the offer status could not be updated. Refresh the product list.' });
+      return res.json(updated);
+    } catch (syncError: any) {
+      return res.status(502).json({ error: `Product is now ${data.active ? 'active' : 'inactive'} in Q, but PayPal plan status sync failed: ${syncError.message}. Refresh the product list to see the saved Q status.` });
+    }
+  }
   try { return res.json(await syncProductToPayPal(adminCtx.serviceSupabase, data)); }
   catch (syncError: any) { return res.status(502).json({ error: `Product updated in Q but PayPal sync failed: ${syncError.message}` }); }
 }));
