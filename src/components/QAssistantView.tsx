@@ -24,6 +24,7 @@ import { clearHostedAiCooldown, getHostedAiCooldownSeconds, isHostedAiCoolingDow
 import { hasCrisisIntent } from '../services/crisisDetection';
 import { getSupabaseClient } from '../services/supabase';
 import { CategoryScroller } from './CategoryScroller';
+import { AssistantMarkdown } from './AssistantMarkdown';
 
 interface QAssistantViewProps {
   onOpenReflection?: () => void;
@@ -405,7 +406,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
                     : 'q-ai-user-message bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 text-white font-medium shadow-lg shadow-fuchsia-500/15'
                 }`}
               >
-                <div className="whitespace-pre-wrap">{msg.text}</div>
+                {isAI ? <AssistantMarkdown text={msg.text} /> : <div className="whitespace-pre-wrap">{msg.text}</div>}
 
                 {isAI && msg.trustedSources && msg.trustedSources.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px] text-emerald-800">

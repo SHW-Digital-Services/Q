@@ -53,3 +53,7 @@ where id = (
 - Staff operational screen: Q admin panel
 - Customer relationship management: Zoho Bigin Contacts
 - Owner-only technical access: Supabase dashboard and service-role key
+
+## 29 September 2026: News, Help Videos and site preview
+
+Staff and Admin may use Preview Site after signing in again with the same CRM account. The live/waitlist switch and Help Video management remain Admin-only. Previewing does not change public launch status.

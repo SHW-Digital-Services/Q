@@ -1,9 +1,9 @@
 ---
 title: Processor Register
 description: Sub-processor and Processor Register for Q Intelligence
-version: 1.6.0
+version: 1.6.1
 effective_date: 02/08/2026
-last_updated: 28/09/2026
+last_updated: 29/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 jurisdiction: Worldwide
@@ -193,3 +193,9 @@ This Register should be read together with:
 ---
 
 © Scott Harvey-Whittle trading as **SHW Digital Services**. All rights reserved.
+
+## News and Help Video processing
+
+Supabase also stores public news and update relationships, Help Video titles and steps, video links, administrator publishing identifiers and uploaded video files in a private Storage bucket. Published uploads use time-limited playback links. Unpublished and archived files are retained until separately removed under the operator's retention process.
+
+Administrators may link to an external video host. Q opens these destinations on selection and does not automatically embed them. These hosts apply their own privacy settings; listing a link does not establish that host as a contracted Q processor.

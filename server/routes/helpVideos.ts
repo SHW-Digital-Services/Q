@@ -56,6 +56,7 @@ helpVideosAdminRouter.post('/', asyncHandler(async (req, res) => {
   if (!['draft', 'published'].includes(body.status)) return res.status(400).json({ error: 'Choose draft or published.' });
   if (Boolean(body.videoUrl) === Boolean(body.videoPath)) return res.status(400).json({ error: 'Upload a video or supply a hosted HTTPS link.' });
   if (body.videoUrl) {
+    if (typeof body.videoUrl !== 'string') return res.status(400).json({ error: 'Use a valid HTTPS video link.' });
     try { const url = new URL(body.videoUrl); if (url.protocol !== 'https:' || url.username || url.password || body.videoUrl.length > 2000) throw new Error(); }
     catch { return res.status(400).json({ error: 'Use a valid HTTPS video link without credentials.' }); }
   }

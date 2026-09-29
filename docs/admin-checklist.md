@@ -69,3 +69,11 @@ Evidence links or query IDs:
 Exceptions and follow-up owner:
 Due date:
 ```
+
+## 29 September 2026: News, Help Videos and site preview
+
+- Apply the news relationship and Help Videos migrations before deploying the updated API.
+- Link existing updates to their actual news item before publishing or editing them.
+- Confirm Staff can preview after reauthentication but cannot change the public live/waitlist switch or manage Help Videos.
+- Publish tutorials only with demonstration data, media rights, captions and useful written steps.
+- Review retained archived records and unused uploaded files under the retention process; archiving does not delete files.

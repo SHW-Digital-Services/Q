@@ -31,3 +31,7 @@ Implemented controls must be verified in the deployed environment, not inferred 
 | AI safety | `server/routes/ai.ts`, `ai_safety_events` migration | Confirm kill-switch drill, model allowlist, and redacted event records |
 | Supply chain | `.github/workflows/dependency-security.yml`, `dependabot.yml`, `scripts/generate-sbom.mjs` | Review CI runs, triage audit findings, retain SBOM artifact |
 | Recovery | `docs/threat-model.md`, retention/purge migrations | Complete isolated backup restore and record RTO/RPO evidence |
+
+## 29 September 2026: News, Help Videos and site preview
+
+Public publishing is separate from private account data. News updates require a news parent; the public API only attaches published children to published news. Unlinked legacy updates remain hidden until associated. Help Videos are Admin-managed; uploaded files use a private bucket, limited MIME types, a 100 MB size limit and signed upload/playback links. Drafts and archives do not issue new public playback links. Issued links persist for up to one hour; archived files and abandoned uploads require retention cleanup. Hosted links are opened explicitly rather than embedded. Markdown rendering rejects raw HTML and unsafe protocols, and AI-supplied remote images are not fetched automatically.

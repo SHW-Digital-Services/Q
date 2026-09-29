@@ -37,6 +37,7 @@ interface PasswordResetRequest {
 }
 
 interface ContentPostPayload {
+  parentNewsId?: unknown;
   title?: unknown;
   slug?: unknown;
   summary?: unknown;
@@ -353,7 +354,7 @@ adminRouter.get('/content', asyncHandler(async (req, res) => {
   const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 250) : 100;
   const { data, error } = await adminCtx.serviceSupabase
     .from('content_posts')
-    .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
+    .select('id,slug,title,summary,body,content_type,parent_news_id,status,tags,hero_image_url,published_at,updated_at,created_at')
     .order('updated_at', { ascending: false })
     .limit(limit);
   if (error) {
@@ -370,10 +371,11 @@ adminRouter.post('/content', asyncHandler(async (req, res) => {
   const { data, error } = await adminCtx.serviceSupabase
     .from('content_posts')
     .insert(parsed.payload)
-    .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
+    .select('id,slug,title,summary,body,content_type,parent_news_id,status,tags,hero_image_url,published_at,updated_at,created_at')
     .single();
   if (error) {
     if (error.code === '23505') return res.status(409).json({ error: 'A post with that slug already exists.' });
+    if (['23503', '23514'].includes(error.code)) return res.status(400).json({ error: 'Updates must be linked to an existing news item before publishing or editing.' });
     if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
     return sendOpaqueError(req, res, 500, 'Unable to create content post.', 'Admin Content Create', error);
   }
@@ -389,10 +391,11 @@ adminRouter.patch('/content/:id', asyncHandler(async (req, res) => {
     .from('content_posts')
     .update(parsed.payload)
     .eq('id', req.params.id)
-    .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
+    .select('id,slug,title,summary,body,content_type,parent_news_id,status,tags,hero_image_url,published_at,updated_at,created_at')
     .maybeSingle();
   if (error) {
     if (error.code === '23505') return res.status(409).json({ error: 'A post with that slug already exists.' });
+    if (['23503', '23514'].includes(error.code)) return res.status(400).json({ error: 'Updates must be linked to an existing news item before publishing or editing.' });
     if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
     return sendOpaqueError(req, res, 500, 'Unable to update content post.', 'Admin Content Update', error);
   }
@@ -407,9 +410,10 @@ adminRouter.post('/content/:id/publish', asyncHandler(async (req, res) => {
     .from('content_posts')
     .update({ status: 'published', published_at: new Date().toISOString(), updated_by: adminCtx.identity.user.id })
     .eq('id', req.params.id)
-    .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
+    .select('id,slug,title,summary,body,content_type,parent_news_id,status,tags,hero_image_url,published_at,updated_at,created_at')
     .maybeSingle();
   if (error) {
+    if (['23503', '23514'].includes(error.code)) return res.status(400).json({ error: 'Updates must be linked to an existing news item before publishing or editing.' });
     if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
     return sendOpaqueError(req, res, 500, 'Unable to publish content post.', 'Admin Content Publish', error);
   }
@@ -424,9 +428,10 @@ adminRouter.post('/content/:id/unpublish', asyncHandler(async (req, res) => {
     .from('content_posts')
     .update({ status: 'draft', published_at: null, updated_by: adminCtx.identity.user.id })
     .eq('id', req.params.id)
-    .select('id,slug,title,summary,body,content_type,status,tags,hero_image_url,published_at,updated_at,created_at')
+    .select('id,slug,title,summary,body,content_type,parent_news_id,status,tags,hero_image_url,published_at,updated_at,created_at')
     .maybeSingle();
   if (error) {
+    if (['23503', '23514'].includes(error.code)) return res.status(400).json({ error: 'Updates must be linked to an existing news item before publishing or editing.' });
     if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
     return sendOpaqueError(req, res, 500, 'Unable to unpublish content post.', 'Admin Content Unpublish', error);
   }

@@ -1,9 +1,9 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.5.0
+version: 1.5.1
 effective_date: 02/08/2026
-last_updated: 28/09/2026
+last_updated: 29/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -633,3 +633,9 @@ Credits are not cash, cannot be transferred, expire 12 months after issue, and c
 The first 100 eligible non-staff customers who begin a paid subscription through the promotional checkout receive 50% off their first three monthly billing cycles or their first annual billing cycle. Staff and administrator accounts are excluded because their premium access is provided separately. Reservations that are not completed may be released. This introductory reduction does not stack with referral credit on the same payment; available referral credit is retained for a later eligible payment.
 
 An administrator may offer a customer a separate percentage reduction for a stated number of monthly or annual billing cycles. The price returns to the product's standard recurring price after those cycles. The discounted schedule is shown for customer approval in PayPal before the subscription begins. Unless expressly stated otherwise, promotional reductions cannot be combined.
+
+## Public news and Help Videos
+
+News & Updates publishes news items with related updates beneath them. Updates are not standalone posts. A related update is visible only while both it and its news item are published; removing a news item from public view also hides its updates.
+
+Help Videos provide site-use tutorials with a title and written steps. Only administrators can manage these videos. Videos may be uploaded to Q or accessed through a hosted HTTPS link. External video websites apply their own terms and privacy settings. Tutorials describe use of the site and do not change subscription terms or constitute professional advice.

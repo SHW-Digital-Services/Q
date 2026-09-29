@@ -1,9 +1,9 @@
 ---
 title: AI Disclaimer
 description: AI Disclaimer for Q Intelligence
-version: 1.3.0
+version: 1.3.1
 effective_date: 02/08/2026
-last_updated: 28/09/2026
+last_updated: 29/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -232,3 +232,7 @@ This AI Disclaimer should be read together with:
 ---
 
 © Scott Harvey-Whittle trading as **SHW Digital Services**. All rights reserved.
+
+## Formatted replies and site-use tutorials
+
+AI replies display Markdown headings, emphasis, lists, code and tables. Formatting does not verify the accuracy or authority of a reply. Links in AI output should be assessed before opening. Help Videos and their written steps explain site features; they do not provide medical, legal, emergency or other professional advice. News updates are shown with the news item they concern.

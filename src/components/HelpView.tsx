@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import type { ActiveTab } from './Navbar';
 import { useLanguage } from '../contexts/LanguageContext';
+import { HelpVideos } from './HelpVideos';
 
 interface HelpArticle {
   id: string;
@@ -142,6 +143,8 @@ export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubs
           <input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('searchHelp')} className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
         </label>
       </section>
+
+      <HelpVideos query={query} />
 
       <div className="scrollbar-none flex gap-2 overflow-x-auto pb-1">
         {categories.map(item => <button key={item} onClick={() => setCategory(item)} className={`min-h-10 shrink-0 rounded-full px-3.5 text-xs font-bold transition active:scale-95 ${category === item ? 'bg-violet-600 text-white shadow-md shadow-violet-500/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-violet-200 hover:text-violet-700'}`}>{item === 'All' ? t('all') : item}</button>)}

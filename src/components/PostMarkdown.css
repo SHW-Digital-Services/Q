@@ -23,3 +23,7 @@
 .post-markdown hr { border-top: 1px solid #e2e8f0; margin-block: 1.5rem; }
 .post-markdown .contains-task-list { list-style: none; }
 .post-markdown input[type='checkbox'] { margin-right: .5rem; }
+.assistant-markdown { color: inherit; font-size: inherit; line-height: inherit; }
+.assistant-markdown > :first-child { margin-top: 0; }
+.assistant-markdown :is(h1, h2, h3) { font-size: 1.15em; }
+.assistant-markdown pre { max-width: 100%; }

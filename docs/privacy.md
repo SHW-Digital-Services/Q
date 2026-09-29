@@ -1,9 +1,9 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.5.0
+version: 1.5.1
 effective_date: 02/08/2026
-last_updated: 28/09/2026
+last_updated: 29/09/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -1036,3 +1036,11 @@ Guided programme progress and optional reflections are saved in account-scoped b
 Cross-device continuity is optional on each device. You choose whether to upload journal entries, mood check-ins, saved guides, chat history, programme progress/reflections, and language/appearance preferences. Selected data is stored in your Q account in Supabase and retrieved through authenticated, account-authorised Q endpoints. This feature is not end-to-end encrypted. Browser data, recovery copies and exported files remain plaintext. Passwords and device-lock settings are not included.
 
 Pausing or deselecting continuity does not delete an existing cloud copy. Profile provides cloud export and deletion, including after premium access ends. Pause continuity on other devices before deleting a cloud copy to prevent re-upload. Account deletion also deletes the continuity record. A device retains a local recovery snapshot when cloud data replaces selected local data; it can be exported in Profile and is removed by the local-data clearing control.
+
+## News publishing and Help Videos
+
+Published news, linked updates, Help Video titles and written steps are publicly readable through Q endpoints without signing in. Do not include private account records, identifiable customer information or confidential support messages in published tutorials or news.
+
+Q stores publishing records, news relationships, tutorial steps, video links and administrator account identifiers in Supabase. Uploaded Help Video files are stored in a private Supabase Storage bucket; Q issues time-limited playback links for published videos. Removing a video from publication stops new public playback links, but an already issued link can remain usable until it expires (up to one hour). Archiving does not automatically delete the underlying file or publishing record.
+
+Q does not automatically load an external video player for hosted links. Opening a hosted video takes you to another website; that host may receive network and browser information and applies its own privacy and cookie settings. The provider is identified by the destination link. Site-use video requests do not send private journal or AI conversation content.

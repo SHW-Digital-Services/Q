@@ -1,9 +1,9 @@
 ---
 title: Cookie Policy
 description: Cookie Policy for Q Intelligence
-version: 1.3.0
+version: 1.3.1
 effective_date: 02/08/2026
-last_updated: 28/09/2026
+last_updated: 29/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -246,3 +246,9 @@ Support: office@q-ai.online
 ---
 
 © Scott Harvey-Whittle trading as **SHW Digital Services**. All rights reserved.
+
+## News and tutorial videos
+
+The news relationships and Help Video step fields do not add a separate tracking cookie. Uploaded tutorial videos use the browser media player with preload disabled and are delivered from Supabase when requested. Hosted video links open another website when selected; Q does not automatically embed that external player. That website may use its own cookies or storage. Q's existing analytics preferences continue to apply to page visits.
+
+The CRM retains an unfinished news/update draft in browser local storage, including the related news item ID. It is cleared after successfully saving the draft. Help Video form fields are held in the current page and are not automatically saved to browser storage.

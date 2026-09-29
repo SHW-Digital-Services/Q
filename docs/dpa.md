@@ -1,9 +1,9 @@
 ---
 title: Subscription Terms
 description: Subscription Terms for Q Intelligence
-version: 1.0.0
+version: 1.0.1
 effective_date: 02/08/2026
-last_updated: 02/08/2026
+last_updated: 29/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -227,3 +227,7 @@ These Subscription Terms should be read together with:
 ---
 
 © Scott Harvey-Whittle trading as **SHW Digital Services**. All rights reserved.
+
+## Publishing records and tutorial media
+
+News relationships, Help Video titles and steps, video URLs, uploaded files and administrator publishing identifiers are stored through Supabase as described in the Privacy Policy and Processor Register. Use demonstration data and avoid customer personal information in public material. Archiving a record does not itself delete its uploaded file. A hosted video link sends the viewer to an external website only when selected. This feature notice does not create or replace a separately agreed data processing agreement.

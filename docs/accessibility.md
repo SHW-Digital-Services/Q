@@ -1,9 +1,9 @@
 ---
 title: Subscription Terms
 description: Subscription Terms for Q Intelligence
-version: 1.0.0
+version: 1.0.1
 effective_date: 02/08/2026
-last_updated: 02/08/2026
+last_updated: 29/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -227,3 +227,9 @@ These Subscription Terms should be read together with:
 ---
 
 © Scott Harvey-Whittle trading as **SHW Digital Services**. All rights reserved.
+
+## Accessibility of news, tutorials and AI replies
+
+News updates are grouped beneath a news heading. Help Videos have descriptive titles, native playback controls for uploads, and a numbered list of written steps. Hosted video links identify that they open another website. Administrators should add accurate captions in the video file or through the external video host and make the written steps a useful text alternative; Q does not automatically generate captions or transcripts. Accessibility of external hosts depends on that provider.
+
+AI replies use semantic headings, lists, tables and code formatting instead of exposing Markdown syntax. These changes do not represent an accessibility certification. Report an inaccessible tutorial through the Help centre contact form.

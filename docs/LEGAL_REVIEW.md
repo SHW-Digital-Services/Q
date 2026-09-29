@@ -42,3 +42,9 @@ Added the Brevo website tracker using the current JavaScript SDK loader. The tra
 The tracker client key must be copied from the Brevo account's Automation > Settings and configured in the production build environment before tracking can activate. The account's data settings, tracker retention, contracting entity and exact cookies were not inspected. Verify the live configuration and applicable consent requirements before relying on analytics data.
 
 Reference: https://developers.brevo.com/docs/getting-started-with-js-implementation
+
+## 29 September 2026: News, Help Videos and site preview
+
+Implementation disclosures updated across legal pages for grouped news updates, admin-managed Help Videos, Supabase media storage, externally hosted links, written steps, formatted AI replies and Staff/Admin preview reauthentication. No additional provider contract or legal approval is asserted.
+
+Existing accessibility.md and dpa.md contain subscription-terms material rather than complete accessibility/DPA documents. Feature-specific sections have been added, but those pre-existing document-content issues still require a separate substantive review. No fixed retention period or automatic file deletion is promised. Uploaded media captions are an administrator responsibility; Q does not generate them. Verify actual videos, provider settings and retention operations before relying on those disclosures.

@@ -1,9 +1,9 @@
 ---
 title: Security Policy
 description: Security Policy for Q Intelligence
-version: 1.2.0
+version: 1.2.1
 effective_date: 26/08/2026
-last_updated: 26/08/2026
+last_updated: 29/09/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -324,3 +324,13 @@ Hosted AI ignores client-supplied trusted-knowledge text. It retrieves vetted co
 Operational owners should use the [Q administrator periodic checklist](admin-checklist.md) for recurring access reviews, MFA checks, retention verification, AI-safety checks, dependency review, restore drills, and incident response.
 
 © Scott Harvey-Whittle trading as SHW Digital Services. All rights reserved.
+
+## Publishing and preview permissions
+
+Help Video creation, upload authorisation, publishing, unpublishing and archiving require the partner_admin role, checked by the server. Storage uploads use administrator-issued signed upload tokens into a private bucket, accept MP4, WebM and Ogg files, and have a 100 MB limit. Public video reads include only published records and issue playback links valid for one hour. Previously issued links may continue to work until expiry.
+
+Active news updates require a foreign-key relationship to a news item. Direct public content-table reads expose published news only; the Q API attaches published updates to a published news parent. Existing unlinked updates remain available for administrators to associate with news before publication or editing.
+
+Staff and administrators may preview the site after signing in again with the same CRM account. Preview access is verified against the current server-side role and lasts for the current page session. The public live/waitlist switch remains administrator-only.
+
+AI responses render Markdown without accepting raw HTML. Unsafe link protocols are filtered by the renderer; assistant-supplied remote images are shown as text rather than automatically downloaded.

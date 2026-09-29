@@ -1,9 +1,9 @@
 ---
 title: Acceptable Use Policy
 description: Acceptable Use Policy for Q Intelligence
-version: 1.0.0
+version: 1.0.1
 effective_date: 02/08/2026
-last_updated: 02/08/2026
+last_updated: 29/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -191,3 +191,7 @@ This Policy should be read together with:
 ---
 
 © Scott Harvey-Whittle trading as **SHW Digital Services**. All rights reserved.
+
+## Public news and tutorial material
+
+Administrators and approved news publishers must have the rights and permissions needed for any published text, linked material or video. Use demonstration data in tutorials and exclude passwords, recovery links, payment details, private journals and identifiable customer or support information. Each update must relate to a news item. Help Video management is restricted to administrators; do not attempt to bypass that restriction.

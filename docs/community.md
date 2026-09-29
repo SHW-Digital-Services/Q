@@ -1,9 +1,9 @@
 ---
 title: Community Guidelines
 description: Community Guidelines for Q Intelligence
-version: 1.0.0
+version: 1.0.1
 effective_date: 02/08/2026
-last_updated: 02/08/2026
+last_updated: 29/09/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 jurisdiction: Worldwide
@@ -192,3 +192,7 @@ These Guidelines should be read together with:
 ---
 
 © Scott Harvey-Whittle trading as **SHW Digital Services**. All rights reserved.
+
+## News and Help Videos
+
+News updates appear with their related news item. Help Videos contain site-use demonstrations and written steps managed by administrators. Use demonstration accounts and respect the privacy and rights of anyone appearing in a tutorial. Do not publish other people's private account content. Hosted video destinations apply their own community and privacy rules.
