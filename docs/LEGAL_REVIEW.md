@@ -35,3 +35,10 @@ References checked for this update:
 - Brevo email tracking guidance: https://help.brevo.com/hc/en-us/articles/37114679474706-About-email-tracking-pixels-and-the-CNIL-recommendation-in-Brevo
 - ICO electronic-mail marketing rules: https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-direct-marketing-using-electronic-mail/how-do-we-comply-with-the-pecr-electronic-mail-marketing-rules/
 - ICO data protection and email tracking guidance: https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-direct-marketing-using-electronic-mail/what-else-do-we-need-to-consider/
+## 28 September 2026: Opt-in Brevo website tracker
+
+Added the Brevo website tracker using the current JavaScript SDK loader. The tracker is configured with the public `VITE_BREVO_CLIENT_KEY` build-time setting and remains unloaded unless the visitor allows analytics. Added a persistent choice and footer control to reopen cookie preferences; page events contain only the path and omit query strings. Updated the Privacy Policy, Cookie Policy and Processor Register to describe this optional processing. This records an implementation and documentation change, not legal approval or verification of the Brevo account configuration.
+
+The tracker client key must be copied from the Brevo account's Automation > Settings and configured in the production build environment before tracking can activate. The account's data settings, tracker retention, contracting entity and exact cookies were not inspected. Verify the live configuration and applicable consent requirements before relying on analytics data.
+
+Reference: https://developers.brevo.com/docs/getting-started-with-js-implementation

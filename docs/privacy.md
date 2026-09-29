@@ -297,6 +297,10 @@ Brevo support chat is separate from Q's AI assistant. Q's local AI processing an
 
 Using support chat or supplying an email address for a reply does not subscribe you to marketing. You can also contact support@q-ai.online. The Processor Register and Cookie Policy describe the provider and browser-storage arrangements.
 
+### Optional Brevo website analytics
+
+If you allow analytics through Q's cookie prompt, Q loads the Brevo website tracker to record page visits and associated browser activity for understanding site use. Brevo may use a browser identifier or cookies and process technical information such as your IP address, browser details, visit timing and the page path. Q does not send page query strings or private journal, AI conversation, mood, or profile content as tracker events. The tracker remains unloaded when analytics is rejected. You can change your choice at any time using **Cookie preferences** in the site footer. See the Cookie Policy for details.
+
 ---
 
 ## 5.10 Cookies and Similar Technologies
@@ -986,6 +990,7 @@ This Privacy Policy should be read together with the Terms of Service,Cookie Pol
 Version   Date         Summary
 
 1.5.0     28/09/2026   Added Groq hosted AI provider, retention, data-location and transfer disclosures.
+1.5.0     28/09/2026   Added opt-in Brevo website analytics tracker disclosures and cookie preference controls.
 1.4.0     28/09/2026   Added Brevo Conversations support chat, visitor data, storage, retention and privacy-request disclosures.
 1.3.0     16/09/2026   Added Brevo marketing/community email, consent, tracking, suppression and rights disclosures.
 1.2.0     28/08/2026   Added hosted AI processing and current processor disclosures.

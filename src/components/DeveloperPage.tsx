@@ -4,8 +4,8 @@ import { QLogo } from './QLogo';
 import { LegalFooter } from './LegalFooter';
 
 const endpoints = [
-  { method: 'GET', path: '/api/content', auth: 'Public', description: 'List published news and update posts. Supports limit, type and q query parameters.' },
-  { method: 'GET', path: '/api/content/:slug', auth: 'Public', description: 'Read one published post by URL-safe slug.' },
+  { method: 'GET', path: '/api/content', auth: 'Public', description: 'List published news with nested updates. Supports limit and q (news search); type=update returns news with updates within the selected news limit.' },
+  { method: 'GET', path: '/api/content/:slug', auth: 'Public', description: 'Read one published news item with nested updates. Update slugs are not standalone pages.' },
   { method: 'POST', path: '/api/content/publish', auth: 'CRM token', description: 'Create a draft or published content post from an authorised external publisher.' },
   { method: 'GET', path: '/api/life-guides', auth: 'Public', description: 'List CRM-published Life Guides for the app catalogue.' },
   { method: 'GET', path: '/api/peer-knowledge', auth: 'Public', description: 'List approved Peer Knowledge entries.' },
@@ -18,6 +18,7 @@ const requestBody = `{
   "summary": "Short summary shown in News & Updates.",
   "body": "Full post body. Use paragraphs separated by blank lines.",
   "contentType": "update",
+  "parentNewsId": "00000000-0000-0000-0000-000000000001",
   "tags": ["launch", "partner"],
   "heroImageUrl": "/images/news/launch.png",
   "publish": true
@@ -123,6 +124,7 @@ export const DeveloperPage: React.FC = () => (
             <h2 className="text-xl font-black">Publish Request</h2>
           </div>
           <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-900 p-4 text-xs leading-6 text-slate-100"><code>{requestBody}</code></pre>
+          <p className="mt-4 text-sm leading-6 text-slate-300">Create a news item first using contentType: news (the default). For an update, set contentType: update and replace parentNewsId with that news item's actual ID. Updates appear beneath the news item only when both are published. Unpublishing or archiving the news item hides its updates from public reading.</p>
         </article>
       </section>
 

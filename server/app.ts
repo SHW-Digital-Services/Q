@@ -14,6 +14,7 @@ import { premiumRouter } from './routes/premium.js';
 import { contentRouter } from './routes/content.js';
 import { peerKnowledgeRouter } from './routes/peerKnowledge.js';
 import { lifeGuidesRouter } from './routes/lifeGuides.js';
+import { helpVideosRouter, helpVideosAdminRouter } from './routes/helpVideos.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -184,12 +185,14 @@ app.get('/api/health/supabase', async (_req, res) => {
 app.use(['/api/billing'], billingRouter);
 app.use(['/api/q-ai', '/api/ai'], aiRouter);
 app.use(['/api/v1/admin', '/api/admin'], adminRouter);
+app.use(['/api/v1/admin/help-videos', '/api/admin/help-videos'], helpVideosAdminRouter);
 app.use('/api/referrals', referralsRouter);
 app.use('/api/privacy', privacyRouter);
 app.use('/api/premium', premiumRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/peer-knowledge', peerKnowledgeRouter);
 app.use('/api/life-guides', lifeGuidesRouter);
+app.use('/api/help-videos', helpVideosRouter);
 app.use('/legal', legalRouter);
 
 app.use(['/api', '/api/*', '/legal', '/legal/*'], (req, res) => {

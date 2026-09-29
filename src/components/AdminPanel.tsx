@@ -3,6 +3,7 @@ import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, C
 import { getSupabaseClient } from '../services/supabase';
 import { ContentPost } from '../types';
 import { PostMarkdown } from './PostMarkdown';
+import { HelpVideoAdmin } from './HelpVideoAdmin';
 
 interface AdminPanelProps {
   enabled: boolean;
@@ -53,7 +54,8 @@ const emptyContentForm = {
   slug: '',
   summary: '',
   body: '',
-  contentType: 'update',
+  contentType: 'news',
+  parentNewsId: '',
   tags: '',
   heroImageUrl: ''
 };
@@ -77,6 +79,7 @@ function loadContentDraft(): ContentFormState {
       summary: typeof parsed.summary === 'string' ? parsed.summary : '',
       body: typeof parsed.body === 'string' ? parsed.body : '',
       contentType: parsed.contentType === 'news' ? 'news' : 'update',
+      parentNewsId: typeof parsed.parentNewsId === 'string' ? parsed.parentNewsId : '',
       tags: typeof parsed.tags === 'string' ? parsed.tags : '',
       heroImageUrl: typeof parsed.heroImageUrl === 'string' ? parsed.heroImageUrl : ''
     };
@@ -555,6 +558,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           summary: contentForm.summary,
           body: contentForm.body,
           contentType: contentForm.contentType,
+          parentNewsId: contentForm.contentType === 'update' ? contentForm.parentNewsId : null,
           tags: contentForm.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
           heroImageUrl: contentForm.heroImageUrl.trim() || undefined
         })
@@ -569,6 +573,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     } finally {
       setContentSaving(false);
     }
+  };
+
+  const linkContentUpdate = async (post: ContentPost, parentNewsId: string) => {
+    try {
+      const response = await fetch(`/api/v1/admin/content/${post.id}`, {
+        method: 'PATCH', headers: await getAuthHeaders(), body: JSON.stringify({ parentNewsId })
+      });
+      const updated = await parseJsonResponse(response);
+      setContentPosts((current) => current.map((item) => item.id === updated.id ? updated : item));
+      setContentMessage('Related news item saved.');
+    } catch (error: any) { setContentMessage(error.message || 'Unable to link update.'); }
   };
 
   const contentAction = async (post: ContentPost, action: 'publish' | 'unpublish' | 'archive') => {
@@ -730,8 +745,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           </div>
         </div>
 
-        {staffRole === 'partner_admin' && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
-          <div className="flex items-center justify-between gap-4">
+        {staffRole && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+          {staffRole === 'partner_admin' && <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-white">Live site</p>
               <p className="mt-1 text-sm text-slate-400">When on, the public can access the site. When off, visitors can only see the waitlist.</p>
@@ -746,20 +761,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             >
               <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${enabled ? 'translate-x-7' : 'translate-x-1'}`} />
             </button>
-          </div>
+          </div>}
           <button type="button" disabled={previewLoading} onClick={async () => {
             setPreviewLoading(true);
             try { await onPreview(); }
             catch (error: any) { setCrmMessage(error.message || 'Unable to preview the site.'); }
             finally { setPreviewLoading(false); }
           }} className="mt-4 rounded-xl bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-500 disabled:opacity-50">{previewLoading ? 'Opening preview...' : 'Preview Site'}</button>
-          <p className="mt-2 text-xs text-slate-400">Preview in this tab without changing public access. Refreshing or signing out ends the preview.</p>
+          <p className="mt-2 text-xs text-slate-400">Sign in again with your CRM account to preview in this tab. Refreshing or signing out ends the preview.</p>
         </div>}
 
         {staffRole === 'partner_admin' && <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
           Current status: {enabled ? 'Live site enabled' : 'Waitlist enabled'}
         </div>}
 
+        {staffRole === 'partner_admin' && <HelpVideoAdmin />}
         {staffRole === 'partner_admin' && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -771,7 +787,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           <form onSubmit={saveContentPost} className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 md:grid-cols-6">
             <input required maxLength={180} value={contentForm.title} onChange={(event) => setContentForm({ ...contentForm, title: event.target.value })} placeholder="Post title" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-3" />
             <input maxLength={120} value={contentForm.slug} onChange={(event) => setContentForm({ ...contentForm, slug: event.target.value })} placeholder="Slug, optional" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2" />
-            <select value={contentForm.contentType} onChange={(event) => setContentForm({ ...contentForm, contentType: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="update">Update</option><option value="news">News</option></select>
+            <select aria-label="Post type" value={contentForm.contentType} onChange={(event) => setContentForm({ ...contentForm, contentType: event.target.value, parentNewsId: '' })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="news">News</option><option value="update">Update</option></select>
+            {contentForm.contentType === 'update' && <label className="text-xs text-slate-200 md:col-span-6">Related news item
+              <select required value={contentForm.parentNewsId} onChange={(event) => setContentForm({ ...contentForm, parentNewsId: event.target.value })} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-white">
+                <option value="">Choose a news item</option>
+                {contentPosts.filter((post) => post.content_type === 'news' && post.status !== 'archived').map((post) => <option key={post.id} value={post.id}>{post.title}</option>)}
+              </select>
+              <span className="mt-2 block text-slate-400">Updates appear beneath their news item when both are published.</span>
+            </label>}
             <textarea required maxLength={500} value={contentForm.summary} onChange={(event) => setContentForm({ ...contentForm, summary: event.target.value })} placeholder="Short summary" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white md:col-span-3" />
             <div className="min-w-0 md:col-span-3">
               <label htmlFor="post-body" className="mb-2 block text-xs font-bold text-slate-200">Post body (Markdown)</label>
@@ -832,6 +855,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                     <h3 className="mt-2 truncate text-sm font-bold text-white">{post.title}</h3>
                     <p className="mt-1 line-clamp-2 text-xs text-slate-400">{post.summary}</p>
                     <p className="mt-2 text-[10px] text-slate-500">/{post.slug}</p>
+                    {post.content_type === 'update' && <label className="mt-3 block text-xs text-slate-200">Related news
+                      <select aria-label={`Related news for ${post.title}`} value={post.parent_news_id ?? ''} onChange={(event) => void linkContentUpdate(post, event.target.value)} className="mt-1 w-full rounded-lg bg-slate-950 p-2 text-white">
+                        <option value="" disabled>Choose a news item before publishing</option>
+                        {contentPosts.filter((item) => item.content_type === 'news' && item.status !== 'archived').map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+                      </select>
+                    </label>}
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">

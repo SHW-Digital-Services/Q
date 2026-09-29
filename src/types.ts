@@ -124,6 +124,8 @@ export interface ContentPost {
   summary: string;
   body: string;
   content_type: 'news' | 'update';
+  parent_news_id?: string | null;
+  updates?: ContentPost[];
   status?: 'draft' | 'published' | 'archived';
   tags: string[];
   hero_image_url: string | null;

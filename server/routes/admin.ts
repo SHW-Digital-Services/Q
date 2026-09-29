@@ -153,7 +153,7 @@ function textField(value: unknown, maximumLength: number, required = false) {
 }
 
 function contentPostPayload(body: ContentPostPayload, actorId: string, partial = false) {
-  const allowed = ['title', 'slug', 'summary', 'body', 'contentType', 'status', 'tags', 'heroImageUrl'] as const;
+  const allowed = ['title', 'slug', 'summary', 'body', 'contentType', 'parentNewsId', 'status', 'tags', 'heroImageUrl'] as const;
   if (!requireExactObject(body, allowed)) return { error: 'Unexpected request fields.' };
 
   const payload: Record<string, unknown> = { updated_by: actorId };
@@ -181,8 +181,15 @@ function contentPostPayload(body: ContentPostPayload, actorId: string, partial =
     if (!['news', 'update'].includes(String(body.contentType))) return { error: 'Content type must be news or update.' };
     payload.content_type = body.contentType;
   } else if (!partial) {
-    payload.content_type = 'update';
+    payload.content_type = 'news';
   }
+
+  if (body.parentNewsId !== undefined) {
+    if (body.parentNewsId !== null && (typeof body.parentNewsId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.parentNewsId))) return { error: 'Related news must be a valid news item ID.' };
+    payload.parent_news_id = body.parentNewsId;
+  }
+  if (payload.content_type === 'news') payload.parent_news_id = null;
+  if (!partial && payload.content_type === 'update' && !payload.parent_news_id) return { error: 'Choose a related news item for this update.' };
 
   if (body.status !== undefined) {
     if (!['draft', 'published', 'archived'].includes(String(body.status))) return { error: 'Status must be draft, published, or archived.' };
@@ -266,7 +273,7 @@ async function issueTemporaryPassword(serviceSupabase: any, user: any, actorId: 
   return { user: data?.user ?? user, temporaryPassword };
 }
 
-async function requireAdmin(req: express.Request, res: express.Response) {
+export async function requireAdmin(req: express.Request, res: express.Response) {
   try {
     const identity = await getAuthenticatedUser(req);
     if (!identity) {

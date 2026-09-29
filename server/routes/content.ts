@@ -5,7 +5,16 @@ import { getServiceSupabase } from './admin.js';
 
 export const contentRouter = express.Router();
 
-const PUBLIC_COLUMNS = 'id,slug,title,summary,body,content_type,tags,hero_image_url,published_at,updated_at';
+const PUBLIC_COLUMNS = 'id,slug,title,summary,body,content_type,parent_news_id,tags,hero_image_url,published_at,updated_at';
+
+async function attachUpdates(serviceSupabase: any, posts: any[]) {
+  if (!posts.length) return posts;
+  const { data, error } = await serviceSupabase.from('content_posts').select(PUBLIC_COLUMNS)
+    .eq('content_type', 'update').eq('status', 'published').lte('published_at', new Date().toISOString())
+    .in('parent_news_id', posts.map((post) => post.id)).order('published_at', { ascending: false });
+  if (error) throw error;
+  return posts.map((post) => ({ ...post, updates: (data ?? []).filter((update: any) => update.parent_news_id === post.id) }));
+}
 
 function toInteger(value: unknown, fallback: number, minimum: number, maximum: number) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -54,7 +63,7 @@ function contentField(value: unknown, maximumLength: number, required = false): 
 
 function buildPublisherPost(body: any, clientId: string) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return { error: 'Request body must be a JSON object.' };
-  const allowed = ['title', 'slug', 'summary', 'body', 'contentType', 'tags', 'heroImageUrl', 'publish'];
+  const allowed = ['title', 'slug', 'summary', 'body', 'contentType', 'parentNewsId', 'tags', 'heroImageUrl', 'publish'];
   if (Object.keys(body).some((key) => !allowed.includes(key))) return { error: 'Unexpected request fields.' };
 
   const title = contentField(body.title, 180, true);
@@ -65,8 +74,10 @@ function buildPublisherPost(body: any, clientId: string) {
   if (postBody === null || postBody.length < 20) return { error: 'Body must be between 20 and 20,000 characters.' };
   const slug = body.slug === undefined ? cleanSlug(title) : cleanSlug(String(body.slug));
   if (slug.length < 3) return { error: 'Slug must contain at least 3 URL-safe characters.' };
-  const contentType = body.contentType === undefined ? 'update' : String(body.contentType);
+  const contentType = body.contentType === undefined ? 'news' : String(body.contentType);
   if (!['news', 'update'].includes(contentType)) return { error: 'Content type must be news or update.' };
+  if (contentType === 'update' && (typeof body.parentNewsId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.parentNewsId))) return { error: 'Updates require a valid related news item ID in parentNewsId.' };
+  if (contentType === 'news' && body.parentNewsId != null) return { error: 'News items cannot have a parent news item.' };
   const heroImageUrl = contentField(body.heroImageUrl, 1000, false);
   if (heroImageUrl === null) return { error: 'Hero image URL is too long.' };
   if (heroImageUrl && !/^https?:\/\/|^\//i.test(heroImageUrl)) return { error: 'Hero image URL must be HTTPS or site-relative.' };
@@ -85,6 +96,7 @@ function buildPublisherPost(body: any, clientId: string) {
       summary,
       body: postBody,
       content_type: contentType,
+      parent_news_id: contentType === 'update' ? body.parentNewsId : null,
       tags,
       hero_image_url: heroImageUrl || null,
       status,
@@ -105,12 +117,12 @@ contentRouter.get('/', asyncHandler(async (req, res) => {
   let query = serviceSupabase
     .from('content_posts')
     .select(PUBLIC_COLUMNS)
+    .eq('content_type', 'news')
     .eq('status', 'published')
     .lte('published_at', new Date().toISOString())
     .order('published_at', { ascending: false })
     .limit(limit);
 
-  if (type && ['news', 'update'].includes(type)) query = query.eq('content_type', type);
   const searchQuery = search.replace(/[^\p{L}\p{N}\s-]/gu, '').trim().split(/\s+/).filter(Boolean).join(' & ');
   if (searchQuery) query = query.textSearch('search_text', searchQuery);
 
@@ -120,7 +132,8 @@ contentRouter.get('/', asyncHandler(async (req, res) => {
     return sendOpaqueError(req, res, 500, 'Unable to load published content.', 'Content List', error);
   }
   res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
-  return res.json({ posts: data ?? [] });
+  const posts = await attachUpdates(serviceSupabase, data ?? []);
+  return res.json({ posts: type === 'update' ? posts.filter((post: any) => post.updates.length > 0) : posts });
 }));
 
 contentRouter.post('/publish', asyncHandler(async (req, res) => {
@@ -155,6 +168,7 @@ contentRouter.post('/publish', asyncHandler(async (req, res) => {
 
   if (error) {
     if (error.code === '23505') return res.status(409).json({ error: 'A post with that slug already exists.' });
+    if (['23503', '23514'].includes(error.code)) return res.status(400).json({ error: 'Updates must be linked to an existing news item.' });
     if (isMissingContentSchema(error)) return sendContentSchemaMissing(res);
     return sendOpaqueError(req, res, 500, 'Unable to publish content.', 'Content API Publish', error);
   }
@@ -174,6 +188,7 @@ contentRouter.get('/:slug', asyncHandler(async (req, res) => {
     .from('content_posts')
     .select(PUBLIC_COLUMNS)
     .eq('slug', slug)
+    .eq('content_type', 'news')
     .eq('status', 'published')
     .lte('published_at', new Date().toISOString())
     .maybeSingle();
@@ -184,5 +199,5 @@ contentRouter.get('/:slug', asyncHandler(async (req, res) => {
   }
   if (!data) return res.status(404).json({ error: 'Content not found.' });
   res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
-  return res.json({ post: data });
+  return res.json({ post: (await attachUpdates(serviceSupabase, [data]))[0] });
 }));

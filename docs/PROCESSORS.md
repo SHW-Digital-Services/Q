@@ -1,7 +1,7 @@
 ---
 title: Processor Register
 description: Sub-processor and Processor Register for Q Intelligence
-version: 1.5.0
+version: 1.6.0
 effective_date: 02/08/2026
 last_updated: 28/09/2026
 website: https://q-ai.online
@@ -29,6 +29,7 @@ This register supports transparency under applicable data protection legislation
 | PayPal | Subscription billing and payment processing | Billing information, payment identifiers, transaction records |
 | Brevo (formerly Sendinblue) | Optional marketing emails, newsletters and community updates; mailing-list and unsubscribe management | Email address, name if supplied, communication choices, consent/source records, email content, delivery/bounce/complaint records, suppression status; open/click and associated technical data where tracking is enabled and lawfully permitted |
 | Brevo Conversations | Website support chat and conversation continuity | Submitted messages, attachments and contact details; conversation history; IP address, visitor identifier and browser information; page/referrer, visit timing and approximate location depending on enabled features |
+| Brevo website tracker | Optional analytics, loaded only after the visitor allows analytics | Page paths, browser identifier/cookies, IP address and technical visit information |
 
 WebLLM performs inference on the user's device and is not used by Q as a processor of prompts on Q's behalf. A user's browser contacts model-distribution infrastructure to download the WebLLM runtime and model assets; those services may process ordinary network metadata under their own policies.
 

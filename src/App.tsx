@@ -21,6 +21,7 @@ import { PremiumProvider } from './contexts/PremiumContext';
 import { ContinuityProvider, ContinuitySettings } from './contexts/ContinuityContext';
 import { setStorageUser } from './services/storage';
 import { LegalFooter } from './components/LegalFooter';
+import { BrevoTrackerConsent } from './components/BrevoTrackerConsent';
 
 const QAssistantView = lazy(() => import('./components/QAssistantView').then(({ QAssistantView }) => ({ default: QAssistantView })));
 const LifeGuidesView = lazy(() => import('./components/LifeGuidesView').then(({ LifeGuidesView }) => ({ default: LifeGuidesView })));
@@ -90,6 +91,8 @@ export default function App() {
   const [isProgrammeCourseOpen, setIsProgrammeCourseOpen] = useState(false);
   const [launchEnabled, setLaunchEnabled] = useState(false);
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
+  const [previewSignInUserId, setPreviewSignInUserId] = useState<string | null>(null);
+  const [previewSignInMessage, setPreviewSignInMessage] = useState<string | null>(null);
 
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'signup'>('login');
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -121,14 +124,37 @@ export default function App() {
     const supabase = getSupabaseClient();
     const { data } = await supabase?.auth.getSession() ?? { data: { session: null } };
     const token = data.session?.access_token;
-    if (!token) throw new Error('Sign in as an Admin to preview the site.');
+    if (!token) throw new Error('Sign in as Staff or Admin to preview the site.');
     const response = await fetch('/api/v1/admin/me', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
     const staff = response.ok ? await response.json() : null;
-    if (staff?.role !== 'partner_admin') throw new Error('Only an Admin can preview the site.');
+    if (!['staff', 'partner_admin'].includes(staff?.role)) throw new Error('Only Staff or Admin can preview the site.');
     const { data: latest } = await supabase!.auth.getSession();
     if (latest.session?.user.id !== staff.user.id) throw new Error('Your session changed. Please try again.');
-    setPreviewUserId(staff.user.id);
+    const { error } = await supabase!.auth.signOut({ scope: 'local' });
+    if (error) throw error;
+    setCurrentUser(null);
+    setPreviewUserId(null);
+    setPreviewSignInUserId(staff.user.id);
+    setPreviewSignInMessage(null);
     setIsAdminPanelOpen(false);
+  };
+  const completePreviewSignIn = async (user: AuthUser) => {
+    const supabase = getSupabaseClient();
+    try {
+      if (user.id !== previewSignInUserId) throw new Error('Sign in with the same Staff or Admin account you used for the CRM.');
+      const { data } = await supabase!.auth.getSession();
+      const response = await fetch('/api/v1/admin/me', { headers: { Authorization: `Bearer ${data.session?.access_token}` }, cache: 'no-store' });
+      const staff = response.ok ? await response.json() : null;
+      if (!['staff', 'partner_admin'].includes(staff?.role) || staff.user.id !== previewSignInUserId) throw new Error('Only your CRM Staff or Admin account can enter this preview.');
+      setStorageUser(user.id);
+      setCurrentUser(user);
+      setPreviewUserId(user.id);
+      setPreviewSignInUserId(null);
+    } catch (error: any) {
+      await supabase?.auth.signOut({ scope: 'local' });
+      setCurrentUser(null);
+      setPreviewSignInMessage(error.message || 'Unable to verify preview access.');
+    }
   };
   const { isMasked, enableCamouflage, disableCamouflage } = useCamouflage();
 
@@ -351,6 +377,8 @@ export default function App() {
   if (isNewsRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
   if (isDeveloperRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
 
+  if (previewSignInUserId) return <><StatusPageButton /><div className="bg-slate-950 px-6 py-4 text-center text-sm text-white"><p>Sign in with the same Staff or Admin account you used for the CRM to preview the site.</p>{previewSignInMessage && <p role="alert" className="mt-2 text-rose-300">{previewSignInMessage}</p>}<button type="button" onClick={() => { setPreviewSignInUserId(null); window.location.href = '/crm'; }} className="mt-2 font-bold underline">Return to CRM</button></div><AuthScreen onUserSignedIn={(user) => { void completePreviewSignIn(user); }} /></>;
+
   if (isCrmRoute && !previewActive) {
     if (!currentUser) {
       return <><StatusPageButton /><CrmAccessPage onUserSignedIn={(user) => { setStorageUser(user.id); setCurrentUser(user); }} /></>;
@@ -392,7 +420,7 @@ export default function App() {
     <PremiumProvider key={currentUser.id} userId={currentUser.id} upgrade={() => setIsSubscriptionOpen(true)}><ContinuityProvider>
     <div className="q-app-shell q-scroll-page relative flex flex-col bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 font-sans text-slate-900 antialiased selection:bg-fuchsia-600 selection:text-white">
       <StatusPageButton />
-      {previewActive && <div className="relative z-50 mt-14 flex items-center justify-center gap-4 bg-amber-100 px-4 py-3 text-sm text-amber-950"><span>Admin preview: Public site {launchEnabled ? 'live' : 'on waitlist'}</span><button type="button" onClick={() => setPreviewUserId(null)} className="font-bold underline">Exit preview</button></div>}
+      {previewActive && <div className="relative z-50 mt-14 flex items-center justify-center gap-4 bg-amber-100 px-4 py-3 text-sm text-amber-950"><span>Staff preview: Public site {launchEnabled ? 'live' : 'on waitlist'}</span><button type="button" onClick={() => setPreviewUserId(null)} className="font-bold underline">Exit preview</button></div>}
       {/* Soft Pride-spectrum ambient colour keeps content readable while adding identity. */}
       <div className="pointer-events-none fixed -left-24 top-10 -z-10 h-72 w-72 rounded-full bg-rose-300/25 blur-[90px]" />
       <div className="pointer-events-none fixed -right-28 top-1/3 -z-10 h-80 w-80 rounded-full bg-sky-300/25 blur-[100px]" />
@@ -499,6 +527,7 @@ export default function App() {
       />
       <SubscriptionModal isOpen={isSubscriptionOpen} onClose={() => setIsSubscriptionOpen(false)} />
       <LegalFooter />
+      <BrevoTrackerConsent />
     </div>
     </ContinuityProvider></PremiumProvider>
   );

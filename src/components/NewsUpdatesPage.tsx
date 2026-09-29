@@ -39,10 +39,10 @@ export const NewsUpdatesPage: React.FC = () => {
   }, []);
 
   const visiblePosts = useMemo(() => (
-    filter === 'all' ? posts : posts.filter((post) => post.content_type === filter)
+    posts.filter((post) => post.content_type === 'news' && (filter !== 'update' || Boolean(post.updates?.length)))
   ), [filter, posts]);
 
-  const selectedPost = posts.find((post) => post.slug === selectedSlug) ?? visiblePosts[0] ?? null;
+  const selectedPost = visiblePosts.find((post) => post.slug === selectedSlug) ?? visiblePosts[0] ?? null;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-sky-50 text-slate-950">
@@ -82,7 +82,7 @@ export const NewsUpdatesPage: React.FC = () => {
           {[
             ['all', 'All'],
             ['news', 'News'],
-            ['update', 'Updates']
+            ['update', 'News with updates']
           ].map(([id, label]) => (
             <button
               key={id}
@@ -123,6 +123,7 @@ export const NewsUpdatesPage: React.FC = () => {
                 </div>
                 <h2 className="mt-3 text-base font-black leading-snug text-slate-950">{post.title}</h2>
                 <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{post.summary}</p>
+                {Boolean(post.updates?.length) && <p className="mt-2 text-xs font-bold text-violet-700">{post.updates!.length} related {post.updates!.length === 1 ? 'update' : 'updates'}</p>}
               </button>
             ))}
           </aside>
@@ -140,6 +141,16 @@ export const NewsUpdatesPage: React.FC = () => {
                 <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{selectedPost.title}</h2>
                 <p className="mt-3 text-base font-semibold leading-7 text-slate-700">{selectedPost.summary}</p>
                 <div className="mt-6 border-t border-slate-200 pt-4"><PostMarkdown body={selectedPost.body} /></div>
+                {Boolean(selectedPost.updates?.length) && <section className="mt-8 border-t border-slate-200 pt-6" aria-label="Related updates">
+                  <h3 className="text-xl font-black text-slate-950">Updates to this news item</h3>
+                  <div className="mt-4 space-y-5">{selectedPost.updates!.map((update) => <section key={update.id} className="rounded-lg border border-violet-100 bg-violet-50/50 p-4">
+                    <p className="text-xs font-semibold text-slate-500">{formatDate(update.published_at)}</p>
+                    <h4 className="mt-2 text-lg font-bold text-slate-950">{update.title}</h4>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">{update.summary}</p>
+                    {update.hero_image_url && <img src={update.hero_image_url} alt="" className="mt-4 w-full rounded-lg" />}
+                    <div className="mt-4"><PostMarkdown body={update.body} /></div>
+                  </section>)}</div>
+                </section>}
                 {selectedPost.tags.length > 0 && (
                   <div className="mt-8 flex flex-wrap gap-2">
                     {selectedPost.tags.map((tag) => <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{tag}</span>)}

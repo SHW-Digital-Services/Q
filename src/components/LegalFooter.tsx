@@ -41,6 +41,13 @@ export const LegalFooter = () => {
     <div className="mt-6 text-slate-400">
       Â© {new Date().getFullYear()} Q Life Operating System. All rights reserved.
     </div>
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new Event('q:manage-cookie-consent'))}
+      className="mt-3 font-semibold underline underline-offset-2 hover:text-white"
+    >
+      Cookie preferences
+    </button>
     <div className="mt-2 text-slate-400 font-semibold">Built with Llama</div>
   </footer>;
 };

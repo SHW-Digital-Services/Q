@@ -1,7 +1,7 @@
 ---
 title: Cookie Policy
 description: Cookie Policy for Q Intelligence
-version: 1.2.0
+version: 1.3.0
 effective_date: 02/08/2026
 last_updated: 28/09/2026
 website: https://q-ai.online
@@ -136,6 +136,8 @@ Examples include:
 - **Brevo Conversations** (support-chat visitor identifiers and conversation continuity);
 - approved analytics providers (where enabled).
 
+Q's optional Brevo website tracker is loaded only after you allow analytics in the cookie prompt. It records page visits and may use a browser identifier or cookies to associate activity with a visitor. Rejecting analytics leaves the tracker unloaded. You can change your choice at any time using **Cookie preferences** in the site footer. Q does not send page query strings to the tracker.
+
 Each third-party provider operates under its own privacy and cookie policies.
 
 We encourage you to review those policies for additional information.
@@ -237,6 +239,7 @@ Support: office@q-ai.online
 | Version | Date | Summary |
 |---------|------|---------|
 | 1.2.0 | 28/09/2026 | Added Brevo Conversations loading, browser storage, consent boundaries and deletion disclosures. |
+| 1.3.0 | 28/09/2026 | Added opt-in Brevo website analytics tracker and cookie preference controls. |
 | 1.1.0 | 16/09/2026 | Added Brevo email pixels, tracked links, hosted-page context and separate consent choices. |
 | 1.0.0 | 02/08/2026 | Initial release. |
 
