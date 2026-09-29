@@ -4,6 +4,10 @@ import { QLogo } from './QLogo';
 import { LegalFooter } from './LegalFooter';
 
 const endpoints = [
+  { method: 'GET', path: '/api/help-videos', auth: 'Public', description: 'List published Help Videos with titles, written steps and one-hour playback URLs for uploaded videos.' },
+  { method: 'POST', path: '/api/v1/admin/help-videos', auth: 'Admin session', description: 'Create a Help Video with title, steps, draft/published status and either videoUrl or videoPath.' },
+  { method: 'POST', path: '/api/v1/admin/help-videos/upload', auth: 'Admin session', description: 'Create a signed upload token for an MP4, WebM or Ogg file up to 100 MB. Upload directly to the private help-videos bucket.' },
+  { method: 'PATCH', path: '/api/v1/admin/help-videos/:id', auth: 'Admin session', description: 'Publish, unpublish or archive a Help Video by setting status.' },
   { method: 'GET', path: '/api/content', auth: 'Public', description: 'List published news with nested updates. Supports limit and q (news search); type=update returns news with updates within the selected news limit.' },
   { method: 'GET', path: '/api/content/:slug', auth: 'Public', description: 'Read one published news item with nested updates. Update slugs are not standalone pages.' },
   { method: 'POST', path: '/api/content/publish', auth: 'CRM token', description: 'Create a draft or published content post from an authorised external publisher.' },

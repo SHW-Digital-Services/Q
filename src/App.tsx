@@ -237,6 +237,7 @@ export default function App() {
         setSessionExpiresAt(session.expires_at ? session.expires_at * 1000 : null);
       } else {
         setCurrentUser(null);
+        setPreviewUserId(null);
         setSessionExpiresAt(null);
         setIsLocked(true);
       }
@@ -354,6 +355,8 @@ export default function App() {
   };
 
   const handleSignOut = async () => {
+    setPreviewUserId(null);
+    setPreviewSignInUserId(null);
     const supabase = getSupabaseClient();
     if (supabase) {
       try {

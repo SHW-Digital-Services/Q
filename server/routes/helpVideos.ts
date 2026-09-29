@@ -40,7 +40,7 @@ helpVideosAdminRouter.get('/', asyncHandler(async (req, res) => {
   return res.json({ videos: await playable(db, data ?? []) });
 }));
 helpVideosAdminRouter.post('/upload', asyncHandler(async (req, res) => {
-  if (!requireExactObject(req.body, ['contentType', 'size']) || !extensions[req.body.contentType] || !Number.isInteger(req.body.size) || req.body.size < 1 || req.body.size > 104857600) return res.status(400).json({ error: 'Choose an MP4, WebM or Ogg video up to 100 MB.' });
+  if (!requireExactObject(req.body, ['contentType', 'size']) || typeof req.body.contentType !== 'string' || !Object.hasOwn(extensions, req.body.contentType) || !Number.isInteger(req.body.size) || req.body.size < 1 || req.body.size > 104857600) return res.status(400).json({ error: 'Choose an MP4, WebM or Ogg video up to 100 MB.' });
   const { serviceSupabase: db } = res.locals.helpVideoAdmin;
   const path = `videos/${randomUUID()}.${extensions[req.body.contentType]}`;
   const { data, error } = await db.storage.from('help-videos').createSignedUploadUrl(path);
