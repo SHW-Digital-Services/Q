@@ -766,7 +766,7 @@ For admins:
 
 News & Updates: create a news item first. Choose Update in the CRM and select Related news. Save a draft and publish it when ready. Both the parent news and its updates must be published for readers to see the updates. Use the related-news selector on an existing update to associate an older unlinked update.
 
-Help Videos: administrators can upload MP4, WebM or Ogg files up to 500 MB, or supply an HTTPS hosted-video link. Add a title and fill the three starting Steps taken fields. Use Add step (+) for more fields and the bin icon to remove a field; at least one step is required, with a maximum of 50. Save as Draft or Published. Publish, Unpublish and Archive controls are available per video. View published videos under Help Videos in the Help centre; help search also matches titles and steps. Use demonstration data, accurate captions and useful written instructions.
+Help Videos: administrators can upload MP4, WebM or Ogg source files up to 500 MB (videos over 50 MB are compressed locally before upload), or supply an HTTPS hosted-video link. Add a title and fill the three starting Steps taken fields. Use Add step (+) for more fields and the bin icon to remove a field; at least one step is required, with a maximum of 50. Save as Draft or Published. Publish, Unpublish and Archive controls are available per video. View published videos under Help Videos in the Help centre; help search also matches titles and steps. Use demonstration data, accurate captions and useful written instructions.
 
 Preview Site: Staff and Admin can select Preview Site, then sign in again with the same CRM account. Refreshing or signing out ends preview. Only Admin can change the live/waitlist switch.
 

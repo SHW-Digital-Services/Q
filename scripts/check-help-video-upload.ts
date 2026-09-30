@@ -3,6 +3,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { HELP_VIDEO_MAX_BYTES, helpVideoFile } from '../src/shared/helpVideoUpload';
+import { HELP_VIDEO_STORAGE_BYTES, compressionArguments } from '../src/shared/videoCompression';
 import { uploadHelpVideo } from '../src/services/helpVideoUpload';
 
 assert.equal(helpVideoFile({ name: 'tutorial.mp4', type: 'video/mp4', size: HELP_VIDEO_MAX_BYTES }).error, '');
@@ -12,11 +13,14 @@ assert.match(helpVideoFile({ name: 'empty.mp4', type: 'video/mp4', size: 0 }).er
 assert.equal(helpVideoFile({ name: 'tutorial.MP4', type: '', size: 200 * 1024 * 1024 }).contentType, 'video/mp4');
 assert.equal(helpVideoFile({ name: 'tutorial.webm', type: 'application/octet-stream', size: 100 }).error, '');
 
+assert.throws(() => compressionArguments(0), /duration/);
+assert.throws(() => compressionArguments(100000), /too long/);
+assert(compressionArguments(300).includes('libx264'));
 const db = new PGlite();
 await db.exec("create schema storage; create table storage.buckets (id text primary key, public boolean, file_size_limit bigint, allowed_mime_types text[]); insert into storage.buckets values ('help-videos',false,104857600,array['video/mp4']),('images',true,1048576,array['image/png']);");
-await db.exec(await readFile('supabase/migrations/20260930030016_increase_help_video_upload_limit.sql', 'utf8'));
+await db.exec(await readFile('supabase/migrations/20260930031043_help_video_upload_50mb_limit.sql', 'utf8'));
 const { rows } = await db.query<any>("select * from storage.buckets where id = 'help-videos'");
-assert.equal(Number(rows[0].file_size_limit), HELP_VIDEO_MAX_BYTES); assert.equal(rows[0].public, false); assert.deepEqual(rows[0].allowed_mime_types, ['video/mp4']);
+assert.equal(Number(rows[0].file_size_limit), HELP_VIDEO_STORAGE_BYTES); assert.equal(rows[0].public, false); assert.deepEqual(rows[0].allowed_mime_types, ['video/mp4']);
 assert.equal(Number((await db.query<any>("select file_size_limit from storage.buckets where id = 'images'")).rows[0].file_size_limit), 1048576);
 await db.close();
 

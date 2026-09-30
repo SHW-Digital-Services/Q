@@ -335,7 +335,7 @@ Operational owners should use the [Q administrator periodic checklist](admin-che
 
 ## Publishing and preview permissions
 
-Help Video creation, upload authorisation, publishing, unpublishing and archiving require the partner_admin role, checked by the server. Storage uploads use administrator-issued signed upload tokens into a private bucket, accept MP4, WebM and Ogg files, and have a 500 MB limit. Public video reads include only published records and issue playback links valid for one hour. Previously issued links may continue to work until expiry.
+Help Video creation, upload authorisation, publishing, unpublishing and archiving require the partner_admin role, checked by the server. Storage uploads use administrator-issued signed upload tokens into a private bucket, accept MP4, WebM and Ogg files, and have a 50 MB upload limit. Public video reads include only published records and issue playback links valid for one hour. Previously issued links may continue to work until expiry.
 
 Active news updates require a foreign-key relationship to a news item. Direct public content-table reads expose published news only; the Q API attaches published updates to a published news parent. Existing unlinked updates remain available for administrators to associate with news before publication or editing.
 
