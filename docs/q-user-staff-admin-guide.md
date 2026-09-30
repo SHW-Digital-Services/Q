@@ -8,7 +8,7 @@ This guide explains how Q Intelligence is operated by three audiences:
 
 ## Core Operating Model
 
-Staff and Admins open **Communications** to connect their own Zoho mailbox and use **Email templates**. Mailbox content, attachments and personalised drafts are not saved to Supabase. There are 30 editable starter templates. See [Zoho Mail setup](zoho-mail-comms.md).
+Staff and Admins open **Communications** to access the shared office@q-ai.online Zoho mailbox and use **Email templates**. Mailbox content, attachments and personalised drafts are not saved to Supabase. There are 30 editable starter templates. See [Zoho Mail setup](zoho-mail-comms.md).
 
 Admins open **Admin Only** for launch controls, publishing, Help Videos, Staff roles, products, Brevo events and **Delete User** within a customer record. Staff do not see this button. See [Admin functions](admin-functions.md) and [Brevo webhooks](brevo-webhooks.md). The normal news list shows drafts/published posts; use **View Archived** for archives.
 

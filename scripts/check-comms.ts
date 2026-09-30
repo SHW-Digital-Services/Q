@@ -9,19 +9,19 @@ import { emailTemplates, fillEmailTemplate, templatePlaceholders } from '../src/
 const owner = '00000000-0000-4000-8000-000000000001';
 const target = '00000000-0000-4000-8000-000000000002';
 const key = randomBytes(32);
-const config: MailConfig = { clientId: 'fixture-client', clientSecret: 'fixture-secret', key, accountsOrigin: 'https://accounts.zoho.eu', mailOrigin: 'https://mail.zoho.eu', redirectUri: '', appOrigin: '', secure: false };
+const config: MailConfig = { clientId: 'fixture-client', clientSecret: 'fixture-secret', refreshToken: 'fixture-refresh', key, accountsOrigin: 'https://accounts.zoho.eu', mailOrigin: 'https://mail.zoho.eu', redirectUri: '', appOrigin: '', secure: false };
 const session: MailSession = { owner, access: 'fixture-access', refresh: 'fixture-refresh', expires: Date.now() + 3600000, tokenExpires: Date.now() + 3600000 };
 const calls: { url: URL; init: RequestInit }[] = [];
-let providerStatus = 200;
+let providerStatus = 200; let mailboxEmail = 'office@q-ai.online';
 const json = (data: unknown, status = 200) => new Response(JSON.stringify({ status: { code: status }, data }), { status, headers: { 'Content-Type': 'application/json' } });
 const fetcher = (async (url: any, init: RequestInit = {}) => {
   const parsed = new URL(String(url)); calls.push({ url: parsed, init });
   if (parsed.pathname === '/oauth/v2/token') return new Response(JSON.stringify({ access_token: 'fixture-refreshed', refresh_token: 'fixture-refresh', expires_in: 3600 }));
   if (parsed.pathname === '/oauth/v2/token/revoke') return new Response(JSON.stringify({ status: 'success' }));
   if (providerStatus !== 200) return json({ private: 'DO_NOT_LEAK_PROVIDER_BODY' }, providerStatus);
-  if (parsed.pathname === '/api/accounts') return json([{ accountId: '10001', primaryEmailAddress: 'support@example.test', displayName: 'Q support' }]);
+  if (parsed.pathname === '/api/accounts') return json([{ accountId: '10001', primaryEmailAddress: mailboxEmail, displayName: 'Q Office' }, { accountId: '99999', primaryEmailAddress: 'other@example.test' }]);
   if (parsed.pathname.endsWith('/folders')) return json([{ folderId: '20001', folderName: 'Inbox', folderType: 'Inbox' }, { folderId: '20002', folderName: 'Sent', folderType: 'Sent' }, { folderId: '20003', folderName: 'Drafts', folderType: 'Drafts' }, { folderId: '20004', folderName: 'Archive', folderType: 'Archive' }]);
-  if (/\/messages\/(view|search)$/.test(parsed.pathname)) return json([{ messageId: '30001', folderId: '20001', subject: 'Help getting started', fromAddress: 'visitor@example.test', toAddress: 'support@example.test', receivedTime: String(Date.now()), status: '0', hasAttachment: '1' }]);
+  if (/\/messages\/(view|search)$/.test(parsed.pathname)) return json([{ messageId: '30001', folderId: '20001', subject: 'Help getting started', fromAddress: 'visitor@example.test', toAddress: 'office@q-ai.online', receivedTime: String(Date.now()), status: '0', hasAttachment: '1' }]);
   if (parsed.pathname.endsWith('/content')) return json({ content: '<p>Hello Q team,</p><p>Could you help me get started?</p><img src="https://tracking.example.test/pixel" onerror="alert(1)"><script>window.BAD_MAIL=true</script><form action="https://example.test"><input name="password"></form><p><strong>Thank you.</strong></p>' });
   if (parsed.pathname.endsWith('/attachmentinfo')) return json({ attachments: [{ attachmentId: '40001', attachmentName: 'example.txt', attachmentSize: 7 }] });
   if (parsed.pathname.endsWith('/attachments/40001')) return new Response('example', { headers: { 'Content-Type': 'text/html' } });
@@ -33,8 +33,9 @@ const authoriseStaff = (async (req: any, res: any) => {
   if (!['Bearer fixture-staff', 'Bearer fixture-admin', 'Bearer fixture-other'].includes(req.headers.authorization)) { res.status(403).json({ error: 'Staff access required.' }); return null; }
   return { identity: { user: { id: req.headers.authorization === 'Bearer fixture-other' ? target : owner } }, role: 'staff' };
 }) as any;
+let configured = true;
 const app = express(); app.use(express.json({ limit: '256kb' }));
-app.use('/api/comms', createCommsRouter({ authoriseStaff, config: () => config, fetcher }));
+app.use('/api/comms', createCommsRouter({ authoriseStaff, config: () => configured ? config : null, fetcher }));
 let deletionRole = 'user'; let subscriptionStatus = ''; let deletes = 0; const audits: any[] = [];
 const deletionDb = {
   auth: { admin: { getUserById: async () => ({ data: { user: { id: target, email: 'visitor@example.test' } } }), deleteUser: async () => { deletes++; return { error: null }; } } },
@@ -76,20 +77,16 @@ try {
     assert.equal(templatePlaceholders(fillEmailTemplate(template.subject, values), fillEmailTemplate(template.body, values)).length, 0);
   }
   assert.equal((await fetch(`${origin}/api/comms/status`)).status, 401);
+  configured = false; assert.equal((await (await request('/status')).json()).configured, false); assert.equal((await request('/accounts')).status, 503); configured = true;
   assert.equal((await request('/accounts', {}, 'fixture-user')).status, 403);
-  assert.equal((await request('/accounts', {}, 'fixture-other')).status, 401);
-  assert.equal((await request('/accounts', {}, 'fixture-staff', cookie({ ...session, expires: 0 }))).status, 401);
-  const status = await (await request('/status')).json(); assert.equal(status.connected, true); assert.equal(status.storage, 'zoho'); assert(!JSON.stringify(status).includes('fixture-access'));
-  const start = await request('/oauth/start', { method: 'POST' });
-  const url = new URL((await start.json()).url);
-  assert.equal(url.origin, 'https://accounts.zoho.eu'); assert.equal(url.searchParams.get('redirect_uri'), config.redirectUri);
-  const state = start.headers.getSetCookie().find(c => c.startsWith('q_zoho_state='))!.split(';')[0];
-  assert(start.headers.getSetCookie()[0].includes('HttpOnly')); assert(start.headers.getSetCookie()[0].includes('SameSite=Lax'));
-  const invalid = await request(`/oauth/callback?state=wrong&code=fake`, {}, 'fixture-staff', state); assert.equal(invalid.headers.get('location'), '/crm/comms?connection=invalid');
-  const callback = await request(`/oauth/callback?state=${url.searchParams.get('state')}&code=fake&accounts-server=https://evil.example.test`, {}, 'fixture-staff', state);
-  assert.equal(callback.headers.get('location'), '/crm/comms?connection=connected'); assert(callback.headers.getSetCookie().some(c => c.startsWith('q_zoho_mail=')));
-  assert(calls.every(c => ['https://accounts.zoho.eu', 'https://mail.zoho.eu'].includes(c.url.origin)));
-  assert.equal((await request('/oauth/start', { method: 'POST', headers: { Origin: 'https://evil.example.test' } })).status, 403);
+  assert.equal((await request('/accounts', {}, 'fixture-other', '')).status, 200);
+  assert.equal((await request('/accounts', {}, 'fixture-staff', '')).status, 200);
+  const status = await (await request('/status')).json(); assert.equal(status.connected, true); assert.equal(status.mailbox, 'office@q-ai.online'); assert(!JSON.stringify(status).includes('fixture-refresh'));
+  assert.equal((await request('/oauth/start', { method: 'POST' })).status, 409);
+  assert.equal((await request('/disconnect', { method: 'POST', headers: { Origin: 'https://evil.example.test' } })).status, 403);
+  const mailboxList = await (await request('/accounts')).json(); assert.equal(mailboxList.accounts.length, 1); assert.equal(mailboxList.accounts[0].email, 'office@q-ai.online');
+  for (const path of ['/accounts/99999/folders', '/accounts/99999/messages?folder=20001', '/accounts/99999/folders/20001/messages/30001', '/accounts/99999/folders/20001/messages/30001/attachments/40001']) assert.equal((await request(path)).status, 403);
+  mailboxEmail = 'personal@example.test'; assert.equal((await request('/accounts')).status, 403); mailboxEmail = 'office@q-ai.online';
   assert.equal((await request('/accounts')).status, 200);
   assert.equal((await request('/accounts/10001/folders')).status, 200);
   assert.equal((await request('/accounts/10001/messages?folder=20001')).status, 200);
@@ -103,8 +100,10 @@ try {
   assert.equal((await request('/accounts/10001/send', post({ ...payload, fromAddress: 'spoof@example.test' }))).status, 400);
   assert.equal((await request('/accounts/10001/send', post({ ...payload, to: 'bad\r\n@example.test' }))).status, 400);
   assert.equal((await request('/accounts/99999/send', post(payload))).status, 403);
+  assert.equal((await request('/accounts/99999/attachments?name=test.txt', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: Buffer.from('test') })).status, 403);
+  assert.equal((await request('/accounts/99999/messages/30001', { method: 'PATCH', body: JSON.stringify({ action: 'read' }) })).status, 403);
   assert.equal((await request('/accounts/10001/send', post(payload))).status, 200);
-  const sendBody = JSON.parse(calls.at(-1)!.init.body as string); assert.equal(sendBody.fromAddress, 'support@example.test'); assert.equal(sendBody.mailFormat, 'plaintext');
+  const sendBody = JSON.parse(calls.at(-1)!.init.body as string); assert.equal(sendBody.fromAddress, 'office@q-ai.online'); assert.equal(sendBody.mailFormat, 'plaintext');
   assert.equal((await request('/accounts/10001/send', post({ ...payload, replyTo: '30001' }))).status, 200); assert.equal(calls.at(-1)!.url.pathname, '/api/accounts/10001/messages/30001'); assert.equal(JSON.parse(calls.at(-1)!.init.body as string).action, 'reply');
   assert.equal((await request('/accounts/10001/send', post({ ...payload, draft: true }))).status, 200); assert.equal(JSON.parse(calls.at(-1)!.init.body as string).mode, 'draft');
   const upload = await request('/accounts/10001/attachments?name=example.txt', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: Buffer.from('example') });
@@ -118,7 +117,8 @@ try {
   const client = new ZohoMailClient(config, expired, () => refreshCount++, fetcher);
   const tokensBefore = calls.filter(c => c.url.pathname === '/oauth/v2/token').length;
   await Promise.all([client.json('/accounts'), client.json('/accounts')]); assert.equal(refreshCount, 1); assert.equal(calls.filter(c => c.url.pathname === '/oauth/v2/token').length, tokensBefore + 1);
-  const disconnected = await request('/disconnect', { method: 'POST' }); assert.equal(disconnected.status, 200); assert(disconnected.headers.getSetCookie().some(c => c.startsWith('q_zoho_mail=;') && c.includes('Max-Age=0')));
+  const disconnected = await request('/disconnect', { method: 'POST' }); assert.equal(disconnected.status, 200); assert.equal((await disconnected.json()).shared, true); assert(disconnected.headers.getSetCookie().some(c => c.startsWith('q_zoho_mail=;') && c.includes('Max-Age=0')));
+  assert.equal((await request('/accounts', {}, 'fixture-other', '')).status, 200); assert(!calls.some(c => c.url.pathname.endsWith('/revoke')));
   const deleteRequest = (id = target, confirmation = 'visitor@example.test', auth = 'fixture-admin') => fetch(`${origin}/api/admin/delete-users/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${auth}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ confirmation }) });
   assert.equal((await deleteRequest(target, 'visitor@example.test', 'fixture-staff')).status, 403);
   assert.equal((await deleteRequest(owner)).status, 409);
@@ -126,5 +126,5 @@ try {
   deletionRole = 'partner_admin'; assert.equal((await deleteRequest()).status, 409); deletionRole = 'user';
   for (const state of ['APPROVAL_PENDING', 'APPROVED', 'ACTIVE', 'SUSPENDED']) { subscriptionStatus = state; assert.equal((await deleteRequest()).status, 409); }
   subscriptionStatus = 'CANCELLED'; assert.equal((await deleteRequest()).status, 200); assert.equal(deletes, 1); assert(audits.some(a => a.action === 'admin.user.deleted'));
-  console.log('PASS: communications OAuth/session isolation, provider relay, drafts/replies/attachments, privacy errors, 30 templates and admin deletion guards. No live provider or database was used.');
+  console.log('PASS: shared office mailbox enforcement and Staff/Admin access, provider relay, drafts/replies/attachments, privacy errors, 30 templates and admin deletion guards. No live provider or database was used.');
 } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }

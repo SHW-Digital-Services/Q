@@ -1,9 +1,9 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.5.2
+version: 1.5.3
 effective_date: 02/08/2026
-last_updated: 29/09/2026
+last_updated: 30/09/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -13,9 +13,9 @@ product: Q Intelligence
 
 ## Staff communications and incoming service events
 
-Authorised Staff and Admins can connect their own Zoho Mail account. Zoho holds the mailbox data. Q temporarily relays email content, addresses, folders and attachments between the browser and Zoho to display mail and perform the operator's selected action. This portal does not save mailbox content, attachments, personalised templates or drafts to Supabase, browser local/session storage or Q application logs. An explicit draft-save action writes to Zoho. Generic starter templates are product copy; downloaded attachments are saved on the operator's device.
+Authorised Staff and Admins can access the shared office@q-ai.online Zoho mailbox. Zoho holds the mailbox data. Q temporarily relays email content, addresses, folders and attachments between the browser and Zoho to display mail and perform the operator's selected action. This portal does not save mailbox content, attachments, personalised templates or drafts to Supabase, browser local/session storage or Q application logs. An explicit draft-save action writes to Zoho. Generic starter templates are product copy; downloaded attachments are saved on the operator's device.
 
-Encrypted connection credentials are held in an HttpOnly cookie for up to eight hours, bound to the signed-in Q account. Q uses Supabase to authenticate the account and verify its Staff/Admin role. Disconnect clears the cookie and attempts Zoho token revocation; the operator can also revoke Q's access in Zoho. Zoho mailbox retention and account terms continue to apply.
+The office@q-ai.online shared mailbox uses a refresh token held only in server hosting secrets and access tokens cached in server memory. Mail operations recheck each Q user's Staff/Admin role and reject other mailbox IDs. Logging out does not disconnect other operators. The platform connection is revoked through Zoho and removal of the hosting token. Mailbox content and attachments are not stored in Supabase; HTML is sanitised and attachments are served as downloads.
 
 Separately, Admin-configured Brevo webhooks store event data in Supabase: event type, receipt/review times, email if supplied and provider payload. Known credential fields are redacted. Events support review and do not automatically change accounts, subscriptions or consent. Retained event data remains subject to the operator's retention procedure. Generated `@q-ai.online` integration identifiers are labels, not inboxes. Existing CRM support/contact records are distinct from the Zoho mailbox portal.
 

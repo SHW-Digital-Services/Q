@@ -28,9 +28,9 @@ app.use('/api/v1/admin', (req, res) => {
 });
 app.use('/api/comms', (req, res) => {
   if (req.path === '/status') return res.json({ configured: !req.headers.authorization?.includes('setup'), connected: true, mailUrl: 'https://mail.zoho.eu' });
-  if (req.path === '/accounts') return res.json({ accounts: [{ accountId: '10001', email: 'support@example.test', name: 'Q support' }] });
+  if (req.path === '/accounts') return res.json({ accounts: [{ accountId: '10001', email: 'office@q-ai.online', name: 'Q support' }] });
   if (req.path.endsWith('/folders')) return res.json({ folders: [{ folderId: '20001', name: 'Inbox', type: 'Inbox' }, { folderId: '20002', name: 'Sent', type: 'Sent' }, { folderId: '20003', name: 'Drafts', type: 'Drafts' }, { folderId: '20004', name: 'Archive', type: 'Archive' }] });
-  if (req.path === '/accounts/10001/messages') return res.json({ messages: [{ messageId: '30001', folderId: '20001', subject: 'Help getting started', from: 'visitor@example.test', to: 'support@example.test', receivedAt: String(Date.now()), unread: true, hasAttachment: true }], hasMore: false });
+  if (req.path === '/accounts/10001/messages') return res.json({ messages: [{ messageId: '30001', folderId: '20001', subject: 'Help getting started', from: 'visitor@example.test', to: 'office@q-ai.online', receivedAt: String(Date.now()), unread: true, hasAttachment: true }], hasMore: false });
   if (req.path.endsWith('/messages/30001') && req.method === 'GET') return res.json({ content: '<p>Hello Q team,</p><p>Could you help me get started?</p><p><strong>Thank you.</strong></p><img src="https://tracking.example.test/pixel" onerror="alert(1)"><script>window.BAD_MAIL=true</script><style>body{display:none}</style><form action="https://bad.example.test"><input name="password"></form>', attachments: [{ id: '40001', name: 'example.txt', size: 7 }] });
   return res.json({ success: true });
 });

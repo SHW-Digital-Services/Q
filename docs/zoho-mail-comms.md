@@ -1,6 +1,6 @@
 # Zoho Mail communications portal
 
-Staff and Admins open **Communications** from `/crm` (the portal is `/crm/comms`). Each Q account authorises its own Zoho account. The portal supports mailbox selection, folders, paging, Zoho search, reading, compose, Cc/Bcc, replies, attachments, marking read/unread, archive and moving mail. An explicit **Save new draft in Zoho** action creates a new Zoho draft. Existing drafts can be read in Q; continue editing them in Zoho. Reply drafts remain open in Q until sent. Q does not automatically send emails or monitor incoming mail in the background.
+Staff and Admins open **Communications** from `/crm` (the portal is `/crm/comms`). Q uses only the shared office@q-ai.online mailbox, authorised once in server hosting secrets. Staff/Admins use their individual Q logins; they do not sign into Zoho separately. The portal supports folders, paging, Zoho search, reading, compose, Cc/Bcc, replies, attachments, marking read/unread, archive and moving mail. An explicit **Save new draft in Zoho** action creates a new Zoho draft. Existing drafts can be read in Q; continue editing them in Zoho. Reply drafts remain open in Q until sent. Q does not automatically send emails or monitor incoming mail in the background.
 
 ## Data handling
 
@@ -8,19 +8,36 @@ Zoho is the mailbox system of record. Q relays requests over HTTPS through its b
 
 Supabase still authenticates the Q account and supplies the current Staff/Admin role. The existing global rate limiter stores technical counters, without email content or search terms. Existing CRM contact-request/communication records and Brevo event records are separate features; the Zoho portal neither imports mail into them nor logs send activity there.
 
-OAuth access/refresh tokens are AES-256-GCM encrypted into an HttpOnly, SameSite=Lax cookie (`q_zoho_mail`, path `/api/comms`, up to eight hours). A separate encrypted state cookie (`q_zoho_state`) expires after ten minutes. Both use Secure on the configured HTTPS origin. Sessions are bound to a Q user ID, and every mail API operation rechecks the current Q role. Tokens are never returned to page JavaScript or stored in Supabase. The same cookie key must be available on every server instance; rotating it invalidates connections. Disconnect clears the cookies and attempts Zoho token revocation. Q logout attempts the same before signing out. If revocation fails, remove Q under Zoho's connected applications. Close the page or sign out on shared devices. No email retention scheduler is needed in Q for this portal; Zoho retention is governed by the mailbox configuration.
+The shared refresh token is held only in the server hosting secrets (`ZOHO_MAIL_REFRESH_TOKEN`). Access tokens are refreshed and cached in server memory, with no token returned to the browser or stored in Supabase. Each mail request rechecks the current Q Staff/Admin role and verifies the office mailbox against Zoho. Other account IDs are rejected for reading, sending, attachments and message actions. Sender identity is fixed to office@q-ai.online. Attachment proofs remain encrypted and bound to the uploading Q user and office account.
+
+Logging out ends that user's Q session without revoking the shared Zoho connection. To disconnect the platform, remove its refresh token from the hosting environment, redeploy all instances and revoke its authorisation in Zoho. Legacy per-user mail cookies are ignored and cleared by the compatibility disconnect route.
 
 Mail HTML is sanitised with DOMPurify using a small formatting-only allowlist. Scripts, forms, styles, links, remote images and active elements are removed. Attachments are delivered as downloads, never served inline. Open Zoho Mail for the original formatting and links.
 
-## Register the Zoho application
+## Set up the single office mailbox
 
-1. Confirm the Zoho data centre for the mailboxes. `q-ai.online` currently uses Zoho EU MX records; the default region is `eu`. DNS does not need to change for this portal.
-2. Sign into the [EU Zoho API Console](https://api-console.zoho.eu/) as the operator and create a **Server-based Application** named Q Communications.
-3. Set its homepage to Q's canonical public origin, for example `https://www.q-ai.online`.
-4. Register the exact redirect URI `<APP_URL>/api/comms/oauth/callback`, for example `https://www.q-ai.online/api/comms/oauth/callback`. The hostname must match `APP_URL` and the URL used to open Q. Register `http://localhost:3000/api/comms/oauth/callback` separately for local development if permitted by the console.
-5. Configure server environment variables `ZOHO_MAIL_CLIENT_ID`, `ZOHO_MAIL_CLIENT_SECRET`, `ZOHO_MAIL_REGION=eu`, and `ZOHO_MAIL_COOKIE_KEY`. Generate the cookie key with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. Put the result in the hosting secrets manager; do not commit it, paste it in chat, or prefix these variables with `VITE_`.
-6. Deploy/restart Q. The portal then offers **Connect Zoho Mail**. Each Staff/Admin signs into their own Zoho account and accepts the requested permissions. Q does not need a shared mailbox password.
-7. Verify one account can list folders, read a test email, send to an address you control, reply, save a new draft and use an attachment. Repeat with Staff and Admin, and confirm a normal site user receives 403. These are setup checks, not actions performed automatically by the implementation.
+1. Ensure office@q-ai.online is an actual Zoho mailbox and you can sign into it. This integration does not create a mailbox or change DNS. An alias of a different primary mailbox is not accepted.
+2. Sign into [Zoho EU API Console](https://api-console.zoho.eu/) as the office mailbox account, not your personal account. If the mailbox belongs to another Zoho data centre, use its matching console and region instead.
+3. Choose **Add Client > Self Client** and create it. Keep its Client ID and Client Secret. This replaces the previous per-user Server-based Application setup; no callback URI is needed for Self Client.
+4. Open **Generate Code**, enter the scopes listed below, choose an available expiry (for example ten minutes), and describe the purpose as `Q shared office mailbox`. Generate the code. It is a short-lived grant, not the refresh token.
+5. From the Q repository, run `powershell -NoProfile -File .\scripts\setup-zoho-office.ps1 -Region eu`. Enter the Self Client ID, secret and fresh grant when prompted. The helper sends them only to the matching Zoho token endpoint and copies the returned refresh token to your clipboard. Paste it into your hosting provider's secret setting `ZOHO_MAIL_REFRESH_TOKEN`, then clear the clipboard with `Set-Clipboard -Value ""`. Do not paste secrets into chat or commit them. If the grant expires, generate a new one and repeat.
+6. Configure these **server** hosting variables:
+
+```text
+ZOHO_MAIL_CLIENT_ID=<Self Client ID>
+ZOHO_MAIL_CLIENT_SECRET=<Self Client secret>
+ZOHO_MAIL_REFRESH_TOKEN=<refresh token from step 5>
+ZOHO_MAIL_REGION=eu
+ZOHO_MAIL_COOKIE_KEY=<64 hexadecimal characters>
+APP_URL=<your actual HTTPS Q origin>
+```
+
+Generate the encryption key for attachment proofs with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. Use the same key on all instances. Never prefix the secrets with `VITE_`.
+
+7. Deploy/restart Q. Open **CRM > Communications** as Staff or Admin. The mailbox opens without a separate Zoho connection step; only office@q-ai.online is shown and used as sender. Test reading and sending an email to an address you control, replying and using an attachment.
+8. If Q says the connection must belong to office@q-ai.online, regenerate the grant under the office Zoho identity. If Zoho denies an operation, check OAuth scopes and your plan's mail API permissions. A normal Q user must not access this portal.
+
+References: [Zoho Self Client authorisation](https://www.zoho.com/developer/oauth/self-client/authorization-code-flow.html), [Zoho Mail OAuth](https://www.zoho.com/mail/help/api/using-oauth-2.html).
 
 Scopes: `ZohoMail.accounts.READ`, `ZohoMail.folders.READ`, `ZohoMail.messages.READ`, `ZohoMail.messages.CREATE`, `ZohoMail.messages.UPDATE`. No organisation-wide administration, user provisioning or permanent mail deletion scope is requested. Region settings select fixed Zoho hosts; callback query parameters cannot select an arbitrary token/API server.
 
@@ -32,14 +49,14 @@ The five-user Forever Free package excludes IMAP/POP/ActiveSync; this integratio
 
 ## API surface
 
-All paths are under `/api/comms`. Except the state-bound OAuth callback, every route requires a valid Q bearer session and a current Staff/Admin role. Responses use `Cache-Control: no-store, private`. Mail routes do not receive a database client for content writes.
+All paths are under `/api/comms`. Every mailbox route requires a valid Q bearer session and a current Staff/Admin role. Responses use `Cache-Control: no-store, private`. Mail routes do not receive a database client for content writes.
 
 | Method/path | Purpose |
 | --- | --- |
 | GET `/status` | Configuration/connection status, never tokens |
-| POST `/oauth/start` | Returns Zoho consent URL and sets state cookie |
-| GET `/oauth/callback` | Exchanges authorised code server-side, returns to portal |
-| POST `/disconnect` | Clears mail cookies and attempts revocation |
+| POST `/oauth/start` | Compatibility route: rejects individual connections (409) |
+| GET `/oauth/callback` | Compatibility route: returns to setup; does not exchange codes |
+| POST `/disconnect` | Clears legacy cookies; does not revoke shared authorisation |
 | GET `/accounts` | Connected user's mailboxes |
 | GET `/accounts/:account/folders` | Folder list |
 | GET `/accounts/:account/messages?folder=…&start=1&search=…` | 30-message pages; search uses Zoho syntax |

@@ -6,16 +6,17 @@ const regions = { eu: 'eu', us: 'com', in: 'in', au: 'com.au', jp: 'jp', ca: 'ca
 export class MailError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-export type MailConfig = { clientId: string; clientSecret: string; key: Buffer; accountsOrigin: string; mailOrigin: string; redirectUri: string; appOrigin: string; secure: boolean };
+export type MailConfig = { clientId: string; clientSecret: string; refreshToken: string; key: Buffer; accountsOrigin: string; mailOrigin: string; redirectUri: string; appOrigin: string; secure: boolean };
 export function mailConfig(): MailConfig | null {
   const clientId = process.env.ZOHO_MAIL_CLIENT_ID?.trim();
   const clientSecret = process.env.ZOHO_MAIL_CLIENT_SECRET?.trim();
   const key = process.env.ZOHO_MAIL_COOKIE_KEY?.trim();
+  const refreshToken = process.env.ZOHO_MAIL_REFRESH_TOKEN?.trim();
   const region = process.env.ZOHO_MAIL_REGION?.trim() || 'eu';
-  if (!clientId || !clientSecret || !key || !/^[a-f0-9]{64}$/i.test(key) || !(region in regions)) return null;
+  if (!clientId || !clientSecret || !refreshToken || !key || !/^[a-f0-9]{64}$/i.test(key) || !(region in regions)) return null;
   const suffix = regions[region as keyof typeof regions];
   const appOrigin = getCanonicalAppUrl();
-  return { clientId, clientSecret, key: Buffer.from(key, 'hex'), accountsOrigin: `https://accounts.zoho.${suffix}`, mailOrigin: `https://mail.zoho.${suffix}`, redirectUri: `${appOrigin}/api/comms/oauth/callback`, appOrigin, secure: new URL(appOrigin).protocol === 'https:' };
+  return { clientId, clientSecret, refreshToken, key: Buffer.from(key, 'hex'), accountsOrigin: `https://accounts.zoho.${suffix}`, mailOrigin: `https://mail.zoho.${suffix}`, redirectUri: `${appOrigin}/api/comms/oauth/callback`, appOrigin, secure: new URL(appOrigin).protocol === 'https:' };
 }
 export const MAIL_SCOPES = 'ZohoMail.accounts.READ,ZohoMail.folders.READ,ZohoMail.messages.READ,ZohoMail.messages.CREATE,ZohoMail.messages.UPDATE';
 export function sealMail(value: unknown, key: Buffer, purpose: string): string {

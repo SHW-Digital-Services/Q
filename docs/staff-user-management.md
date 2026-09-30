@@ -23,7 +23,7 @@ where id = (
 4. Do not give staff the Supabase service-role key.
 5. Do not give staff direct Supabase dashboard access unless they are technical owners.
 
-Staff and Admins can connect their own Zoho mailbox through **Communications** in the CRM. Mailbox content is not saved to Supabase. Follow [Zoho setup](zoho-mail-comms.md). Only Admins see **Admin Only**; this page groups publishing, launch settings, webhook receiving and user deletion. Open a customer record there to delete a non-Admin account with exact-email confirmation. Subscriptions must be resolved first, and deletion does not cancel PayPal payments or erase Zoho mail. See [Admin functions](admin-functions.md).
+Staff and Admins can access the shared office@q-ai.online Zoho mailbox through **Communications** in the CRM. Mailbox content is not saved to Supabase. Follow [Zoho setup](zoho-mail-comms.md). Only Admins see **Admin Only**; this page groups publishing, launch settings, webhook receiving and user deletion. Open a customer record there to delete a non-Admin account with exact-email confirmation. Subscriptions must be resolved first, and deletion does not cancel PayPal payments or erase Zoho mail. See [Admin functions](admin-functions.md).
 
 ## Staff Password Reset Flow
 

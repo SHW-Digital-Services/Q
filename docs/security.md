@@ -1,9 +1,9 @@
 ---
 title: Security Policy
 description: Security Policy for Q Intelligence
-version: 1.2.2
+version: 1.2.3
 effective_date: 26/08/2026
-last_updated: 29/09/2026
+last_updated: 30/09/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -13,7 +13,7 @@ product: Q Intelligence
 
 ## CRM communications, receiving and deletion
 
-Zoho mail actions recheck a valid Q session and current Staff/Admin role. OAuth state is encrypted and bound to the verified identity; connection tokens are encrypted in HttpOnly cookies, never returned to page JavaScript or stored in Supabase. Fixed Zoho hosts prevent callback parameters selecting arbitrary credential-exchange servers. The portal does not persist mailbox content or attachments in Supabase. HTML is sanitised with a formatting-only allowlist; remote images, links and active content are removed. Attachments are downloaded rather than served inline.
+The office@q-ai.online shared mailbox uses a refresh token held only in server hosting secrets and access tokens cached in server memory. Mail operations recheck each Q user's Staff/Admin role and reject other mailbox IDs. Logging out does not disconnect other operators. The platform connection is revoked through Zoho and removal of the hosting token. Mailbox content and attachments are not stored in Supabase; HTML is sanitised and attachments are served as downloads.
 
 Brevo endpoint management/event access requires Admin authorisation. Receiving checks the active state and bearer secret transactionally; only token hashes/prefixes are retained. Known credential fields are redacted and exact payload retries deduplicated. Direct Supabase client access to endpoint/event tables is revoked. Event review does not execute billing/customer actions.
 
