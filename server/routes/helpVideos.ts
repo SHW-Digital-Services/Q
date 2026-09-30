@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { asyncHandler, sendOpaqueError } from '../middleware.js';
 import { getServiceSupabase, requireAdmin } from './admin.js';
 import { requireExactObject, isUuid } from '../security.js';
+import { HELP_VIDEO_STORAGE_BYTES } from '../../src/shared/videoCompression.js';
 
 export const helpVideosRouter = express.Router();
 export const helpVideosAdminRouter = express.Router();
@@ -40,7 +41,9 @@ helpVideosAdminRouter.get('/', asyncHandler(async (req, res) => {
   return res.json({ videos: await playable(db, data ?? []) });
 }));
 helpVideosAdminRouter.post('/upload', asyncHandler(async (req, res) => {
-  if (!requireExactObject(req.body, ['contentType', 'size']) || typeof req.body.contentType !== 'string' || !Object.hasOwn(extensions, req.body.contentType) || !Number.isInteger(req.body.size) || req.body.size < 1 || req.body.size > 104857600) return res.status(400).json({ error: 'Choose an MP4, WebM or Ogg video up to 100 MB.' });
+  if (!requireExactObject(req.body, ['contentType', 'size']) || typeof req.body.contentType !== 'string' || !Object.hasOwn(extensions, req.body.contentType)) return res.status(400).json({ error: 'Choose an MP4, WebM or Ogg video.' });
+  if (!Number.isSafeInteger(req.body.size) || req.body.size < 1) return res.status(400).json({ error: 'Choose a video file containing data.' });
+  if (req.body.size > HELP_VIDEO_STORAGE_BYTES) return res.status(413).json({ error: 'The upload is still over 50 MB. Compress it before uploading or use a YouTube link.' });
   const { serviceSupabase: db } = res.locals.helpVideoAdmin;
   const path = `videos/${randomUUID()}.${extensions[req.body.contentType]}`;
   const { data, error } = await db.storage.from('help-videos').createSignedUploadUrl(path);
