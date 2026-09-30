@@ -19,6 +19,14 @@ export function mailConfig(): MailConfig | null {
   return { clientId, clientSecret, refreshToken, key: Buffer.from(key, 'hex'), accountsOrigin: `https://accounts.zoho.${suffix}`, mailOrigin: `https://mail.zoho.${suffix}`, redirectUri: `${appOrigin}/api/comms/oauth/callback`, appOrigin, secure: new URL(appOrigin).protocol === 'https:' };
 }
 export const MAIL_SCOPES = 'ZohoMail.accounts.READ,ZohoMail.folders.READ,ZohoMail.messages.READ,ZohoMail.messages.CREATE,ZohoMail.messages.UPDATE';
+export function allowedMailOrigin(origin: string, configured: string): boolean {
+  if (origin === configured) return true;
+  try {
+    const candidate = new URL(origin); const canonical = new URL(configured);
+    const hosts = new Set(['q-ai.online', 'www.q-ai.online']);
+    return origin === candidate.origin && candidate.protocol === 'https:' && canonical.protocol === 'https:' && !candidate.port && !canonical.port && hosts.has(candidate.hostname) && hosts.has(canonical.hostname);
+  } catch { return false; }
+}
 export function sealMail(value: unknown, key: Buffer, purpose: string): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', key, iv);

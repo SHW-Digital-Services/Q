@@ -3,7 +3,7 @@ import express from 'express';
 import { randomBytes } from 'node:crypto';
 import { createCommsRouter } from '../server/routes/comms';
 import { createAdminDeleteUsersRouter } from '../server/routes/adminDeleteUsers';
-import { sealMail, openMail, validMailSession, MailSession, MailConfig, mailRecipients, ZohoMailClient, parseZohoJson, tokenRequest } from '../server/zohoMail';
+import { sealMail, openMail, validMailSession, MailSession, MailConfig, mailRecipients, ZohoMailClient, parseZohoJson, tokenRequest, allowedMailOrigin } from '../server/zohoMail';
 import { emailTemplates, fillEmailTemplate, templatePlaceholders } from '../src/data/emailTemplates';
 import { inboxFolder } from '../src/services/mailFolders';
 
@@ -70,6 +70,10 @@ const payload = { to: 'visitor@example.test', cc: '', bcc: '', subject: 'Welcome
 const post = (value: unknown) => ({ method: 'POST', body: JSON.stringify(value) });
 
 try {
+  assert(allowedMailOrigin('https://www.q-ai.online', 'https://q-ai.online'));
+  assert(allowedMailOrigin('https://q-ai.online', 'https://www.q-ai.online'));
+  for (const candidate of ['https://q-ai.online.attacker.test', 'https://evil.example.test', 'http://www.q-ai.online', 'https://www.q-ai.online:444', 'https://user@www.q-ai.online', 'null']) assert.equal(allowedMailOrigin(candidate, 'https://q-ai.online'), false);
+  assert.equal(allowedMailOrigin('https://www.q-ai.online', 'https://preview.example.test'), false);
   const customFolder = { folderId: '20005', name: 'Customers', type: 'Inbox', path: '/Customers' };
   const actualInbox = { folderId: '20001', name: 'Inbox', type: 'Inbox', path: '/Inbox' };
   assert.equal(inboxFolder([customFolder, actualInbox]), '20001');
@@ -151,6 +155,13 @@ try {
   assert.equal((await request('/accounts/10001/send', post(payload))).status, 200);
   const sendBody = JSON.parse(calls.at(-1)!.init.body as string); assert.equal(sendBody.fromAddress, 'office@q-ai.online'); assert.equal(sendBody.mailFormat, 'plaintext');
   assert.equal((await request('/accounts/10001/send', post({ ...payload, replyTo: '30001' }))).status, 200); assert.equal(calls.at(-1)!.url.pathname, '/api/accounts/10001/messages/30001'); assert.equal(JSON.parse(calls.at(-1)!.init.body as string).action, 'reply');
+  const previousOrigin = config.appOrigin;
+  config.appOrigin = 'https://q-ai.online';
+  assert.equal((await request('/accounts/10001/send', { ...post({ ...payload, replyTo: '30001' }), headers: { Origin: 'https://www.q-ai.online' } })).status, 200);
+  const callsBeforeBlockedReply = calls.length;
+  assert.equal((await request('/accounts/10001/send', { ...post({ ...payload, replyTo: '30001' }), headers: { Origin: 'https://evil.example.test' } })).status, 403);
+  assert.equal(calls.length, callsBeforeBlockedReply);
+  config.appOrigin = previousOrigin;
   assert.equal((await request('/accounts/10001/send', post({ ...payload, draft: true }))).status, 200); assert.equal(JSON.parse(calls.at(-1)!.init.body as string).mode, 'draft');
   const upload = await request('/accounts/10001/attachments?name=example.txt', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: Buffer.from('example') });
   assert.equal(upload.status, 200); const uploaded = (await upload.json()).attachment;

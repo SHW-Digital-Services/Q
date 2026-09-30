@@ -2,7 +2,7 @@ import express from 'express';
 import { requireStaff } from './admin.js';
 import { asyncHandler } from '../middleware.js';
 import { requireExactObject } from '../security.js';
-import { MailError, mailConfig, sealMail, openMail, mailId, mailRecipients, ZohoMailClient, boundedResponse } from '../zohoMail.js';
+import { MailError, mailConfig, sealMail, openMail, mailId, mailRecipients, ZohoMailClient, boundedResponse, allowedMailOrigin } from '../zohoMail.js';
 import type { MailConfig, MailSession } from '../zohoMail.js';
 
 type Dependencies = { authoriseStaff: typeof requireStaff; config: () => MailConfig | null; fetcher: typeof fetch };
@@ -24,7 +24,7 @@ export function createCommsRouter(dependencies: Dependencies) {
     res.locals.mailStaff = context;
     const config = dependencies.config(); res.locals.mailConfig = config;
     // Bearer authentication is required on all mail actions, including disconnect.
-    if (req.method !== 'GET' && req.headers.origin && config && req.headers.origin !== config.appOrigin) return res.status(403).json({ error: 'Open the communications portal on Q’s configured site address.' });
+    if (req.method !== 'GET' && req.headers.origin && config && !allowedMailOrigin(req.headers.origin, config.appOrigin)) return res.status(403).json({ error: 'Open the communications portal on Q’s configured site address.' });
     next();
   }));
   router.get('/status', (_req, res) => {
