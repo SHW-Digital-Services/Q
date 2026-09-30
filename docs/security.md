@@ -221,7 +221,7 @@ Personal data breaches will be handled in accordance with applicable data-protec
 
 If you believe you have found a security vulnerability affecting Q Intelligence, contact:
 
-**support@q-ai.online**
+**office@q-ai.online**
 
 Please include:
 
@@ -293,8 +293,9 @@ Q Intelligence is operated by:
 Trading as **SHW Digital Services**
 
 Website: https://q-ai.online  
-Security and support enquiries: support@q-ai.online  
-Privacy enquiries: privacy@q-ai.online
+Security and support enquiries: office@q-ai.online
+
+Privacy enquiries: office@q-ai.online
 
 ---
 

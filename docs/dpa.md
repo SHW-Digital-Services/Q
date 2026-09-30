@@ -199,9 +199,9 @@ Trading as **SHW Digital Services**
 
 Website: https://q-ai.online
 
-Support: support@q-ai.online
+Support: office@q-ai.online
 
-Billing: billing@q-ai.online
+Billing: office@q-ai.online
 
 ---
 

@@ -57,11 +57,11 @@ https://q-ai.online
 
 Privacy Contact:
 
-privacy@q-ai.online
+office@q-ai.online
 
 General Contact:
 
-support@q-ai.online
+office@q-ai.online
 
 Where required by applicable law, SHW Digital Services acts as the Data Controller for personal information processed through Q Intelligence.
 
@@ -307,7 +307,7 @@ If you use the chat, Q and Brevo process the messages, attachments and contact d
 
 Brevo support chat is separate from Q's AI assistant. Q's local AI processing and PII Shield do not apply to messages sent through this widget. The integration does not automatically attach your private journal, AI conversations or Q account profile to support messages. Please share only what is needed for your enquiry and avoid passwords, payment details, private journal entries or sensitive health and identity information. Voluntarily providing sensitive information does not itself supply any additional legal condition required to process it.
 
-Using support chat or supplying an email address for a reply does not subscribe you to marketing. You can also contact support@q-ai.online. The Processor Register and Cookie Policy describe the provider and browser-storage arrangements.
+Using support chat or supplying an email address for a reply does not subscribe you to marketing. You can also contact office@q-ai.online. The Processor Register and Cookie Policy describe the provider and browser-storage arrangements.
 
 ### Optional Brevo website analytics
 
@@ -682,7 +682,7 @@ We use **Brevo (formerly Sendinblue)** to manage and deliver optional marketing 
 
 We send these optional emails where you have opted in or specifically requested them. Creating an account, buying a subscription or accepting our Terms does not by itself enrol you in general marketing. If you requested launch or waitlist updates, we use that permission for the updates described when you joined, rather than treating it as permission for unrelated campaigns.
 
-You can unsubscribe through the link in a marketing or community-update email, or contact **privacy@q-ai.online**. You do not need to close your Q account or pay a fee to stop marketing. You have the right to object to the use of your personal data for direct marketing at any time, including related profiling; we will stop using it for that purpose. Withdrawing marketing consent does not affect earlier lawful processing or necessary service notices.
+You can unsubscribe through the link in a marketing or community-update email, or contact **office@q-ai.online**. You do not need to close your Q account or pay a fee to stop marketing. You have the right to object to the use of your personal data for direct marketing at any time, including related profiling; we will stop using it for that purpose. Withdrawing marketing consent does not affect earlier lawful processing or necessary service notices.
 
 We limit marketing-list data to contact details, communication choices and relevant delivery/consent records. Private journals, chat content, mood logs and programme reflections must not be uploaded to Brevo for campaigns. We do not use those records, or inferred sexual orientation or health information, to target marketing. Joining a Q mailing list is not treated as a declaration of your identity or health status.
 
@@ -690,7 +690,7 @@ We limit marketing-list data to contact details, communication choices and relev
 
 Brevo supports tracking pixels and personalised links to measure email opens and clicks. Where enabled, these may record whether and when an email was opened or a link was clicked, together with technical information such as IP address and email-client or device details. This information may be used to assess campaign engagement. Delivery and bounce records are distinct from open/click tracking.
 
-Consent to receive emails does not by itself constitute consent to non-essential device tracking. Where applicable law requires consent for that tracking, it must be obtained separately before tracking occurs. You may withdraw any tracking consent through the controls provided with the email, where available, or by contacting **privacy@q-ai.online**. Website cookie choices do not necessarily control tracking inside an email application. See the Cookie Policy for further information.
+Consent to receive emails does not by itself constitute consent to non-essential device tracking. Where applicable law requires consent for that tracking, it must be obtained separately before tracking occurs. You may withdraw any tracking consent through the controls provided with the email, where available, or by contacting **office@q-ai.online**. Website cookie choices do not necessarily control tracking inside an email application. See the Cookie Policy for further information.
 
 ---
 
@@ -749,7 +749,7 @@ Authentication records, audit logs, and security events may be retained for an a
 
 We keep active mailing-list information while it is needed to provide the updates you requested and review it for continued relevance. On unsubscribe or objection, we stop using your details for those campaigns. We may retain the minimum email address or equivalent identifier, opt-out date and suppression status needed to honour your choice and prevent accidental re-enrolment, together with proportionate consent evidence where needed for accountability or legal claims. Suppression records are not used to send marketing.
 
-Requests for access, correction or deletion of mailing-list data can be sent to **privacy@q-ai.online**. These requests cover relevant Brevo records as well as records held directly by Q. Deleting app data is not a substitute for managing a separate mailing-list subscription; you can use the email unsubscribe link or ask us to handle both. Retained provider logs and backups remain subject to the applicable contractual retention and deletion arrangements.
+Requests for access, correction or deletion of mailing-list data can be sent to **office@q-ai.online**. These requests cover relevant Brevo records as well as records held directly by Q. Deleting app data is not a substitute for managing a separate mailing-list subscription; you can use the email unsubscribe link or ask us to handle both. Retained provider logs and backups remain subject to the applicable contractual retention and deletion arrangements.
 
 ---
 
@@ -757,7 +757,7 @@ Requests for access, correction or deletion of mailing-list data can be sent to 
 
 Support messages and associated visitor records are retained for as long as needed to handle the enquiry and relevant follow-up, security or legal obligations. Retention depends on the support purpose and applicable provider arrangements; the retention periods for Q's own contact form do not automatically apply to Brevo conversations.
 
-For access, correction or deletion of support-chat records, contact **privacy@q-ai.online** and provide enough information to locate the conversation. Q handles relevant requests with Brevo. Clearing browser storage, closing the chat, exporting Q account data or deleting your Q account does not automatically export or delete the separate Brevo conversation history. Provider backups and logs remain subject to applicable retention and deletion arrangements.
+For access, correction or deletion of support-chat records, contact **office@q-ai.online** and provide enough information to locate the conversation. Q handles relevant requests with Brevo. Clearing browser storage, closing the chat, exporting Q account data or deleting your Q account does not automatically export or delete the separate Brevo conversation history. Provider backups and logs remain subject to applicable retention and deletion arrangements.
 
 ---
 
@@ -949,9 +949,9 @@ Trading as **SHW Digital Services**
 
 Website: https://q-ai.online
 
-Privacy Email: privacy@q-ai.online
+Privacy Email: office@q-ai.online
 
-Support Email: support@q-ai.online
+Support Email: office@q-ai.online
 
 ---
 

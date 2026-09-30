@@ -75,7 +75,7 @@ Provider references:
 
 Brevo Conversations also processes support records on Q's behalf under the applicable provider agreement. Its widget connects to Brevo when an application page loads. The integration does not automatically supply Q account profiles, private journals or AI conversation history. Chat contact details must not be repurposed for marketing without the separately required permission.
 
-Requests concerning Brevo chat records are handled through privacy@q-ai.online. Q account export and deletion do not automatically export or erase these separate records. Support retention, international transfers and provider access remain subject to the applicable agreement and configured service; no fixed chat-retention period or exclusively UK hosting is asserted here.
+Requests concerning Brevo chat records are handled through office@q-ai.online. Q account export and deletion do not automatically export or erase these separate records. Support retention, international transfers and provider access remain subject to the applicable agreement and configured service; no fixed chat-retention period or exclusively UK hosting is asserted here.
 
 Brevo visitor-data guidance: https://help.brevo.com/hc/en-us/articles/4608779872018-Understand-the-Visitors-online-page
 
@@ -166,9 +166,9 @@ Trading as **SHW Digital Services**
 
 Website: https://q-ai.online
 
-Privacy: privacy@q-ai.online
+Privacy: office@q-ai.online
 
-Legal: legal@q-ai.online
+Legal: office@q-ai.online
 
 ---
 

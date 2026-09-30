@@ -525,7 +525,7 @@ We communicate electronically with you where necessary to administer the Service
 
 Optional marketing, newsletters and community-update emails are managed through Brevo (formerly Sendinblue) and sent where you have opted in or specifically requested them. Accepting these Terms, creating an account or purchasing a subscription does not by itself constitute marketing consent. Permission for launch or waitlist updates is limited to the communications described when it was collected.
 
-You can stop optional emails through their unsubscribe link or by contacting privacy@q-ai.online, without closing your account. Necessary security, billing and service notices may still be sent. Marketing consent is separate from any required consent to non-essential email tracking. The Privacy Policy, Cookie Policy and Processor Register explain the relevant processing and choices.
+You can stop optional emails through their unsubscribe link or by contacting office@q-ai.online, without closing your account. Necessary security, billing and service notices may still be sent. Marketing consent is separate from any required consent to non-essential email tracking. The Privacy Policy, Cookie Policy and Processor Register explain the relevant processing and choices.
 
 ---
 
@@ -570,11 +570,11 @@ Trading as **SHW Digital Services**
 
 Website: https://q-ai.online
 
-General Support: support@q-ai.online
+General Support: office@q-ai.online
 
-Legal Enquiries: legal@q-ai.online
+Legal Enquiries: office@q-ai.online
 
-Privacy: privacy@q-ai.online
+Privacy: office@q-ai.online
 
 ---
 
