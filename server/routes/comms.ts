@@ -10,6 +10,7 @@ type AttachmentProof = { owner: string; account: string; expires: number; attach
 const sessionCookie = 'q_zoho_mail';
 const stateCookie = 'q_zoho_state';
 const jsonBody = (body: unknown) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+const mailMessagePage = (messages: any[], hasMore: boolean) => ({ messages: messages.map(m => ({ messageId: String(m.messageId), folderId: String(m.folderId), subject: m.subject || '(No subject)', from: m.fromAddress || m.sender || '', to: m.toAddress || '', summary: m.summary || '', receivedAt: m.receivedTime || m.receivedtime || m.sentDateInGMT, unread: ['0', 'unread'].includes(String(m.status)), hasAttachment: ['1', 'true'].includes(String(m.hasAttachment)) })), hasMore });
 
 export function createCommsRouter(dependencies: Dependencies) {
   const router = express.Router();
@@ -99,9 +100,35 @@ export function createCommsRouter(dependencies: Dependencies) {
     const query = new URLSearchParams({ start: String(start), limit: '30', includeto: 'true' });
     if (search) { query.set('searchKey', search); query.set('receivedTime', String(Date.now())); }
     else { query.set('folderId', mailId(req.query.folder)); query.set('includesent', 'true'); query.set('includearchive', 'true'); query.set('status', 'all'); query.set('sortBy', 'date'); query.set('sortorder', 'false'); }
-    const messages = await (res.locals.mailClient as ZohoMailClient).json(`/accounts/${mailId(req.params.account)}/messages/${search ? 'search' : 'view'}?${query}`);
+    const client = res.locals.mailClient as ZohoMailClient;
+    const accountPath = `/accounts/${mailId(req.params.account)}`;
+    let messages = await client.json(`${accountPath}/messages/${search ? 'search' : 'view'}?${query}`);
     if (!Array.isArray(messages)) throw new MailError(502, 'Zoho did not return a valid message list. Try refreshing or open Zoho Mail.');
-    return res.json({ messages: (Array.isArray(messages) ? messages : []).map(m => ({ messageId: String(m.messageId), folderId: String(m.folderId), subject: m.subject || '(No subject)', from: m.fromAddress || m.sender || '', to: m.toAddress || '', summary: m.summary || '', receivedAt: m.receivedTime || m.receivedtime || m.sentDateInGMT, unread: ['0', 'unread'].includes(String(m.status)), hasAttachment: ['1', 'true'].includes(String(m.hasAttachment)) })), hasMore: Array.isArray(messages) && messages.length === 30 });
+    let source = search ? 'search' : 'folder';
+    if (!search && messages.length === 0) {
+      // Try the provider's basic folder view before assuming the inbox is empty.
+      const basic = new URLSearchParams({ folderId: mailId(req.query.folder), start: String(start), limit: '30', includeto: 'true' });
+      messages = await client.json(`${accountPath}/messages/view?${basic}`);
+      if (!Array.isArray(messages)) throw new MailError(502, 'Zoho did not return a valid message list. Try refreshing or open Zoho Mail.');
+      source = 'basic-folder';
+      if (messages.length === 0) {
+        const folders = await client.json(`${accountPath}/folders`);
+        if (!Array.isArray(folders)) throw new MailError(502, 'Zoho did not return a valid folder list.');
+        const folder = folders.find(f => String(f.folderId) === req.query.folder);
+        if (!folder) throw new MailError(404, 'This folder is no longer available. Reload Communications.');
+        const name = String(folder.folderName || '');
+        if (name && !/["\r\n\\]/.test(name)) {
+          const fallbackQuery = new URLSearchParams({ searchKey: `in:"${name}"`, receivedTime: String(Date.now()), start: String(start), limit: '30', includeto: 'true' });
+          const results = await client.json(`${accountPath}/messages/search?${fallbackQuery}`);
+          if (!Array.isArray(results)) throw new MailError(502, 'Zoho did not return a valid message list.');
+          // Folder-name searches can match more than one folder. Never mix them.
+          messages = results.filter(m => String(m.folderId) === req.query.folder);
+          source = 'folder-search';
+          return res.json({ ...mailMessagePage(messages, results.length === 30), source });
+        }
+      }
+    }
+    return res.json({ ...mailMessagePage(messages, messages.length === 30), source });
   }));
   const messagePath = (req: express.Request) => `/accounts/${mailId(req.params.account)}/folders/${mailId(req.params.folder)}/messages/${mailId(req.params.message)}`;
   router.get('/accounts/:account/folders/:folder/messages/:message', asyncHandler(async (req, res) => {

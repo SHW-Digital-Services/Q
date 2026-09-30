@@ -13,7 +13,7 @@ const key = randomBytes(32);
 const config: MailConfig = { clientId: 'fixture-client', clientSecret: 'fixture-secret', refreshToken: 'fixture-refresh', key, accountsOrigin: 'https://accounts.zoho.eu', mailOrigin: 'https://mail.zoho.eu', redirectUri: '', appOrigin: '', secure: false };
 const session: MailSession = { owner, access: 'fixture-access', refresh: 'fixture-refresh', expires: Date.now() + 3600000, tokenExpires: Date.now() + 3600000 };
 const calls: { url: URL; init: RequestInit }[] = [];
-let providerStatus = 200; let mailboxEmail = 'office@q-ai.online'; let malformedMessages = false;
+let providerStatus = 200; let mailboxEmail = 'office@q-ai.online'; let malformedMessages = false; let emptyView: 'none' | 'extended' | 'all' = 'none';
 const json = (data: unknown, status = 200) => new Response(JSON.stringify({ status: { code: status }, data }), { status, headers: { 'Content-Type': 'application/json' } });
 const fetcher = (async (url: any, init: RequestInit = {}) => {
   const parsed = new URL(String(url)); calls.push({ url: parsed, init });
@@ -22,6 +22,7 @@ const fetcher = (async (url: any, init: RequestInit = {}) => {
   if (providerStatus !== 200) return json({ private: 'DO_NOT_LEAK_PROVIDER_BODY' }, providerStatus);
   if (parsed.pathname === '/api/accounts') return json([{ accountId: '10001', primaryEmailAddress: mailboxEmail, displayName: 'Q Office' }, { accountId: '99999', primaryEmailAddress: 'other@example.test' }]);
   if (parsed.pathname.endsWith('/folders')) return json([{ folderId: '20001', folderName: 'Inbox', folderType: 'Inbox' }, { folderId: '20002', folderName: 'Sent', folderType: 'Sent' }, { folderId: '20003', folderName: 'Drafts', folderType: 'Drafts' }, { folderId: '20004', folderName: 'Archive', folderType: 'Archive' }]);
+  if (parsed.pathname.endsWith('/view') && (emptyView === 'all' || emptyView === 'extended' && parsed.searchParams.has('includearchive'))) return json([]);
   if (parsed.pathname.endsWith('/search') && parsed.searchParams.get('searchKey')?.startsWith('sender:')) return json([
     { messageId: '601', folderId: '20001', fromAddress: 'Visitor <visitor@example.test>', toAddress: 'office@q-ai.online', receivedTime: Date.now(), subject: 'Inbound', summary: 'PRIVATE_BODY_NOT_HISTORY' },
     { messageId: '602', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Sent' },
@@ -121,6 +122,17 @@ try {
   assert.equal(inboxRequest.searchParams.get('folderId'), '20001');
   assert.equal(inboxRequest.searchParams.get('sortorder'), 'false');
   assert.equal(inboxRequest.searchParams.get('status'), 'all');
+  emptyView = 'extended';
+  const basicPage = await (await request('/accounts/10001/messages?folder=20001')).json();
+  assert.equal(basicPage.source, 'basic-folder'); assert.equal(basicPage.messages.length, 1);
+  emptyView = 'all';
+  const searchPage = await (await request('/accounts/10001/messages?folder=20001')).json();
+  assert.equal(searchPage.source, 'folder-search'); assert.equal(searchPage.messages.length, 1);
+  assert(calls.some(call => call.url.searchParams.get('searchKey') === 'in:"Inbox"' && Number(call.url.searchParams.get('receivedTime')) > Date.now() - 60000));
+  const otherFolder = await (await request('/accounts/10001/messages?folder=20002')).json();
+  assert.equal(otherFolder.messages.length, 0);
+  assert.equal((await request('/accounts/10001/messages?folder=99999')).status, 404);
+  emptyView = 'none';
   malformedMessages = true;
   assert.equal((await request('/accounts/10001/messages?folder=20001')).status, 502);
   malformedMessages = false;
