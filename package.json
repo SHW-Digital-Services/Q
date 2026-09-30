@@ -21,7 +21,7 @@
     "@ffmpeg/core": "0.12.10",
     "@ffmpeg/ffmpeg": "0.12.15",
     "@mlc-ai/web-llm": "^0.2.84",
-    "@supabase/supabase-js": "^2.111.0",
+    "@supabase/supabase-js": "^2.117.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "dompurify": "^3.4.16",
