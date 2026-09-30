@@ -77,7 +77,21 @@ export async function tokenRequest(config: MailConfig, values: Record<string, st
   const response = await fetcher(`${config.accountsOrigin}/oauth/v2/token`, { method: 'POST', body: new URLSearchParams({ client_id: config.clientId, client_secret: config.clientSecret, ...values }), redirect: 'error', signal: AbortSignal.timeout(15000) });
   const text = await boundedResponse(response, 32 * 1024);
   let data: any; try { data = JSON.parse(text.toString()); } catch { throw new MailError(502, 'Zoho authentication is temporarily unavailable.'); }
-  if (!response.ok || data.error || typeof data.access_token !== 'string' || data.access_token.length > 1500) throw new MailError(401, 'Zoho could not authorise this mailbox. Please connect again and check Q’s Zoho application settings.');
+  if (!response.ok || data?.error || typeof data?.access_token !== 'string' || data.access_token.length > 1500) {
+    // Use only known error names and our own explanations. Provider descriptions
+    // can echo credentials; never return or log those response bodies.
+    const messages: Record<string, string> = {
+      invalid_client: 'Zoho rejected the application credentials (invalid_client). Check that ZOHO_MAIL_CLIENT_ID and ZOHO_MAIL_CLIENT_SECRET belong to the same Self Client, and that ZOHO_MAIL_REGION matches its data centre.',
+      invalid_client_secret: 'Zoho rejected the application secret (invalid_client_secret). Update ZOHO_MAIL_CLIENT_SECRET with the secret for the configured Client ID.',
+      invalid_code: 'Zoho rejected the refresh token (invalid_code). ZOHO_MAIL_REFRESH_TOKEN must contain the refresh token returned by the setup helper, not the short-lived Generate Code grant or an access token. Check that it belongs to the same Client ID and Zoho region; regenerate it if revoked.',
+      invalid_grant: 'Zoho rejected the authorisation (invalid_grant). Generate a new office mailbox refresh token using the same Client ID, secret and Zoho region configured in Q.',
+      access_denied: 'Zoho denied the office mailbox authorisation (access_denied). Check the office account authorisation and its API permissions.',
+    };
+    const recognised = typeof data?.error === 'string' && Object.hasOwn(messages, data.error) ? messages[data.error] : null;
+    if (response.status === 429) throw new MailError(429, 'Zoho authentication is rate limited. Wait before refreshing Communications again.');
+    if (response.status >= 500) throw new MailError(502, 'Zoho authentication is temporarily unavailable. Try again later.');
+    throw new MailError(401, recognised ? `${recognised} Redeploy Q after updating hosting settings.` : 'Zoho could not authorise office@q-ai.online. Check the matching Client ID, Client Secret, refresh token and region in Q hosting settings, then redeploy.');
+  }
   return data;
 }
 export class ZohoMailClient {

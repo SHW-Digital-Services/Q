@@ -1,3 +1,4 @@
+import CustomerCommunicationHistory from './CustomerCommunicationHistory';
 import React, { useEffect, useRef, useState } from 'react';
 import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, LogOut, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2, Newspaper, BookOpen } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
@@ -38,11 +39,6 @@ interface CrmProduct {
   id: string; name: string; description: string | null; price_minor: number; currency: string;
   billing_interval: 'one_time' | 'month' | 'year'; paypal_product_id: string | null; paypal_plan_id: string | null;
   paypal_sync_status: 'not_synced' | 'synced' | 'error'; paypal_last_synced_at: string | null; active: boolean;
-}
-
-interface ContactRequest {
-  id: string; name: string | null; email: string; category: string; subject: string; message: string;
-  status: 'new' | 'in_progress' | 'answered' | 'closed'; response_text: string | null; created_at: string;
 }
 
 interface CrmCommunication {
@@ -146,9 +142,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [manualDiscount, setManualDiscount] = useState({ percent: '', cycles: '' });
   const [newUser, setNewUser] = useState({ name: '', email: '', role: 'user' });
   const [addingUser, setAddingUser] = useState(false);
-  const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
-  const [contactReplies, setContactReplies] = useState<Record<string, string>>({});
-  const [contactMessage, setContactMessage] = useState<string | null>(null);
   const [communicationMessage, setCommunicationMessage] = useState<string | null>(null);
   const [newCommunication, setNewCommunication] = useState({ recipientEmail: '', subject: '', body: '', channel: 'email', status: 'sent' });
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
@@ -237,15 +230,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     }
   };
 
-  const loadContactRequests = async () => {
-    try {
-      const response = await fetch('/api/v1/admin/contact-requests', { headers: await getAuthHeaders() });
-      const payload = await parseJsonResponse(response);
-      setContactRequests(payload);
-      setContactReplies(Object.fromEntries(payload.map((request: ContactRequest) => [request.id, request.response_text || ''])));
-    } catch (error: any) { setContactMessage(error.message || 'Unable to load support requests.'); }
-  };
-
   const logOutboundCommunication = async (event: React.FormEvent) => {
     event.preventDefault();
     setCommunicationMessage(null);
@@ -257,21 +241,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       setCommunicationMessage('Outbound communication logged.');
       await openCustomer(customer.identity.id);
     } catch (error: any) { setCommunicationMessage(error.message || 'Unable to log the communication.'); }
-  };
-
-  const updateContactRequest = async (request: ContactRequest, status: ContactRequest['status']) => {
-    try {
-      const responseText = contactReplies[request.id] || '';
-      const response = await fetch(`/api/v1/admin/contact-requests/${request.id}`, { method: 'PATCH', headers: await getAuthHeaders(), body: JSON.stringify({ status, responseText }) });
-      const updated = await parseJsonResponse(response);
-      setContactRequests(current => current.map(item => item.id === updated.id ? updated : item));
-      setContactMessage(`Support request marked ${status.replace('_', ' ')}.`);
-    } catch (error: any) { setContactMessage(error.message || 'Unable to update support request.'); }
-  };
-
-  const openEmailReply = (request: ContactRequest) => {
-    const body = contactReplies[request.id] || '';
-    window.location.href = `mailto:${encodeURIComponent(request.email)}?subject=${encodeURIComponent(`Re: ${request.subject}`)}&body=${encodeURIComponent(body)}`;
   };
 
   const loadProducts = async () => {
@@ -706,7 +675,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     void loadRequests();
     void loadCrm();
     void loadProducts();
-    void loadContactRequests();
     void loadPeerSubmissions();
     void loadLifeGuides();
   }, []);
@@ -945,18 +913,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           </div>
         </section>
 
-        <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
-          <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><MessageSquareText className="h-4 w-4 text-sky-300" /><p className="text-sm font-semibold">Support inbox</p></div><p className="mt-1 text-sm text-slate-400">Questions sent from the login screen. Draft a response, open it in your staff email client, then update the CRM status.</p></div><button type="button" onClick={() => void loadContactRequests()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh support inbox"><RefreshCw className="h-4 w-4" /></button></div>
-          {contactMessage && <p className="mt-3 rounded-xl bg-sky-500/10 p-3 text-xs text-sky-100">{contactMessage}</p>}
-          <div className="mt-4 space-y-3">
-            {contactRequests.length === 0 ? <p className="text-xs text-slate-400">No contact requests yet.</p> : contactRequests.map(request => <article key={request.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><span className="text-[10px] font-black uppercase tracking-wider text-sky-300">{request.category}</span><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${request.status === 'new' ? 'bg-amber-500/15 text-amber-200' : request.status === 'answered' ? 'bg-emerald-500/15 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>{request.status.replace('_', ' ')}</span></div><h3 className="mt-1 font-bold text-white">{request.subject}</h3><p className="mt-1 text-xs text-slate-400">{request.name || 'No name'} · {request.email} · {new Date(request.created_at).toLocaleString()}</p></div><button type="button" onClick={() => navigator.clipboard.writeText(request.email)} className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[10px] font-bold text-slate-300 hover:bg-white/10"><Copy className="h-3 w-3" />Email</button></div>
-              <p className="mt-3 whitespace-pre-wrap rounded-xl bg-slate-950/70 p-3 text-xs leading-relaxed text-slate-200">{request.message}</p>
-              <textarea value={contactReplies[request.id] || ''} onChange={event => setContactReplies({ ...contactReplies, [request.id]: event.target.value })} rows={4} placeholder="Draft the reply that will be sent by email…" className="mt-3 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white placeholder:text-slate-500" />
-              <div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => openEmailReply(request)} disabled={!contactReplies[request.id]?.trim()} className="inline-flex items-center gap-1.5 rounded-xl bg-sky-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><Mail className="h-3.5 w-3.5" />Open email reply</button><button type="button" onClick={() => void updateContactRequest(request, 'in_progress')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">In progress</button><button type="button" onClick={() => void updateContactRequest(request, 'answered')} disabled={!contactReplies[request.id]?.trim()} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-40">Mark answered &amp; log reply</button><button type="button" onClick={() => void updateContactRequest(request, 'closed')} className="rounded-xl bg-slate-700 px-3 py-2 text-xs font-bold text-white">Close</button></div>
-            </article>)}
-          </div>
-        </section>
+        <a href="/crm/comms?section=support" className="mt-6 inline-flex rounded-xl border border-white/10 px-4 py-3 text-sm text-sky-200 hover:bg-white/10">Open Support inbox in Communications</a>
 
         {showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><UserCog className="h-4 w-4 text-purple-300"/><p className="text-sm font-semibold">Staff management</p></div><p className="mt-1 text-sm text-slate-400">Promote, demote, and review authorised CRM accounts.</p></div><button onClick={() => void loadStaff()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10"><RefreshCw className="h-4 w-4"/></button></div>
@@ -1193,7 +1150,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                   <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><Mail className="h-4 w-4 text-emerald-300" /><h3 className="font-bold">Communication history</h3></div><p className="mt-1 text-xs text-slate-400">Inbound and outbound messages for this account. Logging a message does not send it.</p></div><button type="button" onClick={() => void openCustomer(customer.identity.id)} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh communication history"><RefreshCw className="h-4 w-4" /></button></div>
                   {communicationMessage && <p className="mt-3 rounded-xl bg-emerald-500/10 p-3 text-xs text-emerald-100">{communicationMessage}</p>}
                   <form onSubmit={logOutboundCommunication} className="mt-4 grid gap-2 rounded-xl border border-white/10 bg-slate-900/60 p-3 md:grid-cols-4"><p className="text-xs font-bold text-white md:col-span-4">Log an outbound message</p><input type="email" value={newCommunication.recipientEmail} onChange={event => setNewCommunication({ ...newCommunication, recipientEmail: event.target.value })} placeholder={customer.identity.email} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white" /><input value={newCommunication.subject} onChange={event => setNewCommunication({ ...newCommunication, subject: event.target.value })} placeholder="Subject" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2" /><select value={newCommunication.channel} onChange={event => setNewCommunication({ ...newCommunication, channel: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="email">Email</option><option value="phone">Phone</option><option value="chat">Chat</option><option value="other">Other</option></select><textarea required maxLength={5000} value={newCommunication.body} onChange={event => setNewCommunication({ ...newCommunication, body: event.target.value })} placeholder="What was sent or discussed?" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white md:col-span-3" /><button type="submit" className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Log outbound</button></form>
-                  <div className="mt-4 max-h-72 space-y-2 overflow-y-auto">{(customer.communications ?? []).length === 0 ? <p className="text-xs text-slate-400">No communications logged for this account yet.</p> : customer.communications.map((item: CrmCommunication) => <article key={item.id} className="rounded-xl border border-white/10 bg-slate-900/70 p-3"><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${item.direction === 'inbound' ? 'bg-sky-500/15 text-sky-200' : 'bg-emerald-500/15 text-emerald-200'}`}>{item.direction}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{item.channel} · {item.status}</span><span className="ml-auto text-[10px] text-slate-500">{new Date(item.created_at).toLocaleString()}</span></div><p className="mt-2 text-xs text-slate-300">{item.direction === 'inbound' ? item.sender_email || 'Unknown sender' : item.recipient_email || 'Unknown recipient'}{item.subject ? ` · ${item.subject}` : ''}</p><p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-400">{item.body}</p></article>)}</div>
+                  <CustomerCommunicationHistory key={customer.identity.id} userId={customer.identity.id} existing={customer.communications ?? []} />
                 </section>
                 {taskModalOpen && <div className="q-modal-backdrop fixed inset-0 z-[100] flex justify-center bg-slate-950/80 p-4"><form onSubmit={createTask} className="w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-white/15 bg-slate-900 p-5 shadow-2xl"><div className="flex items-center justify-between"><h3 className="text-lg font-bold text-white">Create task</h3><button type="button" onClick={() => setTaskModalOpen(false)} className="rounded-full p-2 text-slate-400 hover:bg-white/10"><X className="h-4 w-4" /></button></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><input required value={taskForm.title} onChange={event => setTaskForm({ ...taskForm, title: event.target.value })} placeholder="Task title" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white sm:col-span-2" /><textarea value={taskForm.description} onChange={event => setTaskForm({ ...taskForm, description: event.target.value })} placeholder="Description" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white sm:col-span-2" /><label className="text-xs text-slate-400">Status<select value={taskForm.status} onChange={event => setTaskForm({ ...taskForm, status: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="open">Open</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label><label className="text-xs text-slate-400">Priority<select value={taskForm.priority} onChange={event => setTaskForm({ ...taskForm, priority: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></label><label className="text-xs text-slate-400">Start date<input type="datetime-local" value={taskForm.startAt} onChange={event => setTaskForm({ ...taskForm, startAt: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white" /></label><label className="text-xs text-slate-400">Due date<input type="datetime-local" value={taskForm.dueAt} onChange={event => setTaskForm({ ...taskForm, dueAt: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white" /></label><label className="text-xs text-slate-400 sm:col-span-2">Assigned to<select value={taskForm.assignedTo} onChange={event => setTaskForm({ ...taskForm, assignedTo: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="">Me</option>{staffAccounts.map(account => <option key={account.id} value={account.id}>{account.preferred_name || account.email} ({account.role})</option>)}</select></label></div><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={() => setTaskModalOpen(false)} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200">Cancel</button><button type="submit" className="rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white">Create task</button></div></form></div>}
                 <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center gap-2 text-white"><Users className="h-4 w-4 text-emerald-300" /><h3 className="font-bold">Peer Knowledge contributions</h3></div><p className="mt-1 text-xs text-slate-400">Customer-submitted Peer Knowledge entries and moderation status.</p><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{(customer.peerKnowledgeContributions ?? []).length === 0 ? <p className="text-xs text-slate-400">No Peer Knowledge contributions for this account.</p> : customer.peerKnowledgeContributions.map((item:any)=><article key={item.id} className="rounded-xl border border-white/10 bg-slate-900/70 p-3"><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${item.status === 'approved' ? 'bg-emerald-500/15 text-emerald-200' : item.status === 'rejected' ? 'bg-rose-500/15 text-rose-200' : 'bg-amber-500/15 text-amber-200'}`}>{item.status}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{item.category}</span><span className="ml-auto text-[10px] text-slate-500">{new Date(item.created_at).toLocaleString()}</span></div><p className="mt-2 text-xs font-bold text-white">{item.title}</p><p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-slate-400">{item.content}</p></article>)}</div></section>

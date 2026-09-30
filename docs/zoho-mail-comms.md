@@ -45,9 +45,15 @@ The five-user Forever Free package excludes IMAP/POP/ActiveSync; this integratio
 
 ## Email templates
 
+Communications also includes a **Support inbox** tab for existing Q contact-form requests. The CRM links directly to this tab. It retains the existing Staff/Admin support endpoints, draft responses, email-client reply action and status controls, and is available even before Zoho is configured. These existing website support records are separate from the Zoho mailbox; moving their interface does not import or save Zoho email data.
+
+The mailbox opens the system Inbox using its path/name, because Zoho also labels custom folders with the type `Inbox`. Folder pages request all read/unread messages, newest first. Refresh returns to page one of the current folder or search. Q checks for new messages every minute while the visible first page is idle, with no search, selected email or composer open; returning to that browser tab also refreshes. Use Refresh to check immediately and return to the message list. Messages remain in Zoho; these checks do not store mail in Supabase. If mail appears in Zoho Inbox but not Q, clear the search, select Inbox, refresh and check for a displayed connection error. If mail is absent from Zoho too, check Zoho Spam and delivery settings.
+
 **Email templates** contains 30 generic starters in six categories: Support, Account access, Using Q, Subscriptions, Community and Updates. Copy follows the brand guide: welcoming, clear, affirming, protective, non-presumptive and non-pushy. Staff fill the labelled placeholders, choose **Use template**, then edit the subject/message and enter recipients. Sending requires a confirmation and rejects unresolved `{{placeholders}}` on the server too. Templates do not trigger campaigns or imply marketing consent. Check permission, facts, links, dates, subscription details and the intended audience before sending. Generic template copy is shipped in `src/data/emailTemplates.ts`; personalised content remains in memory until explicitly sent or saved to Zoho.
 
 ## API surface
+
+The 360° customer Communication history combines existing CRM activity with live Zoho email history. Staff/Admin requests resolve the customer's current registered email using the server's Auth admin lookup and search the single office mailbox for sender, To and Cc matches. Results are checked against exact addresses, deduplicated by Zoho message ID, and exclude Drafts, Outbox and Templates. Emails display automatically when the record opens, refresh every minute while visible on the first page, and include an Open email in Communications link and older-page control. No email records, subjects, bodies, attachments or message references are persisted to Supabase by this feature. It is a live history, so deleted emails, changed customer email addresses, missing provider permissions and Zoho search indexing affect what is available. Bcc-only recipients are not covered by the documented sender/To/Cc search. Historical emails already held in Zoho are included, even if sent outside Q. No migration is required.
 
 All paths are under `/api/comms`. Every mailbox route requires a valid Q bearer session and a current Staff/Admin role. Responses use `Cache-Control: no-store, private`. Mail routes do not receive a database client for content writes.
 
@@ -58,6 +64,7 @@ All paths are under `/api/comms`. Every mailbox route requires a valid Q bearer 
 | GET `/oauth/callback` | Compatibility route: returns to setup; does not exchange codes |
 | POST `/disconnect` | Clears legacy cookies; does not revoke shared authorisation |
 | GET `/accounts` | Connected user's mailboxes |
+| GET `/customers/:user/history?start=1` | Registered customer's live Zoho email history; server resolves their email, no database writes |
 | GET `/accounts/:account/folders` | Folder list |
 | GET `/accounts/:account/messages?folder=…&start=1&search=…` | 30-message pages; search uses Zoho syntax |
 | GET `/accounts/:account/folders/:folder/messages/:message` | Content and attachment metadata |
@@ -71,3 +78,7 @@ References: [Zoho OAuth](https://www.zoho.com/mail/help/api/using-oauth-2.html),
 ## Local verification
 
 Run `npm run check:comms`, `npm run check:webhooks`, `npx tsx scripts/check-admin-content.ts`, `npm run lint` and `npm run build`. API checks use a fake Zoho provider and deletion adapter; webhook checks use in-memory Postgres and do not change a hosted project. For browser QA, build first then run `npx tsx scripts/comms-ui-fixture.ts` and open `http://127.0.0.1:3107/crm/comms`. This isolated fixture contains invented mail and account data and cannot access Zoho/Supabase. `/crm`, `/crm/admin`, and `/crm/admin?role=staff` exercise navigation and access presentation. Do not deploy or mount this fixture in production. Live Zoho OAuth and free-plan permissions require the operator's registered application and separate account validation.
+
+## Authentication troubleshooting
+
+If authorisation fails, confirm the deployed Client ID, Client Secret and refresh token all belong to the same Zoho application and data centre. `ZOHO_MAIL_REFRESH_TOKEN` is the long-lived token returned by the setup helper, not the short-lived Generate Code grant or an access token. `invalid_client` points to the client credentials or data centre; `invalid_code` during refresh points to a missing/invalid/revoked refresh token. Q shows recognised provider error names with its own safe explanations and omits raw provider descriptions. Redeploy after changing hosting settings. Revoked tokens need to be regenerated as the office account. Never paste credentials into chat or support logs.

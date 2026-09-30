@@ -20,6 +20,7 @@ export function createCommsRouter(dependencies: Dependencies) {
   router.use(asyncHandler(async (req, res, next) => {
     const context = await dependencies.authoriseStaff(req, res); if (!context) return;
     res.locals.mailOwner = context.identity.user.id;
+    res.locals.mailStaff = context;
     const config = dependencies.config(); res.locals.mailConfig = config;
     // Bearer authentication is required on all mail actions, including disconnect.
     if (req.method !== 'GET' && req.headers.origin && config && req.headers.origin !== config.appOrigin) return res.status(403).json({ error: 'Open the communications portal on Q’s configured site address.' });
@@ -56,9 +57,39 @@ export function createCommsRouter(dependencies: Dependencies) {
     const a = res.locals.officeMailbox;
     return res.json({ accounts: [{ accountId: String(a.accountId), email: 'office@q-ai.online', name: 'Q Office' }] });
   }));
+  router.get('/customers/:user/history', asyncHandler(async (req, res) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.user)) throw new MailError(400, 'Invalid customer.');
+    const { data, error } = await res.locals.mailStaff.serviceSupabase.auth.admin.getUserById(req.params.user);
+    if (error || !data?.user?.email) throw new MailError(404, 'Registered customer not found.');
+    const email = String(data.user.email).toLowerCase();
+    // Reject search syntax in addresses; the address is resolved server-side, never supplied by the caller.
+    if (!/^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-z0-9.-]+$/i.test(email)) throw new MailError(400, 'This customer email cannot be searched in Zoho.');
+    const start = Number(req.query.start || 1);
+    if (!Number.isSafeInteger(start) || start < 1 || start > 100000) throw new MailError(400, 'Invalid page.');
+    const client = res.locals.mailClient as ZohoMailClient;
+    const account = String(res.locals.officeMailbox.accountId);
+    const query = new URLSearchParams({ searchKey: `sender:"${email}"::or:to:"${email}"::or:cc:"${email}"`, start: String(start), limit: '30', includeto: 'true', receivedTime: String(Date.now()) });
+    const [messages, folders] = await Promise.all([client.json(`/accounts/${account}/messages/search?${query}`), client.json(`/accounts/${account}/folders`)]);
+    if (!Array.isArray(messages) || !Array.isArray(folders)) throw new MailError(502, 'Zoho did not return valid customer email history.');
+    const excluded = new Set(folders.filter(f => ['drafts', 'outbox', 'templates'].includes(String(f.folderType).toLowerCase())).map(f => String(f.folderId)));
+    const addresses = (value: unknown) => (String(value || '').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').match(/[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-z0-9.-]+/gi) || []).map(address => address.toLowerCase());
+    const history = new Map<string, unknown>();
+    for (const message of messages) {
+      if (excluded.has(String(message.folderId))) continue;
+      const from = addresses(message.fromAddress);
+      const recipients = addresses([message.toAddress, message.ccAddress, message.bccAddress].filter(Boolean).join(','));
+      const inbound = from.includes(email);
+      if (!inbound && !(from.includes('office@q-ai.online') && recipients.includes(email))) continue;
+      const id = String(message.messageId);
+      const date = new Date(Number(message.receivedTime || message.receivedtime || message.sentDateInGMT));
+      history.set(id, { id: `zoho-${id}`, messageId: id, folderId: String(message.folderId), accountId: account, direction: inbound ? 'inbound' : 'outbound', channel: 'email', status: inbound ? 'received' : 'sent', sender_email: message.fromAddress || '', recipient_email: inbound ? 'office@q-ai.online' : email, subject: message.subject || '(No subject)', body: 'Email held in Zoho. Open Communications to read it.', created_at: Number.isNaN(date.getTime()) ? '' : date.toISOString() });
+    }
+    return res.json({ communications: [...history.values()], hasMore: messages.length === 30, storage: 'zoho' });
+  }));
   router.get('/accounts/:account/folders', asyncHandler(async (req, res) => {
     const folders = await (res.locals.mailClient as ZohoMailClient).json(`/accounts/${mailId(req.params.account)}/folders`);
-    return res.json({ folders: (Array.isArray(folders) ? folders : []).map(f => ({ folderId: String(f.folderId), name: f.folderName, type: f.folderType, path: f.path })) });
+    if (!Array.isArray(folders)) throw new MailError(502, 'Zoho did not return a valid folder list. Try refreshing or open Zoho Mail.');
+    return res.json({ folders: folders.map(f => ({ folderId: String(f.folderId), name: f.folderName, type: String(f.folderType || ''), path: f.path })) });
   }));
   router.get('/accounts/:account/messages', asyncHandler(async (req, res) => {
     const start = Number(req.query.start || 1);
@@ -67,8 +98,9 @@ export function createCommsRouter(dependencies: Dependencies) {
     if (search.length > 300) throw new MailError(400, 'Keep the search under 300 characters.');
     const query = new URLSearchParams({ start: String(start), limit: '30', includeto: 'true' });
     if (search) { query.set('searchKey', search); query.set('receivedTime', String(Date.now())); }
-    else { query.set('folderId', mailId(req.query.folder)); query.set('includesent', 'true'); query.set('includearchive', 'true'); }
+    else { query.set('folderId', mailId(req.query.folder)); query.set('includesent', 'true'); query.set('includearchive', 'true'); query.set('status', 'all'); query.set('sortBy', 'date'); query.set('sortorder', 'false'); }
     const messages = await (res.locals.mailClient as ZohoMailClient).json(`/accounts/${mailId(req.params.account)}/messages/${search ? 'search' : 'view'}?${query}`);
+    if (!Array.isArray(messages)) throw new MailError(502, 'Zoho did not return a valid message list. Try refreshing or open Zoho Mail.');
     return res.json({ messages: (Array.isArray(messages) ? messages : []).map(m => ({ messageId: String(m.messageId), folderId: String(m.folderId), subject: m.subject || '(No subject)', from: m.fromAddress || m.sender || '', to: m.toAddress || '', summary: m.summary || '', receivedAt: m.receivedTime || m.receivedtime || m.sentDateInGMT, unread: ['0', 'unread'].includes(String(m.status)), hasAttachment: ['1', 'true'].includes(String(m.hasAttachment)) })), hasMore: Array.isArray(messages) && messages.length === 30 });
   }));
   const messagePath = (req: express.Request) => `/accounts/${mailId(req.params.account)}/folders/${mailId(req.params.folder)}/messages/${mailId(req.params.message)}`;

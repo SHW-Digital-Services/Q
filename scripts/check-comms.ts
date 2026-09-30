@@ -3,8 +3,9 @@ import express from 'express';
 import { randomBytes } from 'node:crypto';
 import { createCommsRouter } from '../server/routes/comms';
 import { createAdminDeleteUsersRouter } from '../server/routes/adminDeleteUsers';
-import { sealMail, openMail, validMailSession, MailSession, MailConfig, mailRecipients, ZohoMailClient, parseZohoJson } from '../server/zohoMail';
+import { sealMail, openMail, validMailSession, MailSession, MailConfig, mailRecipients, ZohoMailClient, parseZohoJson, tokenRequest } from '../server/zohoMail';
 import { emailTemplates, fillEmailTemplate, templatePlaceholders } from '../src/data/emailTemplates';
+import { inboxFolder } from '../src/services/mailFolders';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const target = '00000000-0000-4000-8000-000000000002';
@@ -12,7 +13,7 @@ const key = randomBytes(32);
 const config: MailConfig = { clientId: 'fixture-client', clientSecret: 'fixture-secret', refreshToken: 'fixture-refresh', key, accountsOrigin: 'https://accounts.zoho.eu', mailOrigin: 'https://mail.zoho.eu', redirectUri: '', appOrigin: '', secure: false };
 const session: MailSession = { owner, access: 'fixture-access', refresh: 'fixture-refresh', expires: Date.now() + 3600000, tokenExpires: Date.now() + 3600000 };
 const calls: { url: URL; init: RequestInit }[] = [];
-let providerStatus = 200; let mailboxEmail = 'office@q-ai.online';
+let providerStatus = 200; let mailboxEmail = 'office@q-ai.online'; let malformedMessages = false;
 const json = (data: unknown, status = 200) => new Response(JSON.stringify({ status: { code: status }, data }), { status, headers: { 'Content-Type': 'application/json' } });
 const fetcher = (async (url: any, init: RequestInit = {}) => {
   const parsed = new URL(String(url)); calls.push({ url: parsed, init });
@@ -21,7 +22,15 @@ const fetcher = (async (url: any, init: RequestInit = {}) => {
   if (providerStatus !== 200) return json({ private: 'DO_NOT_LEAK_PROVIDER_BODY' }, providerStatus);
   if (parsed.pathname === '/api/accounts') return json([{ accountId: '10001', primaryEmailAddress: mailboxEmail, displayName: 'Q Office' }, { accountId: '99999', primaryEmailAddress: 'other@example.test' }]);
   if (parsed.pathname.endsWith('/folders')) return json([{ folderId: '20001', folderName: 'Inbox', folderType: 'Inbox' }, { folderId: '20002', folderName: 'Sent', folderType: 'Sent' }, { folderId: '20003', folderName: 'Drafts', folderType: 'Drafts' }, { folderId: '20004', folderName: 'Archive', folderType: 'Archive' }]);
-  if (/\/messages\/(view|search)$/.test(parsed.pathname)) return json([{ messageId: '30001', folderId: '20001', subject: 'Help getting started', fromAddress: 'visitor@example.test', toAddress: 'office@q-ai.online', receivedTime: String(Date.now()), status: '0', hasAttachment: '1' }]);
+  if (parsed.pathname.endsWith('/search') && parsed.searchParams.get('searchKey')?.startsWith('sender:')) return json([
+    { messageId: '601', folderId: '20001', fromAddress: 'Visitor <visitor@example.test>', toAddress: 'office@q-ai.online', receivedTime: Date.now(), subject: 'Inbound', summary: 'PRIVATE_BODY_NOT_HISTORY' },
+    { messageId: '602', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Sent' },
+    { messageId: '602', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Sent' },
+    { messageId: '603', folderId: '20003', fromAddress: 'office@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Unsent draft' },
+    { messageId: '604', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'othervisitor@example.test', receivedTime: Date.now(), subject: 'Unrelated' },
+    { messageId: '605', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'other@example.test', ccAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Cc' }
+  ]);
+  if (/\/messages\/(view|search)$/.test(parsed.pathname)) return json(malformedMessages ? {} : [{ messageId: '30001', folderId: '20001', subject: 'Help getting started', fromAddress: 'visitor@example.test', toAddress: 'office@q-ai.online', receivedTime: String(Date.now()), status: '0', hasAttachment: '1' }]);
   if (parsed.pathname.endsWith('/content')) return json({ content: '<p>Hello Q team,</p><p>Could you help me get started?</p><img src="https://tracking.example.test/pixel" onerror="alert(1)"><script>window.BAD_MAIL=true</script><form action="https://example.test"><input name="password"></form><p><strong>Thank you.</strong></p>' });
   if (parsed.pathname.endsWith('/attachmentinfo')) return json({ attachments: [{ attachmentId: '40001', attachmentName: 'example.txt', attachmentSize: 7 }] });
   if (parsed.pathname.endsWith('/attachments/40001')) return new Response('example', { headers: { 'Content-Type': 'text/html' } });
@@ -31,7 +40,7 @@ const fetcher = (async (url: any, init: RequestInit = {}) => {
 const authoriseStaff = (async (req: any, res: any) => {
   if (!req.headers.authorization) { res.status(401).json({ error: 'Authentication required.' }); return null; }
   if (!['Bearer fixture-staff', 'Bearer fixture-admin', 'Bearer fixture-other'].includes(req.headers.authorization)) { res.status(403).json({ error: 'Staff access required.' }); return null; }
-  return { identity: { user: { id: req.headers.authorization === 'Bearer fixture-other' ? target : owner } }, role: 'staff' };
+  return { identity: { user: { id: req.headers.authorization === 'Bearer fixture-other' ? target : owner } }, role: 'staff', serviceSupabase: { auth: { admin: { getUserById: async (id: string) => ({ data: { user: id === target ? { email: 'visitor@example.test' } : null } }) } } } };
 }) as any;
 let configured = true;
 const app = express(); app.use(express.json({ limit: '256kb' }));
@@ -60,6 +69,16 @@ const payload = { to: 'visitor@example.test', cc: '', bcc: '', subject: 'Welcome
 const post = (value: unknown) => ({ method: 'POST', body: JSON.stringify(value) });
 
 try {
+  const customFolder = { folderId: '20005', name: 'Customers', type: 'Inbox', path: '/Customers' };
+  const actualInbox = { folderId: '20001', name: 'Inbox', type: 'Inbox', path: '/Inbox' };
+  assert.equal(inboxFolder([customFolder, actualInbox]), '20001');
+  assert.equal(inboxFolder([customFolder, { ...actualInbox, name: 'Boite de reception' }]), '20001');
+  assert.equal(inboxFolder([customFolder, { ...actualInbox, path: undefined }]), '20001');
+  assert.equal(inboxFolder([]), '');
+  for (const [error, expected] of [['invalid_client', /same Self Client/], ['invalid_client_secret', /configured Client ID/], ['invalid_code', /not the short-lived/], ['invalid_grant', /new office mailbox refresh token/]] as const) {
+    await assert.rejects(tokenRequest(config, { grant_type: 'refresh_token', refresh_token: 'fixture-refresh' }, (async () => new Response(JSON.stringify({ error, error_description: 'SECRET_DO_NOT_LEAK' }))) as typeof fetch), (failure: any) => expected.test(failure.message) && !failure.message.includes('SECRET_DO_NOT_LEAK'));
+  }
+  for (const body of [null, { error: 'UNKNOWN_SECRET_DO_NOT_LEAK' }]) await assert.rejects(tokenRequest(config, {}, (async () => new Response(JSON.stringify(body))) as typeof fetch), (failure: any) => !failure.message.includes('SECRET_DO_NOT_LEAK') && failure.message.includes('hosting settings'));
   const sealed = sealMail(session, key, 'session');
   assert.deepEqual(openMail(sealed, key, 'session'), session);
   assert.equal(openMail(sealed, key, 'state'), null);
@@ -85,11 +104,26 @@ try {
   assert.equal((await request('/oauth/start', { method: 'POST' })).status, 409);
   assert.equal((await request('/disconnect', { method: 'POST', headers: { Origin: 'https://evil.example.test' } })).status, 403);
   const mailboxList = await (await request('/accounts')).json(); assert.equal(mailboxList.accounts.length, 1); assert.equal(mailboxList.accounts[0].email, 'office@q-ai.online');
+  const history = await (await request(`/customers/${target}/history`)).json();
+  assert.equal(history.communications.length, 3);
+  assert.deepEqual(history.communications.map((item: any) => item.direction), ['inbound', 'outbound', 'outbound']);
+  assert(!JSON.stringify(history).includes('PRIVATE_BODY_NOT_HISTORY'));
+  assert.equal((await request(`/customers/${owner}/history`)).status, 404);
+  assert.equal((await request('/customers/not-a-user/history')).status, 400);
+  assert.equal((await request(`/customers/${target}/history?start=-1`)).status, 400);
+  assert.equal((await request(`/customers/${target}/history`, {}, 'fixture-user')).status, 403);
   for (const path of ['/accounts/99999/folders', '/accounts/99999/messages?folder=20001', '/accounts/99999/folders/20001/messages/30001', '/accounts/99999/folders/20001/messages/30001/attachments/40001']) assert.equal((await request(path)).status, 403);
   mailboxEmail = 'personal@example.test'; assert.equal((await request('/accounts')).status, 403); mailboxEmail = 'office@q-ai.online';
   assert.equal((await request('/accounts')).status, 200);
   assert.equal((await request('/accounts/10001/folders')).status, 200);
   assert.equal((await request('/accounts/10001/messages?folder=20001')).status, 200);
+  const inboxRequest = calls.at(-1)!.url;
+  assert.equal(inboxRequest.searchParams.get('folderId'), '20001');
+  assert.equal(inboxRequest.searchParams.get('sortorder'), 'false');
+  assert.equal(inboxRequest.searchParams.get('status'), 'all');
+  malformedMessages = true;
+  assert.equal((await request('/accounts/10001/messages?folder=20001')).status, 502);
+  malformedMessages = false;
   assert.equal((await request('/accounts/10001/messages?folder=20001&start=-1')).status, 400);
   assert.equal((await request('/accounts/10001/messages?search=subject%3Ahello')).status, 200);
   assert(calls.some(c => c.url.pathname.endsWith('/search') && c.url.searchParams.get('searchKey') === 'subject:hello'));
