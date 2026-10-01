@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "check:online-users": "tsx scripts/check-online-users.ts",
+    "check:brevo-tracking": "tsx scripts/check-brevo-tracking.ts",
     "check:comms": "tsx scripts/check-comms.ts",
     "check:webhooks": "tsx scripts/check-brevo-webhooks.ts",
     "check:premium": "tsx scripts/check-premium.ts",

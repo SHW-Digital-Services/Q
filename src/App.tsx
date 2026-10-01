@@ -21,7 +21,6 @@ import { PremiumProvider } from './contexts/PremiumContext';
 import { ContinuityProvider, ContinuitySettings } from './contexts/ContinuityContext';
 import { setStorageUser } from './services/storage';
 import { LegalFooter } from './components/LegalFooter';
-import { BrevoTrackerConsent } from './components/BrevoTrackerConsent';
 
 const QAssistantView = lazy(() => import('./components/QAssistantView').then(({ QAssistantView }) => ({ default: QAssistantView })));
 const LifeGuidesView = lazy(() => import('./components/LifeGuidesView').then(({ LifeGuidesView }) => ({ default: LifeGuidesView })));
@@ -31,6 +30,7 @@ const ProfileView = lazy(() => import('./components/ProfileView').then(({ Profil
 const HelpView = lazy(() => import('./components/HelpView').then(({ HelpView }) => ({ default: HelpView })));
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel }) => ({ default: AdminPanel })));
 const CommsPortal = lazy(() => import('./components/CommsPortal'));
+const OnlineUsersPage = lazy(() => import('./components/OnlineUsersPage'));
 const DeveloperPage = lazy(() => import('./components/DeveloperPage').then(({ DeveloperPage }) => ({ default: DeveloperPage })));
 const NewsUpdatesPage = lazy(() => import('./components/NewsUpdatesPage').then(({ NewsUpdatesPage }) => ({ default: NewsUpdatesPage })));
 const GuidedProgrammes = lazy(() => import('./components/GuidedProgrammes').then(({ GuidedProgrammes }) => ({ default: GuidedProgrammes })));
@@ -101,9 +101,10 @@ export default function App() {
   const previewActive = !!currentUser && previewUserId === currentUser.id;
   const isAppRoute = previewActive || (launchEnabled && isViewAppRequest());
   const isNewsRoute = typeof window !== 'undefined' && ['/news', '/updates'].includes(window.location.pathname);
-  const isCrmRoute = typeof window !== 'undefined' && ['/crm', '/admin/crm', '/crm/admin', '/admin/crm/admin', '/crm/comms'].includes(window.location.pathname);
+  const isCrmRoute = typeof window !== 'undefined' && ['/crm', '/admin/crm', '/crm/admin', '/admin/crm/admin', '/crm/comms', '/crm/online', '/admin/crm/online'].includes(window.location.pathname);
   const isAdminFunctionsRoute = typeof window !== 'undefined' && ['/crm/admin', '/admin/crm/admin'].includes(window.location.pathname);
   const isCommsRoute = typeof window !== 'undefined' && window.location.pathname === '/crm/comms';
+  const isOnlineUsersRoute = typeof window !== 'undefined' && ['/crm/online', '/admin/crm/online'].includes(window.location.pathname);
   const isDeveloperRoute = typeof window !== 'undefined' && window.location.pathname === '/developer';
 
   useEffect(() => {
@@ -401,7 +402,7 @@ export default function App() {
       <div className="q-scroll-page bg-slate-950 p-0 text-slate-100 sm:p-6">
         <StatusPageButton />
         <Suspense fallback={<LoadingView label="Loading CRM..." />}>
-          {isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />}
+          {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />}
         </Suspense>
       </div>
     );
@@ -535,7 +536,6 @@ export default function App() {
       />
       <SubscriptionModal isOpen={isSubscriptionOpen} onClose={() => setIsSubscriptionOpen(false)} />
       <LegalFooter />
-      <BrevoTrackerConsent />
     </div>
     </ContinuityProvider></PremiumProvider>
   );

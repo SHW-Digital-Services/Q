@@ -3,6 +3,7 @@ import { asyncHandler, getCanonicalAppUrl, sendOpaqueError } from '../middleware
 import { getServiceSupabase, requireAdmin } from './admin.js';
 import { isUuid, requireExactObject } from '../security.js';
 import { hashWebhookToken, newIntegrationAddress, newWebhookToken, normaliseBrevoEvents } from '../brevoWebhooks.js';
+import { brevoEventGroups, brevoGroupTypes } from '../../src/shared/brevoEventPresentation.js';
 
 const endpointColumns = 'id,name,webhook_type,integration_address,token_prefix,active,created_at,updated_at,last_received_at';
 const eventColumns = 'id,endpoint_id,event_type,email,status,received_at,reviewed_at';
@@ -88,11 +89,12 @@ export function createBrevoWebhookRouters(dependencies: Dependencies) {
     const endpointId = String(req.query.endpointId ?? '');
     const status = String(req.query.status ?? 'all');
     const eventType = String(req.query.eventType ?? '').trim();
+    const eventGroup = String(req.query.eventGroup ?? 'all');
     const email = String(req.query.email ?? '').trim();
     const from = String(req.query.from ?? '');
     const to = String(req.query.to ?? '');
     const validDate = (value: string) => !value || (/^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value);
-    if ((endpointId && !isUuid(endpointId)) || !['all', 'received', 'reviewed'].includes(status) || eventType.length > 120 || email.length > 320 || !validDate(from) || !validDate(to) || (from && to && from > to)) return res.status(400).json({ error: 'Invalid event filter.' });
+    if ((endpointId && !isUuid(endpointId)) || !['all', 'received', 'reviewed'].includes(status) || !brevoEventGroups.some(group => group.value === eventGroup) || eventType.length > 120 || email.length > 320 || !validDate(from) || !validDate(to) || (from && to && from > to)) return res.status(400).json({ error: 'Invalid event filter.' });
     const requestedOffset = Number(req.query.offset ?? 0);
     const offset = Number.isSafeInteger(requestedOffset) && requestedOffset >= 0 ? requestedOffset : 0;
     const { serviceSupabase: db } = res.locals.webhookAdmin;
@@ -100,12 +102,32 @@ export function createBrevoWebhookRouters(dependencies: Dependencies) {
     if (endpointId) query = query.eq('endpoint_id', endpointId);
     if (status !== 'all') query = query.eq('status', status);
     if (eventType) query = query.eq('event_type', eventType);
+    if (eventGroup !== 'all') query = query.in('event_type', brevoGroupTypes(eventGroup));
     if (email) query = query.eq('email', email);
     if (from) query = query.gte('received_at', `${from}T00:00:00.000Z`);
     if (to) query = query.lt('received_at', new Date(Date.parse(to) + 86400000).toISOString());
     const { data, error, count } = await query;
     if (error) return databaseError(req, res, error, 'Webhook Event List');
     return res.json({ events: data ?? [], total: count ?? 0, hasMore: offset + (data?.length ?? 0) < (count ?? 0) });
+  }));
+  admin.get('/metrics', asyncHandler(async (req, res) => {
+    const days = Number(req.query.days ?? 30);
+    if (![7, 30, 90].includes(days)) return res.status(400).json({ error: 'Choose a 7, 30 or 90 day reporting period.' });
+    const { serviceSupabase: db } = res.locals.webhookAdmin;
+    const { data, error } = await db.rpc('brevo_event_metrics', { p_days: days });
+    if (error) {
+      if (['42883', 'PGRST202'].includes(error.code)) return res.status(503).json({ error: 'Event metrics need the Brevo event metrics database migration.' });
+      return databaseError(req, res, error, 'Webhook Metrics');
+    }
+    return res.json({ metrics: data, updatedAt: new Date().toISOString() });
+  }));
+  admin.patch('/events/review', asyncHandler(async (req, res) => {
+    if (!requireExactObject(req.body, ['ids', 'status']) || !Array.isArray(req.body.ids) || req.body.ids.length < 1 || req.body.ids.length > 100 || req.body.ids.some((id: unknown) => typeof id !== 'string' || !isUuid(id)) || !['received', 'reviewed'].includes(req.body.status)) return res.status(400).json({ error: 'Choose 1–100 events and a valid review status.' });
+    const { serviceSupabase: db, identity } = res.locals.webhookAdmin;
+    const reviewed = req.body.status === 'reviewed';
+    const { data, error } = await db.from('brevo_webhook_events').update({ status: req.body.status, reviewed_at: reviewed ? new Date().toISOString() : null, reviewed_by: reviewed ? identity.user.id : null }).in('id', [...new Set(req.body.ids)]).select(eventColumns);
+    if (error) return databaseError(req, res, error, 'Webhook Bulk Review');
+    return res.json({ events: data ?? [], updated: data?.length ?? 0 });
   }));
   admin.get('/events/:id', asyncHandler(async (req, res) => {
     if (!isUuid(req.params.id)) return res.status(400).json({ error: 'Invalid event ID.' });

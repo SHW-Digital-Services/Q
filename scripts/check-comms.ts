@@ -21,7 +21,7 @@ const fetcher = (async (url: any, init: RequestInit = {}) => {
   if (parsed.pathname === '/oauth/v2/token/revoke') return new Response(JSON.stringify({ status: 'success' }));
   if (providerStatus !== 200) return json({ private: 'DO_NOT_LEAK_PROVIDER_BODY' }, providerStatus);
   if (parsed.pathname === '/api/accounts') return json([{ accountId: '10001', primaryEmailAddress: mailboxEmail, displayName: 'Q Office' }, { accountId: '99999', primaryEmailAddress: 'other@example.test' }]);
-  if (parsed.pathname.endsWith('/folders')) return json([{ folderId: '20001', folderName: 'Inbox', folderType: 'Inbox' }, { folderId: '20002', folderName: 'Sent', folderType: 'Sent' }, { folderId: '20003', folderName: 'Drafts', folderType: 'Drafts' }, { folderId: '20004', folderName: 'Archive', folderType: 'Archive' }]);
+  if (parsed.pathname.endsWith('/folders')) return json([{ folderId: '20001', folderName: 'Inbox', folderType: 'Inbox', unreadCount: '7' }, { folderId: '20002', folderName: 'Sent', folderType: 'Sent' }, { folderId: '20003', folderName: 'Drafts', folderType: 'Drafts' }, { folderId: '20004', folderName: 'Archive', folderType: 'Archive' }]);
   if (parsed.pathname.endsWith('/view') && (emptyView === 'all' || emptyView === 'extended' && parsed.searchParams.has('includearchive'))) return json([]);
   if (parsed.pathname.endsWith('/search') && parsed.searchParams.get('searchKey')?.startsWith('sender:')) return json([
     { messageId: '601', folderId: '20001', fromAddress: 'Visitor <visitor@example.test>', toAddress: 'office@q-ai.online', receivedTime: Date.now(), subject: 'Inbound', summary: 'PRIVATE_BODY_NOT_HISTORY' },
@@ -33,7 +33,8 @@ const fetcher = (async (url: any, init: RequestInit = {}) => {
   ]);
   if (/\/messages\/(view|search)$/.test(parsed.pathname)) return json(malformedMessages ? {} : [{ messageId: '30001', folderId: '20001', subject: 'Help getting started', fromAddress: 'visitor@example.test', toAddress: 'office@q-ai.online', receivedTime: String(Date.now()), status: '0', hasAttachment: '1' }]);
   if (parsed.pathname.endsWith('/content')) return json({ content: '<p>Hello Q team,</p><p>Could you help me get started?</p><img src="https://tracking.example.test/pixel" onerror="alert(1)"><script>window.BAD_MAIL=true</script><form action="https://example.test"><input name="password"></form><p><strong>Thank you.</strong></p>' });
-  if (parsed.pathname.endsWith('/attachmentinfo')) return json({ attachments: [{ attachmentId: '40001', attachmentName: 'example.txt', attachmentSize: 7 }] });
+  if (parsed.pathname.endsWith('/attachmentinfo')) return json({ attachments: [{ attachmentId: '40001', attachmentName: 'example.txt', attachmentSize: 7 }], inline: [{ cid: 'fixture-image', attachmentName: 'logo.png', attachmentSize: 8 }, { cid: 'unsafe-image', attachmentName: 'bad.svg', attachmentSize: 20 }] });
+  if (parsed.pathname.endsWith('/inline')) return new Response(parsed.searchParams.get('contentId') === 'fixture-image' ? Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]) : Buffer.from('<svg onload="alert(1)"/>'));
   if (parsed.pathname.endsWith('/attachments/40001')) return new Response('example', { headers: { 'Content-Type': 'text/html' } });
   if (parsed.pathname.endsWith('/messages/attachments')) return json([{ storeName: 'fixture-store', attachmentName: parsed.searchParams.get('fileName'), attachmentPath: '/Mail/fixture.txt' }]);
   return json({ messageId: '50001' });
@@ -120,7 +121,9 @@ try {
   for (const path of ['/accounts/99999/folders', '/accounts/99999/messages?folder=20001', '/accounts/99999/folders/20001/messages/30001', '/accounts/99999/folders/20001/messages/30001/attachments/40001']) assert.equal((await request(path)).status, 403);
   mailboxEmail = 'personal@example.test'; assert.equal((await request('/accounts')).status, 403); mailboxEmail = 'office@q-ai.online';
   assert.equal((await request('/accounts')).status, 200);
-  assert.equal((await request('/accounts/10001/folders')).status, 200);
+  const folderList = await (await request('/accounts/10001/folders')).json();
+  assert.equal(folderList.folders[0].unreadCount, 7);
+  assert.equal(folderList.folders[1].unreadCount, 0);
   assert.equal((await request('/accounts/10001/messages?folder=20001')).status, 200);
   const inboxRequest = calls.at(-1)!.url;
   assert.equal(inboxRequest.searchParams.get('folderId'), '20001');
@@ -144,6 +147,9 @@ try {
   assert.equal((await request('/accounts/10001/messages?search=subject%3Ahello')).status, 200);
   assert(calls.some(c => c.url.pathname.endsWith('/search') && c.url.searchParams.get('searchKey') === 'subject:hello'));
   const detail = await (await request('/accounts/10001/folders/20001/messages/30001')).json(); assert.equal(detail.attachments[0].id, '40001');
+  assert(detail.images['fixture-image'].startsWith('data:image/png;base64,'));
+  assert.equal(detail.images['unsafe-image'], undefined);
+  assert(calls.some(c => c.url.pathname.endsWith('/attachmentinfo') && c.url.searchParams.get('includeInline') === 'true'));
   const download = await request('/accounts/10001/folders/20001/messages/30001/attachments/40001'); assert.equal(download.headers.get('content-type'), 'application/octet-stream'); assert(download.headers.get('content-disposition')?.startsWith('attachment')); assert.equal(await download.text(), 'example');
   assert.equal((await request('/accounts/not-a-number/folders')).status, 400);
   assert.equal((await request('/accounts/10001/send', post({ ...payload, content: 'Hi {{name}}' }))).status, 400);

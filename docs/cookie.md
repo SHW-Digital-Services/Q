@@ -140,7 +140,7 @@ Examples include:
 - **Brevo Conversations** (support-chat visitor identifiers and conversation continuity);
 - approved analytics providers (where enabled).
 
-Q's optional Brevo website tracker is loaded only after you allow analytics in the cookie prompt. It records page visits and may use a browser identifier or cookies to associate activity with a visitor. Rejecting analytics leaves the tracker unloaded. You can change your choice at any time using **Cookie preferences** in the site footer. Q does not send page query strings to the tracker.
+Q's optional Brevo website tracker is loaded only after you allow analytics in the cookie prompt, and only on supported public website pages. It does not load on Q's private app or CRM pages. It records page visits and may use a browser identifier or cookies to associate activity with a visitor. Rejecting analytics leaves the tracker unloaded. You can change your choice at any time using **Cookie preferences** in the site footer. Q disables automatic page tracking and supplies a page URL without query strings or fragments, a generic title, and only the referrer's origin. Q does not send journal, chat, mood, account-profile or CRM content to this website tracker. This scope is separate from the Conversations widget described below.
 
 Each third-party provider operates under its own privacy and cookie policies.
 

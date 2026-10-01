@@ -96,7 +96,7 @@ export function createCommsRouter(dependencies: Dependencies) {
   router.get('/accounts/:account/folders', asyncHandler(async (req, res) => {
     const folders = await (res.locals.mailClient as ZohoMailClient).json(`/accounts/${mailId(req.params.account)}/folders`);
     if (!Array.isArray(folders)) throw new MailError(502, 'Zoho did not return a valid folder list. Try refreshing or open Zoho Mail.');
-    return res.json({ folders: folders.map(f => ({ folderId: String(f.folderId), name: f.folderName, type: String(f.folderType || ''), path: f.path })) });
+    return res.json({ folders: folders.map(f => ({ folderId: String(f.folderId), name: f.folderName, type: String(f.folderType || ''), path: f.path, unreadCount: Math.max(0, Math.floor(Number(f.unreadCount) || 0)) })) });
   }));
   router.get('/accounts/:account/messages', asyncHandler(async (req, res) => {
     const start = Number(req.query.start || 1);
@@ -139,8 +139,23 @@ export function createCommsRouter(dependencies: Dependencies) {
   const messagePath = (req: express.Request) => `/accounts/${mailId(req.params.account)}/folders/${mailId(req.params.folder)}/messages/${mailId(req.params.message)}`;
   router.get('/accounts/:account/folders/:folder/messages/:message', asyncHandler(async (req, res) => {
     const client = res.locals.mailClient as ZohoMailClient;
-    const [content, info] = await Promise.all([client.json(`${messagePath(req)}/content?includeBlockContent=true`), client.json(`${messagePath(req)}/attachmentinfo`)]);
-    return res.json({ content: content?.content || '', attachments: (info?.attachments || []).map(a => ({ id: String(a.attachmentId), name: a.attachmentName, size: a.attachmentSize })) });
+    const [content, info] = await Promise.all([client.json(`${messagePath(req)}/content?includeBlockContent=true`), client.json(`${messagePath(req)}/attachmentinfo?includeInline=true`)]);
+    const images: Record<string, string> = {};
+    // Bound embedded image downloads and accept raster signatures only.
+    await Promise.all((info?.inline || []).slice(0, 10).map(async (image: any) => {
+      if (typeof image.cid !== 'string' || image.cid.length > 1000 || Number(image.attachmentSize) > 3 * 1024 * 1024) return;
+      try {
+        const query = new URLSearchParams({ contentId: image.cid, fileName: String(image.attachmentName || '') });
+        const response = await client.response(`${messagePath(req)}/inline?${query}`);
+        const bytes = await boundedResponse(response, 3 * 1024 * 1024);
+        const mime = bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ? 'image/png'
+          : bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 ? 'image/jpeg'
+          : ['GIF87a', 'GIF89a'].includes(bytes.subarray(0, 6).toString()) ? 'image/gif'
+          : bytes.subarray(0, 4).toString() === 'RIFF' && bytes.subarray(8, 12).toString() === 'WEBP' ? 'image/webp' : null;
+        if (mime) images[image.cid] = `data:${mime};base64,${bytes.toString('base64')}`;
+      } catch { /* A missing image must not prevent reading the email. */ }
+    }));
+    return res.json({ content: content?.content || '', images, attachments: (info?.attachments || []).map(a => ({ id: String(a.attachmentId), name: a.attachmentName, size: a.attachmentSize })) });
   }));
   router.get('/accounts/:account/folders/:folder/messages/:message/attachments/:attachment', asyncHandler(async (req, res) => {
     const response = await (res.locals.mailClient as ZohoMailClient).response(`${messagePath(req)}/attachments/${mailId(req.params.attachment)}`);

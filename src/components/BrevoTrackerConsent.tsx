@@ -1,48 +1,17 @@
 import { useEffect, useState } from 'react';
+import { BREVO_CONSENT_KEY, Q_BREVO_CLIENT_KEY, readBrevoConsent, startBrevoTracker } from '../services/brevoTracking';
 
-const CONSENT_KEY = 'q_brevo_analytics_consent_v1';
-const clientKey = import.meta.env.VITE_BREVO_CLIENT_KEY?.trim();
+const CONSENT_KEY = BREVO_CONSENT_KEY;
+const clientKey = import.meta.env.VITE_BREVO_CLIENT_KEY?.trim() || Q_BREVO_CLIENT_KEY;
 
-declare global {
-  interface Window {
-    Brevo?: unknown[] & { push: (...args: unknown[]) => number };
-    __qBrevoTrackerStarted?: boolean;
-  }
-}
-
-function readConsent(): boolean | null {
-  try {
-    const value = window.localStorage.getItem(CONSENT_KEY);
-    return value === 'accepted' ? true : value === 'rejected' ? false : null;
-  } catch {
-    return null;
-  }
-}
-
-function startBrevoTracker() {
-  if (!clientKey || window.__qBrevoTrackerStarted) return;
-  window.__qBrevoTrackerStarted = true;
-  window.Brevo = window.Brevo || [] as unknown[] & { push: (...args: unknown[]) => number };
-  // Brevo's loader consumes queued commands after the SDK arrives.
-  const queue = window.Brevo;
-  queue.push(['init', { client_key: clientKey }]);
-
-  const script = document.createElement('script');
-  script.src = 'https://cdn.brevo.com/js/sdk-loader.js';
-  script.async = true;
-  script.dataset.qBrevoTracker = 'true';
-  document.head.appendChild(script);
-
-  // Avoid sending query strings, which can contain private or account-specific data.
-  queue.push(['page', window.location.pathname || '/', { ma_path: window.location.pathname || '/' }]);
-}
+const readConsent = readBrevoConsent;
 
 export function BrevoTrackerConsent() {
   const [consent, setConsent] = useState<boolean | null>(() => readConsent());
   const [visible, setVisible] = useState(() => readConsent() === null);
 
   useEffect(() => {
-    if (consent === true) startBrevoTracker();
+    if (consent === true) startBrevoTracker(clientKey);
   }, [consent]);
 
   useEffect(() => {

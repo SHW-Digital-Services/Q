@@ -2,6 +2,7 @@ import { Client } from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { buildAnalyticsExport, AnalyticsExport } from '../analyticsEngine';
+import { postgresConnectionConfig } from '../postgresConnection';
 
 // server/scripts/generateAnalyticsReport.ts
 // Usage (node compiled or ts-node):
@@ -95,9 +96,8 @@ async function main() {
   const outPath = path.resolve(process.cwd(), args.out);
   const startDate = args.start ?? defaultStartDateDays(180);
 
-  const connectionString = process.env.DATABASE_URL || process.env.PG_CONNECTION || process.env.PGHOST ? undefined : undefined;
-  // Use default pg client environment vars if DATABASE_URL not set: pg reads PGHOST/PGUSER/PGPASSWORD/PGDATABASE
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  // HTTPS API clients are unaffected; this direct database connection needs TLS.
+  const client = new Client(postgresConnectionConfig());
 
   try {
     await client.connect();

@@ -18,6 +18,7 @@ import { helpVideosRouter, helpVideosAdminRouter } from './routes/helpVideos.js'
 import { brevoWebhookReceiver, brevoWebhookAdminRouter } from './routes/brevoWebhooks.js';
 import { commsRouter } from './routes/comms.js';
 import { adminDeleteUsersRouter } from './routes/adminDeleteUsers.js';
+import { onlinePresenceRouter } from './routes/onlinePresence.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -102,7 +103,7 @@ app.use((_req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' 'unsafe-eval' blob: https://conversations-widget.brevo.com https://fe-conversations-widget.brevo.com; frame-src 'self' https://www.youtube-nocookie.com https://conversations-widget.brevo.com https://fe-conversations-widget.brevo.com; media-src 'self' https://*.supabase.co; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fe-conversations-widget.brevo.com; img-src 'self' data: blob: https:; font-src 'self' data: https://designsystem.brevo.com; connect-src 'self' https://*.supabase.co https://api.openai.com https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com https://conversations-widget.brevo.com https://fe-conversations-widget.brevo.com;");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src https://cdn.brevo.com https://sibautomation.com 'self' 'unsafe-inline' 'wasm-unsafe-eval' 'unsafe-eval' blob: https://conversations-widget.brevo.com https://fe-conversations-widget.brevo.com; frame-src https://sibautomation.com 'self' https://www.youtube-nocookie.com https://conversations-widget.brevo.com https://fe-conversations-widget.brevo.com; media-src 'self' https://*.supabase.co; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fe-conversations-widget.brevo.com; img-src 'self' data: blob: https:; font-src 'self' data: https://designsystem.brevo.com; connect-src https://cdn.brevo.com https://sibautomation.com https://in-automate.brevo.com 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com https://conversations-widget.brevo.com https://fe-conversations-widget.brevo.com;");
   if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader(
     'Permissions-Policy',
@@ -187,6 +188,7 @@ app.get('/api/health/supabase', async (_req, res) => {
 
 app.use(['/api/billing'], billingRouter);
 app.use('/api/comms', commsRouter);
+app.use('/api/presence', onlinePresenceRouter);
 app.use(['/api/q-ai', '/api/ai'], aiRouter);
 app.use(['/api/v1/admin', '/api/admin'], adminRouter);
 app.use(['/api/v1/admin/delete-users', '/api/admin/delete-users'], adminDeleteUsersRouter);

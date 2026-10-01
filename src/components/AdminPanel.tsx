@@ -733,6 +733,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
           </div>
           <div className="flex shrink-0 flex-wrap justify-end gap-2">
             {staffRole && <a href="/crm/comms" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-purple-200 hover:bg-white/10"><Mail className="h-3.5 w-3.5" /> Communications</a>}
+            {staffRole && <a href="/crm/online" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-white/10"><Users className="h-3.5 w-3.5" /> Online Users</a>}
             {staffRole === 'partner_admin' && !adminMode && <a href="/crm/admin" className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white hover:bg-purple-500">Admin Only</a>}
             {adminMode && <a href="/crm" className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10">Back to CRM</a>}
             <button type="button" onClick={() => void onSignOut()} className="inline-flex items-center gap-2 rounded-xl border border-rose-300/20 px-3 py-2 text-xs font-bold text-rose-100 transition hover:bg-rose-500/10 hover:text-white">

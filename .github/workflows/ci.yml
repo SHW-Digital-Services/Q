@@ -37,5 +37,11 @@ jobs:
       - name: Local AI regression checks
         run: npm run check:local-ai
 
+      - name: Online Users access and database policy checks
+        run: npm run check:online-users
+
+      - name: Brevo events and tracking checks
+        run: npm run check:webhooks && npm run check:brevo-tracking
+
       - name: Production build
         run: npm run build
