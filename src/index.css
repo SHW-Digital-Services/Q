@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "./theme-contrast.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 html,
 body {
@@ -196,7 +199,7 @@ input {
 }
 
 .pride-spectrum {
-  background-image: linear-gradient(110deg, #e11d48 0%, #f97316 18%, #eab308 34%, #10b981 50%, #0ea5e9 66%, #7c3aed 82%, #db2777 100%);
+  background-image: linear-gradient(110deg, #be123c 0%, #c2410c 18%, #854d0e 34%, #047857 50%, #0369a1 66%, #6d28d9 82%, #a21caf 100%);
 }
 
 .pride-topline {
@@ -240,50 +243,6 @@ input {
 .dark .q-app-shell .pride-card {
   background: linear-gradient(135deg, rgba(15, 23, 42, .97), rgba(46, 16, 101, .42), rgba(8, 47, 73, .62));
   border-color: rgba(167, 139, 250, 0.35);
-}
-
-.dark .q-app-shell [class*="bg-white"] {
-  background-color: rgba(15, 23, 42, 0.94);
-}
-
-.dark .q-app-shell [class*="bg-slate-50"],
-.dark .q-app-shell [class*="bg-slate-100"],
-.dark .q-app-shell [class*="bg-slate-200"] {
-  background-color: rgba(30, 41, 59, 0.92);
-}
-
-.dark .q-app-shell [class*="text-slate-950"],
-.dark .q-app-shell [class*="text-slate-900"],
-.dark .q-app-shell [class*="text-slate-800"],
-.dark .q-app-shell [class*="text-slate-700"] {
-  color: #e2e8f0;
-}
-
-.dark .q-app-shell [class*="text-slate-600"],
-.dark .q-app-shell [class*="text-slate-500"],
-.dark .q-app-shell [class*="text-slate-400"] {
-  color: #a5b4fc;
-}
-
-.dark .q-app-shell [class*="border-slate-"],
-.dark .q-app-shell [class*="border-violet-"],
-.dark .q-app-shell [class*="border-purple-"] {
-  border-color: rgba(167, 139, 250, 0.28);
-}
-
-.dark .q-app-shell input,
-.dark .q-app-shell textarea,
-.dark .q-app-shell select {
-  color: #e2e8f0;
-}
-
-.dark .q-app-shell input::placeholder,
-.dark .q-app-shell textarea::placeholder {
-  color: #94a3b8;
-}
-
-.dark .q-app-shell [class*="from-white"] {
-  background-image: linear-gradient(135deg, #111827, #1e1b4b);
 }
 
 .dark .q-app-shell .q-ai-canvas {

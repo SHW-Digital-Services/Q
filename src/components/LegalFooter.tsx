@@ -20,7 +20,7 @@ const legalLinks = [
 ];
 
 export const LegalFooter = () => {
-  return <footer className="mt-auto py-10 px-6 text-center text-[10px] text-slate-400 border-t border-slate-900 bg-slate-950">
+  return <footer className="q-dark-surface mt-auto py-10 px-6 text-center text-[10px] text-slate-400 border-t border-slate-900 bg-slate-950">
     <div className="mx-auto mb-8 max-w-4xl rounded-2xl border border-amber-300/25 bg-amber-300/10 p-4 text-left text-[11px] leading-5 text-amber-100/90">
       <h2 className="text-xs font-black uppercase tracking-widest text-amber-100">Important safety and privacy information</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">

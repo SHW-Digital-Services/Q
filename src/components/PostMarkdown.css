@@ -1,6 +1,6 @@
-.post-markdown { min-width: 0; overflow-wrap: anywhere; color: #334155; font-size: .875rem; line-height: 1.75rem; }
+.post-markdown { min-width: 0; overflow-wrap: anywhere; color: var(--q-body, #334155); font-size: .875rem; line-height: 1.75rem; }
 .post-markdown > * + * { margin-top: 1rem; }
-.post-markdown :is(h1, h2, h3, h4, h5, h6) { margin-top: 1.5rem; font-weight: 800; line-height: 1.3; color: #0f172a; }
+.post-markdown :is(h1, h2, h3, h4, h5, h6) { margin-top: 1.5rem; font-weight: 800; line-height: 1.3; color: var(--q-primary, #0f172a); }
 .post-markdown h1 { font-size: 1.875rem; }
 .post-markdown h2 { font-size: 1.5rem; }
 .post-markdown h3 { font-size: 1.25rem; }
@@ -10,15 +10,15 @@
 .post-markdown ol { list-style: decimal; }
 .post-markdown li + li { margin-top: .25rem; }
 .post-markdown li > p + p { margin-top: .75rem; }
-.post-markdown a { color: #6d28d9; text-decoration: underline; text-underline-offset: 3px; }
-.post-markdown a:hover { color: #4c1d95; }
-.post-markdown blockquote { border-left: 3px solid #c4b5fd; padding-left: 1rem; color: #64748b; }
-.post-markdown code { border-radius: .25rem; background: #f1f5f9; padding: .125rem .25rem; font-size: .85em; }
-.post-markdown pre { overflow-x: auto; border-radius: .5rem; background: #f1f5f9; padding: 1rem; }
+.post-markdown a { color: var(--q-violet, #6d28d9); text-decoration: underline; text-underline-offset: 3px; }
+.post-markdown a:hover { color: var(--q-purple, #4c1d95); }
+.post-markdown blockquote { border-left: 3px solid #c4b5fd; padding-left: 1rem; color: var(--q-muted, #475569); }
+.post-markdown code { border-radius: .25rem; background: var(--q-soft, #f1f5f9); padding: .125rem .25rem; font-size: .85em; }
+.post-markdown pre { overflow-x: auto; border-radius: .5rem; background: var(--q-soft, #f1f5f9); padding: 1rem; }
 .post-markdown pre code { padding: 0; }
 .post-markdown table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
 .post-markdown :is(th, td) { border: 1px solid #cbd5e1; padding: .5rem .75rem; }
-.post-markdown th { background: #f8fafc; font-weight: 700; }
+.post-markdown th { background: var(--q-soft, #f8fafc); font-weight: 700; }
 .post-markdown img { max-width: 100%; height: auto; border-radius: .5rem; }
 .post-markdown hr { border-top: 1px solid #e2e8f0; margin-block: 1.5rem; }
 .post-markdown .contains-task-list { list-style: none; }

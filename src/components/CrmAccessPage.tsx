@@ -47,7 +47,7 @@ export function CrmAccessPage({ onUserSignedIn }: { onUserSignedIn: (user: AuthU
   };
 
   return (
-    <main className="min-h-dvh bg-slate-950 px-4 py-[max(2rem,env(safe-area-inset-top))] text-white">
+    <main className="q-dark-surface min-h-dvh bg-slate-950 px-4 py-[max(2rem,env(safe-area-inset-top))] text-white">
       <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-md flex-col justify-center">
         <a href="/" className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white">
           <ArrowLeft className="h-4 w-4" /> Public site
