@@ -1,3 +1,4 @@
+import { CrmDraftProvider, clearCrmDrafts } from './contexts/CrmDraftContext';
 import React, { Suspense, lazy, useCallback, useState, useEffect } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Navbar, ActiveTab } from './components/Navbar';
@@ -359,6 +360,7 @@ export default function App() {
   };
 
   const handleSignOut = async () => {
+    if (currentUser) clearCrmDrafts(currentUser.id);
     setPreviewUserId(null);
     setPreviewSignInUserId(null);
     const supabase = getSupabaseClient();
@@ -401,9 +403,9 @@ export default function App() {
     return (
       <div className="q-scroll-page bg-slate-950 p-0 text-slate-100 sm:p-6">
         <StatusPageButton />
-        <Suspense fallback={<LoadingView label="Loading CRM..." />}>
+        <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><Suspense fallback={<LoadingView label="Loading CRM..." />}>
           {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />}
-        </Suspense>
+        </Suspense></CrmDraftProvider>
       </div>
     );
   }
@@ -459,7 +461,7 @@ export default function App() {
         {/* Main Content Viewport */}
         <main className="min-w-0 flex-1 p-3 pb-5 sm:p-5 lg:p-6">
           <Suspense fallback={<LoadingView />}>
-            {isAdminPanelOpen && canAccessCrm && <AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} />}
+            {isAdminPanelOpen && canAccessCrm && <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} /></CrmDraftProvider>}
             {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
             {!isAdminPanelOpen && activeTab === 'guides' && <><GuidedProgrammes onCourseOpenChange={handleProgrammeCourseOpenChange} />{!isProgrammeCourseOpen && <LifeGuidesView />}</>}
             {!isAdminPanelOpen && activeTab === 'stories' && <LivedExperiencesView />}

@@ -1,3 +1,4 @@
+import { useCrmDraftState } from '../hooks/useCrmDraftState';
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Copy, KeyRound, Plus, RefreshCw, Webhook } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
@@ -19,14 +20,14 @@ export function BrevoWebhookAdmin() {
   const [events, setEvents] = useState<WebhookEvent[]>([]);
   const [dashboard, setDashboard] = useState<{ total: number; awaitingReview: number; reviewed: number; today: number; updatedAt: string } | null>(null);
   const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState({ eventType: '', email: '', from: '', to: '' });
+  const [filters, setFilters] = useCrmDraftState('filters', { eventType: '', email: '', from: '', to: '' });
   const [appliedFilters, setAppliedFilters] = useState(filters);
-  const [name, setName] = useState('');
-  const [webhookType, setWebhookType] = useState('transactional');
-  const [endpointFilter, setEndpointFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('received');
-  const [eventGroup, setEventGroup] = useState('all');
-  const [metricsDays, setMetricsDays] = useState(30);
+  const [name, setName] = useCrmDraftState('name', '');
+  const [webhookType, setWebhookType] = useCrmDraftState('webhookType', 'transactional');
+  const [endpointFilter, setEndpointFilter] = useCrmDraftState('endpointFilter', '');
+  const [statusFilter, setStatusFilter] = useCrmDraftState('statusFilter', 'received');
+  const [eventGroup, setEventGroup] = useCrmDraftState('eventGroup', 'all');
+  const [metricsDays, setMetricsDays] = useCrmDraftState('metricsDays', 30);
   const [metrics, setMetrics] = useState<EventMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState('');

@@ -1051,6 +1051,8 @@ Pausing or deselecting continuity does not delete an existing cloud copy. Profil
 
 ## News publishing and Help Videos
 
+The CRM keeps unfinished form and email drafts in plaintext, account-scoped browser session storage for recovery after page refreshes. Customer and mailbox drafts are separated. This includes entered customer notes/tasks, payment and product details, support replies, email recipients/subject/body, attachment references, template values and publishing forms. Successful submission clears the relevant creation draft; Q logout clears the operator's recovery data. Recovery stays within that browser tab's session and does not sync across devices. Selected video files that have not completed uploading need to be selected again after a refresh. OAuth credentials and temporary passwords are not included in draft recovery.
+
 Published news, linked updates, Help Video titles and written steps are publicly readable through Q endpoints without signing in. Do not include private account records, identifiable customer information or confidential support messages in published tutorials or news.
 
 Q stores publishing records, news relationships, tutorial steps, video links and administrator account identifiers in Supabase. Uploaded Help Video files are stored in a private Supabase Storage bucket; Q issues time-limited playback links for published videos. Removing a video from publication stops new public playback links, but an already issued link can remain usable until it expires (up to one hour). Archiving does not automatically delete the underlying file or publishing record.

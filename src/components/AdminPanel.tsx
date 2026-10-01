@@ -1,3 +1,4 @@
+import { useCrmDraftState } from '../hooks/useCrmDraftState';
 import CustomerCommunicationHistory from './CustomerCommunicationHistory';
 import React, { useEffect, useRef, useState } from 'react';
 import { Settings, ShieldCheck, RefreshCw, KeyRound, Search, Users, UserCheck, CreditCard, LogIn, LogOut, Package, Plus, X, ExternalLink, ClipboardList, UserCog, UserPlus, MessageSquareText, Mail, Copy, Trash2, Newspaper, BookOpen } from 'lucide-react';
@@ -47,7 +48,6 @@ interface CrmCommunication {
   subject: string | null; body: string; created_at: string;
 }
 
-const CONTENT_DRAFT_STORAGE_KEY = 'q-crm-news-draft-v1';
 const emptyContentForm = {
   title: '',
   slug: '',
@@ -65,50 +65,6 @@ function hasContentDraft(form: ContentFormState) {
   return Object.entries(form).some(([key, value]) => key !== 'contentType' && value.trim().length > 0) || form.contentType !== emptyContentForm.contentType;
 }
 
-function loadContentDraft(): ContentFormState {
-  if (typeof window === 'undefined') return emptyContentForm;
-  try {
-    const raw = window.localStorage.getItem(CONTENT_DRAFT_STORAGE_KEY);
-    if (!raw) return emptyContentForm;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return emptyContentForm;
-    return {
-      title: typeof parsed.title === 'string' ? parsed.title : '',
-      slug: typeof parsed.slug === 'string' ? parsed.slug : '',
-      summary: typeof parsed.summary === 'string' ? parsed.summary : '',
-      body: typeof parsed.body === 'string' ? parsed.body : '',
-      contentType: parsed.contentType === 'news' ? 'news' : 'update',
-      parentNewsId: typeof parsed.parentNewsId === 'string' ? parsed.parentNewsId : '',
-      tags: typeof parsed.tags === 'string' ? parsed.tags : '',
-      heroImageUrl: typeof parsed.heroImageUrl === 'string' ? parsed.heroImageUrl : ''
-    };
-  } catch {
-    return emptyContentForm;
-  }
-}
-
-function saveContentDraft(form: ContentFormState) {
-  if (typeof window === 'undefined') return;
-  try {
-    if (hasContentDraft(form)) {
-      window.localStorage.setItem(CONTENT_DRAFT_STORAGE_KEY, JSON.stringify(form));
-    } else {
-      window.localStorage.removeItem(CONTENT_DRAFT_STORAGE_KEY);
-    }
-  } catch {
-    // Ignore local storage failures; the CRM form should still remain usable.
-  }
-}
-
-function clearContentDraft() {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.removeItem(CONTENT_DRAFT_STORAGE_KEY);
-  } catch {
-    // Ignore local storage failures; a stale draft is safer than blocking submit.
-  }
-}
-
 export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose, onPreview, onSignOut, adminMode = false }) => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [requests, setRequests] = useState<any[]>([]);
@@ -117,36 +73,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [crmUsers, setCrmUsers] = useState<CrmUser[]>([]);
   const [crmMetrics, setCrmMetrics] = useState({ users: 0, confirmed: 0, activeSubscriptions: 0, signedIn: 0 });
-  const [crmSearch, setCrmSearch] = useState('');
+  const [crmSearch, setCrmSearch] = useCrmDraftState('crmSearch', '');
   const [crmLoading, setCrmLoading] = useState(false);
   const [crmMessage, setCrmMessage] = useState<string | null>(null);
   const [products, setProducts] = useState<CrmProduct[]>([]);
   const [productMessage, setProductMessage] = useState<string | null>(null);
   const [productSaving, setProductSaving] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', currency: 'GBP', billingInterval: 'month', paypalPlanId: '', description: '' });
+  const [newProduct, setNewProduct] = useCrmDraftState('newProduct', { name: '', price: '', currency: 'GBP', billingInterval: 'month', paypalPlanId: '', description: '' });
   const [customer, setCustomer] = useState<any | null>(null);
+  const [customerId, setCustomerId] = useCrmDraftState('customerId', '');
   const [customerLoading, setCustomerLoading] = useState(false);
   const [customerMessage, setCustomerMessage] = useState<string | null>(null);
-  const [noteBody, setNoteBody] = useState('');
-  const [taskTitle, setTaskTitle] = useState('');
-  const [taskModalOpen, setTaskModalOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any | null>(null);
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', status: 'open', priority: 'normal', startAt: '', dueAt: '', assignedTo: '' });
-  const [entitlementProduct, setEntitlementProduct] = useState('');
-  const [payment, setPayment] = useState({ amount: '', currency: 'GBP', transactionId: '', description: '' });
+  const [noteBody, setNoteBody] = useCrmDraftState(`customer:${customerId}:noteBody`, '');
+  const [taskTitle, setTaskTitle] = useCrmDraftState(`customer:${customerId}:taskTitle`, '');
+  const [taskModalOpen, setTaskModalOpen] = useCrmDraftState(`customer:${customerId}:taskModalOpen`, false);
+  const [selectedTask, setSelectedTask] = useCrmDraftState<any | null>(`customer:${customerId}:selectedTask`, null);
+  const [taskForm, setTaskForm] = useCrmDraftState(`customer:${customerId}:taskForm`, { title: '', description: '', status: 'open', priority: 'normal', startAt: '', dueAt: '', assignedTo: '' });
+  const [entitlementProduct, setEntitlementProduct] = useCrmDraftState(`customer:${customerId}:entitlementProduct`, '');
+  const [payment, setPayment] = useCrmDraftState(`customer:${customerId}:payment`, { amount: '', currency: 'GBP', transactionId: '', description: '' });
   const [staffRole, setStaffRole] = useState<'staff' | 'partner_admin' | null>(null);
   const showAdminFunctions = adminMode && staffRole === 'partner_admin';
   const [staffAccounts, setStaffAccounts] = useState<any[]>([]);
   const [staffMessage, setStaffMessage] = useState<string | null>(null);
   const [paypalApprovalUrl, setPaypalApprovalUrl] = useState<string | null>(null);
-  const [manualDiscount, setManualDiscount] = useState({ percent: '', cycles: '' });
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'user' });
+  const [manualDiscount, setManualDiscount] = useCrmDraftState(`customer:${customerId}:manualDiscount`, { percent: '', cycles: '' });
+  const [newUser, setNewUser] = useCrmDraftState('newUser', { name: '', email: '', role: 'user' });
   const [addingUser, setAddingUser] = useState(false);
   const [communicationMessage, setCommunicationMessage] = useState<string | null>(null);
-  const [newCommunication, setNewCommunication] = useState({ recipientEmail: '', subject: '', body: '', channel: 'email', status: 'sent' });
+  const [newCommunication, setNewCommunication] = useCrmDraftState(`customer:${customerId}:newCommunication`, { recipientEmail: '', subject: '', body: '', channel: 'email', status: 'sent' });
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
   const [archivedContentPosts, setArchivedContentPosts] = useState<ContentPost[]>([]);
-  const [showArchivedContent, setShowArchivedContent] = useState(false);
+  const [showArchivedContent, setShowArchivedContent] = useCrmDraftState('showArchivedContent', false);
   const [contentLoading, setContentLoading] = useState(false);
   const [contentHasMore, setContentHasMore] = useState(false);
   const [archivedContentHasMore, setArchivedContentHasMore] = useState(false);
@@ -155,18 +112,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [contentMessage, setContentMessage] = useState<string | null>(null);
   const [contentSaving, setContentSaving] = useState(false);
   const [apiClients, setApiClients] = useState<any[]>([]);
-  const [apiClientName, setApiClientName] = useState('');
+  const [apiClientName, setApiClientName] = useCrmDraftState('apiClientName', '');
   const [apiClientToken, setApiClientToken] = useState<string | null>(null);
-  const [contentForm, setContentForm] = useState<ContentFormState>(() => loadContentDraft());
-  const contentFormRef = useRef(contentForm);
+  const [contentForm, setContentForm] = useCrmDraftState<ContentFormState>('contentForm', emptyContentForm);
+  useEffect(() => {
+    // Recover a news draft made before account-scoped CRM recovery was added.
+    try {
+      const legacyKey = 'q-crm-news-draft-v1';
+      const raw = localStorage.getItem(legacyKey);
+      if (!raw || hasContentDraft(contentForm)) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+      const restored = Object.fromEntries(Object.entries(emptyContentForm).map(([key, fallback]) => [key, typeof parsed[key] === 'string' ? parsed[key] : fallback])) as ContentFormState;
+      setContentForm(restored);
+      localStorage.removeItem(legacyKey);
+    } catch { /* Leave legacy recovery data intact when browser storage fails. */ }
+  }, []);
   const [peerSubmissions, setPeerSubmissions] = useState<any[]>([]);
   const [peerMessage, setPeerMessage] = useState<string | null>(null);
   const [lifeGuides, setLifeGuides] = useState<any[]>([]);
   const [lifeGuideMessage, setLifeGuideMessage] = useState<string | null>(null);
-  const [lifeGuideForm, setLifeGuideForm] = useState({ title: '', category: 'social', summary: '', steps: '', status: 'draft' });
+  const [lifeGuideForm, setLifeGuideForm] = useCrmDraftState('lifeGuideForm', { title: '', category: 'social', summary: '', steps: '', status: 'draft' });
 
   // Staff-triggered temporary password state
-  const [directEmail, setDirectEmail] = useState('');
+  const [directEmail, setDirectEmail] = useCrmDraftState('directEmail', '');
   const [directResetting, setDirectResetting] = useState(false);
   const [directResult, setDirectResult] = useState<{ email: string; temporaryPassword: string } | null>(null);
   const [customerTempPassword, setCustomerTempPassword] = useState<{ email: string; temporaryPassword: string } | null>(null);
@@ -333,9 +302,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     try {
       const response = await fetch(`/api/v1/admin/crm/users/${userId}`, { headers: await getAuthHeaders() });
       setCustomer(await parseJsonResponse(response));
+      setCustomerId(userId);
     } catch (error: any) { setCrmMessage(error.message || 'Unable to load customer.'); }
     finally { setCustomerLoading(false); }
   };
+
+  useEffect(() => { if (customerId) void openCustomer(customerId); }, []);
 
   const customerAction = async (path: string, body: any, success: string) => {
     if (!customer?.identity?.id) return;
@@ -348,6 +320,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     try {
       const response = await fetch(`/api/v1/admin/crm/users/${customer.identity.id}/${path}`, { method: 'POST', headers: await getAuthHeaders(), body: JSON.stringify(body) });
       await parseJsonResponse(response);
+      if (path === 'notes') setNoteBody('');
+      if (path === 'payments') setPayment({ amount: '', currency: 'GBP', transactionId: '', description: '' });
       await openCustomer(customer.identity.id);
       setCustomerMessage(success);
     } catch (error: any) { setCustomerMessage(error.message || 'CRM action failed.'); }
@@ -557,7 +531,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       const post = await parseJsonResponse(response);
       setContentPosts((current) => [post, ...current]);
       setShowArchivedContent(false);
-      clearContentDraft();
       setContentForm(emptyContentForm);
       setContentMessage('Draft saved. Publish it when ready.');
     } catch (error: any) {
@@ -677,21 +650,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     void loadProducts();
     void loadPeerSubmissions();
     void loadLifeGuides();
-  }, []);
-
-  useEffect(() => {
-    contentFormRef.current = contentForm;
-  }, [contentForm]);
-
-  useEffect(() => {
-    const persistDraft = () => saveContentDraft(contentFormRef.current);
-    const timer = window.setInterval(persistDraft, 30_000);
-    window.addEventListener('beforeunload', persistDraft);
-    return () => {
-      persistDraft();
-      window.clearInterval(timer);
-      window.removeEventListener('beforeunload', persistDraft);
-    };
   }, []);
 
   useEffect(() => { if (staffRole === 'partner_admin') void loadStaff(); }, [staffRole]);
@@ -1112,11 +1070,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               {customerLoading && !customer ? <p className="text-slate-300">Loading customer record…</p> : customer && <>
                 <div className="flex items-start justify-between gap-4">
                   <div><p className="text-xs font-bold uppercase tracking-widest text-purple-300">360° customer record</p><h2 className="mt-2 text-2xl font-black text-white">{customer.profile?.preferred_name || customer.identity.email}</h2><p className="text-sm text-slate-400">{customer.identity.email} · {customer.identity.id}</p></div>
-                  <button onClick={() => setCustomer(null)} className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-5 w-5" /></button>
+                  <button onClick={() => { setCustomer(null); setCustomerId(''); }} className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-5 w-5" /></button>
                 </div>
                 {customerMessage && <div className="mt-4 rounded-xl border border-purple-400/20 bg-purple-500/10 p-3 text-xs text-purple-100">{customerMessage}</div>}
                 <button type="button" onClick={() => setTaskModalOpen(true)} className="mt-4 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add task</button>
-                {showAdminFunctions && <AdminDeleteUser key={customer.identity.id} id={customer.identity.id} email={customer.identity.email} role={customer.profile?.role || 'user'} onDeleted={() => { setCustomer(null); setCrmMessage('User deleted from Q.'); void loadCrm(); void loadStaff(); }} />}
+                {showAdminFunctions && <AdminDeleteUser key={customer.identity.id} id={customer.identity.id} email={customer.identity.email} role={customer.profile?.role || 'user'} onDeleted={() => { setCustomer(null); setCustomerId(''); setCrmMessage('User deleted from Q.'); void loadCrm(); void loadStaff(); }} />}
                 <section className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><h3 className="font-bold text-white">Temporary password</h3><p className="mt-1 text-xs text-emerald-100/80">Issue a temporary Supabase Auth password for this customer. Q shows it once and logs the CRM action without storing the password.</p></div>
@@ -1139,7 +1097,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                 </div>
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Notes</h3><textarea value={noteBody} onChange={e=>setNoteBody(e.target.value)} placeholder="Add a non-sensitive CRM note" className="mt-3 w-full rounded-xl bg-slate-900 p-3 text-xs text-white"/><button onClick={() => { void customerAction('notes',{body:noteBody},'Note added.'); setNoteBody(''); }} className="mt-2 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add note</button><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.notes.map((n:any)=><div key={n.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300">{n.body}<p className="mt-1 text-[10px] text-slate-500">{new Date(n.created_at).toLocaleString()}</p></div>)}</div></section>
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Notes</h3><textarea value={noteBody} onChange={e=>setNoteBody(e.target.value)} placeholder="Add a non-sensitive CRM note" className="mt-3 w-full rounded-xl bg-slate-900 p-3 text-xs text-white"/><button onClick={() => { void customerAction('notes',{body:noteBody},'Note added.'); }} className="mt-2 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add note</button><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.notes.map((n:any)=><div key={n.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300">{n.body}<p className="mt-1 text-[10px] text-slate-500">{new Date(n.created_at).toLocaleString()}</p></div>)}</div></section>
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Tasks</h3><div className="mt-3 flex gap-2"><input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="Follow-up task" className="min-w-0 flex-1 rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><button onClick={() => { void customerAction('tasks',{title:taskTitle},'Task created.'); setTaskTitle(''); }} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add</button></div><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.tasks.map((t:any)=><div key={t.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><ClipboardList className="mr-1 inline h-3 w-3"/>{t.title} · {t.status}</div>)}</div></section>
                   {showAdminFunctions && <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Audit and activity timeline</h3><div className="mt-3 max-h-72 space-y-3 overflow-y-auto">{customer.activities.map((a:any)=><div key={a.id} className="border-l border-purple-500/40 pl-3 text-xs text-slate-300"><b className="text-white">{a.summary}</b><p className="text-[10px] text-slate-500">{new Date(a.created_at).toLocaleString()}</p></div>)}</div></section>}
                 </div>

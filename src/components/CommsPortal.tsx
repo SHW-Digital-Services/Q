@@ -1,3 +1,4 @@
+import { useCrmDraftState } from '../hooks/useCrmDraftState';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Mail, Search, RefreshCw, Plus, Send, Paperclip, X, BookOpen, LogOut, ArrowLeft } from 'lucide-react';
 import { renderMailHtml } from '../services/mailHtml';
@@ -21,8 +22,8 @@ const readableDate = (value: string) => { const date = new Date(Number(value)); 
 export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<void> }) {
   const [status, setStatus] = useState<{ configured: boolean; connected: boolean; mailUrl: string; mailbox: string; personalAvailable?: boolean } | null>(null);
   const [personalAvailable, setPersonalAvailable] = useState(false);
-  const [mailboxMode, setMailboxMode] = useState('');
-  const [tab, setTab] = useState<'mail' | 'templates' | 'support'>(() => new URLSearchParams(window.location.search).get('section') === 'support' ? 'support' : 'mail');
+  const [mailboxMode, setMailboxMode] = useCrmDraftState('mailboxMode', '');
+  const [tab, setTab] = useCrmDraftState<'mail' | 'templates' | 'support'>('tab', new URLSearchParams(window.location.search).get('section') === 'support' ? 'support' : 'mail');
   const [accounts, setAccounts] = useState<MailAccount[]>([]);
   const [account, setAccount] = useState('');
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -40,9 +41,9 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
-  const [composeOpen, setComposeOpen] = useState(false);
-  const [composer, setComposer] = useState(emptyComposer);
-  const [uploads, setUploads] = useState<Upload[]>([]);
+  const [composeOpen, setComposeOpen] = useCrmDraftState(`mail:${mailboxMode}:${account}:composeOpen`, false);
+  const [composer, setComposer] = useCrmDraftState(`mail:${mailboxMode}:${account}:composer`, emptyComposer);
+  const [uploads, setUploads] = useCrmDraftState<Upload[]>(`mail:${mailboxMode}:${account}:uploads`, []);
   const [moveFolder, setMoveFolder] = useState('');
   const [soundEnabled, setSoundEnabled] = useState(false);
   const audio = useRef<AudioContext | null>(null);
@@ -85,7 +86,7 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
   const mailJson = async (path: string, init?: RequestInit, signal?: AbortSignal) => (await mailRequest(path, init, signal)).json();
   const postJson = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) });
   const report = (err: unknown) => setError(err instanceof Error ? err.message : 'Unable to complete this email request.');
-  function clearMailbox() { unreadBaseline.current = null; requestVersion.current++; setMessages([]); setSelected(null); setDetail(null); setFolders([]); setAccount(''); setFolder(''); setAccounts([]); setComposer(emptyComposer); setUploads([]); setComposeOpen(false); }
+  function clearMailbox() { unreadBaseline.current = null; requestVersion.current++; setMessages([]); setSelected(null); setDetail(null); setFolders([]); setAccount(''); setFolder(''); setAccounts([]); }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -98,17 +99,18 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
     }
     mailJson('/status', undefined, controller.signal).then(data => { if (!controller.signal.aborted) { setStatus(data); if (!mailboxMode) setPersonalAvailable(Boolean(data.personalAvailable)); } }).catch(e => { if (!controller.signal.aborted) report(e); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     const supabase = getSupabaseClient();
-    const subscription = supabase?.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') { clearMailbox(); setStatus(null); } });
+    const subscription = supabase?.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') { setComposer(emptyComposer); setUploads([]); setComposeOpen(false); clearMailbox(); setStatus(null); } });
     return () => { controller.abort(); subscription?.data.subscription.unsubscribe(); requestVersion.current++; };
   }, [mailboxMode]);
   useEffect(() => {
-    if (!status?.connected) { clearMailbox(); return; }
+    if (!status) return;
+    if (!status.connected) { clearMailbox(); return; }
     const controller = new AbortController(); setLoading(true);
     mailJson('/accounts', undefined, controller.signal).then(data => { if (!controller.signal.aborted) { setAccounts(data.accounts); setAccount(data.accounts[0]?.accountId || ''); if (!data.accounts.length) setError('Zoho did not return a mailbox. Check the account’s mail and API access.'); } }).catch(e => { if (!controller.signal.aborted) report(e); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [status?.connected]);
   useEffect(() => {
-    unreadBaseline.current = null; requestVersion.current++; setFolders([]); setFolder(''); setMessages([]); setSelected(null); setDetail(null); setComposer(emptyComposer); setComposeOpen(false); setUploads([]); setSearchText(''); setSearch(''); setStart(1);
+    unreadBaseline.current = null; requestVersion.current++; setFolders([]); setFolder(''); setMessages([]); setSelected(null); setDetail(null); setSearchText(''); setSearch(''); setStart(1);
     if (!account) return;
     const controller = new AbortController(); setLoading(true);
     mailJson(`/accounts/${account}/folders`, undefined, controller.signal).then(data => { if (!controller.signal.aborted) { setFolders(data.folders); const linkedFolder = new URLSearchParams(window.location.search).get('folder'); setFolder(data.folders.some((f: Folder) => f.folderId === linkedFolder) ? linkedFolder : inboxFolder(data.folders)); } }).catch(e => { if (!controller.signal.aborted) report(e); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
@@ -159,9 +161,11 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
     const version = ++requestVersion.current; setSelected(message); setDetail(null); setReading(true); setError('');
     try { const data = await mailJson(`/accounts/${account}/folders/${message.folderId}/messages/${message.messageId}`); if (version === requestVersion.current) setDetail(data); } catch (e) { if (version === requestVersion.current) report(e); } finally { if (version === requestVersion.current) setReading(false); }
   }
-  function beginCompose(next = emptyComposer) {
-    if (composeOpen && (composer.subject || composer.content) && !window.confirm('Replace the unsaved message currently open in Q?')) return;
-    setComposer({ ...next }); setUploads([]); setComposeOpen(true); setTab('mail'); setNotice('');
+  function beginCompose(next?: typeof emptyComposer) {
+    // Reopening a closed composer continues the recovered draft.
+    if (next && Object.values(composer).some(value => value.trim()) && !window.confirm('Replace the unsaved message currently open in Q?')) return;
+    if (next) { setComposer({ ...next }); setUploads([]); }
+    setComposeOpen(true); setTab('mail'); setNotice('');
   }
   async function send(draft = false) {
     if (busy) return;
@@ -186,11 +190,11 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
     try { await mailJson(`/accounts/${account}/messages/${selected.messageId}`, { method: 'PATCH', body: JSON.stringify({ action, ...(action === 'move' ? { folderId: moveFolder } : {}) }) }); unreadBaseline.current = null; setNotice('Your mailbox was updated in Zoho.'); setFolderRevision(v => v + 1); setRevision(v => v + 1); } catch (e) { report(e); } finally { setBusy(false); }
   }
   return <main className="mx-auto w-full max-w-7xl bg-slate-950 p-4 text-slate-100 sm:p-6">
-    <header className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-semibold text-purple-300">Q Customer Operations</p><h1 className="mt-2 flex items-center gap-2 text-2xl font-bold"><Mail className="h-6 w-6" /> Communications</h1><p className="mt-2 max-w-2xl text-sm text-slate-400">Your available mailboxes, inside Q. Messages and attachments stay in Zoho and aren’t saved to Supabase.</p></div><div className="flex flex-wrap gap-2"><a href="/crm" className={button}><ArrowLeft className="h-4 w-4" /> Back to CRM</a><button disabled={busy} onClick={() => void onSignOut()} className={button}><LogOut className="h-4 w-4" /> Log out</button></div></header>
+    <header className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-semibold text-purple-300">Q Customer Operations</p><h1 className="mt-2 flex items-center gap-2 text-2xl font-bold"><Mail className="h-6 w-6" /> Communications</h1><p className="mt-2 max-w-2xl text-sm text-slate-400">Your available mailboxes, inside Q. Messages and attachments stay in Zoho. Unsent drafts are recovered in this browser tab after a refresh.</p></div><div className="flex flex-wrap gap-2"><a href="/crm" className={button}><ArrowLeft className="h-4 w-4" /> Back to CRM</a><button disabled={busy} onClick={() => void onSignOut()} className={button}><LogOut className="h-4 w-4" /> Log out</button></div></header>
     <button type="button" aria-pressed={soundEnabled} onClick={() => void toggleSound()} className={`${button} mt-4`}>{soundEnabled ? 'Sound notifications on' : 'Enable sound notifications'}</button>
     <nav aria-label="Communications sections" className="mt-6 flex flex-wrap gap-2"><button onClick={() => setTab('mail')} aria-pressed={tab === 'mail'} className={`${button} ${tab === 'mail' ? 'border-purple-400 bg-purple-500/15' : ''}`}><Mail className="h-4 w-4" /> Mailbox</button><button onClick={() => setTab('templates')} aria-pressed={tab === 'templates'} className={`${button} ${tab === 'templates' ? 'border-purple-400 bg-purple-500/15' : ''}`}><BookOpen className="h-4 w-4" /> Email templates</button><button onClick={() => setTab('support')} aria-pressed={tab === 'support'} className={`${button} ${tab === 'support' ? 'border-purple-400 bg-purple-500/15' : ''}`}><Mail className="h-4 w-4" /> Support inbox</button></nav>
     {error && <p role="alert" className="mt-4 rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-200">{error}</p>}{notice && <p role="status" className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">{notice}</p>}
-    {personalAvailable && <label className="mt-5 flex items-center gap-3 text-sm">Mailbox<select aria-label="Select mailbox" className={control} value={mailboxMode} disabled={busy} onChange={e => { if (composeOpen && (composer.subject || composer.content) && !window.confirm('Discard the unsaved email and switch mailbox?')) return; clearMailbox(); setStatus(null); setError(''); setNotice(''); setLoading(true); setMailboxMode(e.target.value); }}><option value="">office@q-ai.online</option><option value="/personal">scott@q-ai.online</option></select></label>}
+    {personalAvailable && <label className="mt-5 flex items-center gap-3 text-sm">Mailbox<select aria-label="Select mailbox" className={control} value={mailboxMode} disabled={busy} onChange={e => { if (composeOpen && (composer.subject || composer.content) && !window.confirm('Keep this email draft and switch mailbox?')) return; clearMailbox(); setStatus(null); setError(''); setNotice(''); setLoading(true); setMailboxMode(e.target.value); }}><option value="">office@q-ai.online</option><option value="/personal">scott@q-ai.online</option></select></label>}
     {status && !status.configured && <section className="mt-5 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-5"><h2 className="font-bold text-amber-100">Zoho Mail setup required</h2><p className="mt-2 text-sm text-slate-300">An admin needs to register Q in Zoho’s API Console and configure the connection. You can browse the templates below while that’s being set up.</p><a href="https://api-console.zoho.eu/" target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm text-purple-200 underline">Open Zoho API Console</a></section>}
 
     {tab === 'support' && <SupportInbox />}

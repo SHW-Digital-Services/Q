@@ -1,13 +1,14 @@
+import { useCrmDraftState } from '../hooks/useCrmDraftState';
 import React, { useMemo, useState } from 'react';
 import { BookOpen, Search } from 'lucide-react';
 import { emailTemplates, fillEmailTemplate, templatePlaceholders } from '../data/emailTemplates';
 
 export function EmailTemplatesSection({ onUse, canUse }: { onUse: (subject: string, content: string) => void; canUse: boolean }) {
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('All');
-  const [selectedId, setSelectedId] = useState(emailTemplates[0].id);
-  const [values, setValues] = useState<Record<string, string>>({});
-  const selected = emailTemplates.find(t => t.id === selectedId)!;
+  const [search, setSearch] = useCrmDraftState('search', '');
+  const [category, setCategory] = useCrmDraftState('category', 'All');
+  const [selectedId, setSelectedId] = useCrmDraftState('selectedId', emailTemplates[0].id);
+  const [values, setValues] = useCrmDraftState<Record<string, string>>('values', {});
+  const selected = emailTemplates.find(t => t.id === selectedId) ?? emailTemplates[0];
   const placeholders = useMemo(() => templatePlaceholders(selected.subject, selected.body), [selected]);
   const subject = fillEmailTemplate(selected.subject, values);
   const body = fillEmailTemplate(selected.body, values);

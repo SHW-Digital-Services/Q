@@ -1,3 +1,4 @@
+import { useCrmDraftState } from '../hooks/useCrmDraftState';
 import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquareText, RefreshCw, Copy, Mail } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
@@ -9,9 +10,9 @@ interface ContactRequest {
 
 export default function SupportInbox() {
   const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
-  const [contactReplies, setContactReplies] = useState<Record<string, string>>({});
+  const [contactReplies, setContactReplies] = useCrmDraftState<Record<string, string>>('contactReplies', {});
   const [contactMessage, setContactMessage] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived, setShowArchived] = useCrmDraftState('showArchived', false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const loadGeneration = useRef(0);
@@ -34,7 +35,8 @@ export default function SupportInbox() {
       const payload = await parseJsonResponse(response);
       if (generation !== loadGeneration.current) return;
       setContactRequests(payload);
-      setContactReplies(Object.fromEntries(payload.map((request: ContactRequest) => [request.id, request.response_text || ''])));
+      // Keep unsaved replies when the inbox reloads; saved replies come from the server.
+      // Defaults are rendered from response_text without storing fetched records as drafts.
     } catch (error: any) { if (generation === loadGeneration.current) setContactMessage(error.message || 'Unable to load support requests.'); }
     finally { if (generation === loadGeneration.current) setLoading(false); }
   };
@@ -42,10 +44,11 @@ export default function SupportInbox() {
   const updateContactRequest = async (request: ContactRequest, status: ContactRequest['status']) => {
     setBusy(true);
     try {
-      const responseText = contactReplies[request.id] || '';
+      const responseText = contactReplies[request.id] ?? request.response_text ?? '';
       const response = await fetch(`/api/v1/admin/contact-requests/${request.id}`, { method: 'PATCH', headers: await getAuthHeaders(), body: JSON.stringify({ status, responseText }) });
       const updated = await parseJsonResponse(response);
       setContactRequests(current => current.map(item => item.id === updated.id ? updated : item));
+      setContactReplies(current => { const next = { ...current }; delete next[request.id]; return next; });
       setContactMessage(`Support request marked ${status.replace('_', ' ')}.`);
     } catch (error: any) { setContactMessage(error.message || 'Unable to update support request.'); }
     finally { setBusy(false); }
@@ -66,7 +69,7 @@ export default function SupportInbox() {
   };
 
   const openEmailReply = (request: ContactRequest) => {
-    const body = contactReplies[request.id] || '';
+    const body = contactReplies[request.id] ?? request.response_text ?? '';
     window.location.href = `mailto:${encodeURIComponent(request.email)}?subject=${encodeURIComponent(`Re: ${request.subject}`)}&body=${encodeURIComponent(body)}`;
   };
 
@@ -89,7 +92,7 @@ export default function SupportInbox() {
             {loading ? <p role="status" className="text-xs text-slate-400">Loading support requests…</p> : contactRequests.length === 0 ? <p className="text-xs text-slate-400">{showArchived ? 'No archived support requests.' : 'No support requests in the inbox.'}</p> : contactRequests.map(request => <article key={request.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><span className="text-[10px] font-black uppercase tracking-wider text-sky-300">{request.category}</span><span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${request.status === 'new' ? 'bg-amber-500/15 text-amber-200' : request.status === 'answered' ? 'bg-emerald-500/15 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>{request.status.replace('_', ' ')}</span></div><h3 className="mt-1 font-bold text-white">{request.subject}</h3><p className="mt-1 text-xs text-slate-400">{request.name || 'No name'} · {request.email} · {new Date(request.created_at).toLocaleString()}</p></div><button type="button" onClick={() => navigator.clipboard.writeText(request.email)} className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[10px] font-bold text-slate-300 hover:bg-white/10"><Copy className="h-3 w-3" />Email</button></div>
               <p className="mt-3 whitespace-pre-wrap rounded-xl bg-slate-950/70 p-3 text-xs leading-relaxed text-slate-200">{request.message}</p>
-              <textarea value={contactReplies[request.id] || ''} onChange={event => setContactReplies({ ...contactReplies, [request.id]: event.target.value })} rows={4} placeholder="Draft the reply that will be sent by email…" className="mt-3 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white placeholder:text-slate-500" />
+              <textarea value={contactReplies[request.id] ?? request.response_text ?? ''} onChange={event => setContactReplies({ ...contactReplies, [request.id]: event.target.value })} rows={4} placeholder="Draft the reply that will be sent by email…" className="mt-3 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white placeholder:text-slate-500" />
               <div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => openEmailReply(request)} disabled={!contactReplies[request.id]?.trim()} className="inline-flex items-center gap-1.5 rounded-xl bg-sky-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><Mail className="h-3.5 w-3.5" />Open email reply</button><button type="button" onClick={() => void updateContactRequest(request, 'in_progress')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">In progress</button><button type="button" onClick={() => void updateContactRequest(request, 'answered')} disabled={!contactReplies[request.id]?.trim()} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-40">Mark answered &amp; log reply</button><button type="button" onClick={() => void updateContactRequest(request, 'closed')} className="rounded-xl bg-slate-700 px-3 py-2 text-xs font-bold text-white">Close</button></div>
               <button type="button" onClick={() => void archiveContactRequest(request)} className="mt-3 rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-sky-200 hover:bg-white/10">{request.archived_at ? 'Restore to inbox' : 'Archive'}</button>
             </article>)}

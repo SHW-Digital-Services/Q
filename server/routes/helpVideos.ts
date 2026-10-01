@@ -50,7 +50,9 @@ helpVideosAdminRouter.post('/upload', asyncHandler(async (req, res) => {
   if (error) return sendOpaqueError(req, res, 503, 'Unable to prepare video upload. Apply the Help Videos migration first.', 'Help Video Upload', error);
   return res.json({ path, token: data.token });
 }));
-helpVideosAdminRouter.post('/', asyncHandler(async (req, res) => {
+const saveVideo = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  if (id && !isUuid(id)) return res.status(400).json({ error: 'Invalid video.' });
   const body = req.body;
   if (!requireExactObject(body, ['title', 'steps', 'videoUrl', 'videoPath', 'status'])) return res.status(400).json({ error: 'Unexpected video fields.' });
   const title = typeof body.title === 'string' ? body.title.trim() : '';
@@ -70,10 +72,17 @@ helpVideosAdminRouter.post('/', asyncHandler(async (req, res) => {
     const { data, error } = await db.storage.from('help-videos').list('videos', { search: name, limit: 10 });
     if (error || !data?.some((file: any) => file.name === name)) return res.status(400).json({ error: 'Finish uploading the video before saving.' });
   }
-  const { data, error } = await db.from('help_videos').insert({ title, steps: body.steps.map((step: string) => step.trim()), video_url: body.videoUrl || null, video_path: body.videoPath || null, status: body.status, created_by: identity.user.id, updated_by: identity.user.id }).select(columns).single();
+  const values = { title, steps: body.steps.map((step: string) => step.trim()), video_url: body.videoUrl || null, video_path: body.videoPath || null, status: body.status, updated_by: identity.user.id, updated_at: new Date().toISOString() };
+  const query = id
+    ? db.from('help_videos').update(values).eq('id', id)
+    : db.from('help_videos').insert({ ...values, created_by: identity.user.id });
+  const { data, error } = await query.select(columns).maybeSingle();
   if (error) return sendOpaqueError(req, res, 500, 'Unable to save Help Video.', 'Help Video Save', error);
-  return res.status(201).json({ video: data });
-}));
+  if (!data) return res.status(404).json({ error: 'Help Video not found.' });
+  return res.status(id ? 200 : 201).json({ video: data });
+});
+helpVideosAdminRouter.post('/', saveVideo);
+helpVideosAdminRouter.put('/:id', saveVideo);
 helpVideosAdminRouter.patch('/:id', asyncHandler(async (req, res) => {
   if (!isUuid(req.params.id) || !requireExactObject(req.body, ['status']) || !['draft', 'published', 'archived'].includes(req.body.status)) return res.status(400).json({ error: 'Invalid video or status.' });
   const { serviceSupabase: db, identity } = res.locals.helpVideoAdmin;

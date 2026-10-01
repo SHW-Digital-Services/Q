@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "check:crm-drafts": "tsx scripts/check-crm-drafts.tsx",
+    "check:help-video-edit": "tsx scripts/check-help-video-edit.ts",
     "check:public-trust": "tsx scripts/check-public-trust.ts",
     "audit:public-trust": "node scripts/audit-public-trust.mjs",
     "check:support-archive": "tsx scripts/check-support-archive.ts",

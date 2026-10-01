@@ -4,6 +4,10 @@ The main CRM at `/crm` contains a button labelled **Admin Only** only after the 
 
 The admin page groups the live-site switch, Help Video management, news/update publishing and content API clients, Brevo webhook setup/inbox, Staff/access-role management, product controls, Life Guide publishing, customer role changes, admin discounts, audit history and user deletion. Shared customer operations are also available there so an Admin can open a customer's record. Site preview remains available to both Staff and Admins; switching between the waitlist and live site is Admin-only.
 
+CRM forms recover unfinished work after a refresh in the same browser tab. Drafts are separated by signed-in operator, customer and mailbox; Q logout clears the operator's recovery data. Saving or sending successfully clears the relevant creation draft. Failed saves retain entered work. A selected video file must be selected again after refresh if its upload was not complete.
+
+In **Help Videos**, choose **Edit** on a tutorial to change its title, written steps, video source or visibility, then choose **Save changes**. The existing tutorial is updated. Uploaded video files are retained unless you select a replacement file or switch to a hosted link. **Cancel editing** discards the current editing draft after confirmation.
+
 ## Delete User
 
 On the admin page, open a user’s customer record. **Delete User · Admin Only** requires the exact account email and a final irreversible-deletion confirmation. The server rejects unauthenticated/Staff requests, deleting the signed-in Admin, deleting an Admin-role account, invalid confirmations and accounts whose subscription has a status other than CANCELLED/EXPIRED. Another Admin must first change an Admin account’s role if it needs to be deleted. Resolve subscriptions with PayPal and confirm Q’s status before attempting deletion; account deletion does not cancel PayPal payments.

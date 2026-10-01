@@ -12,7 +12,7 @@ operator: Scott Harvey-Whittle trading as SHW Digital Services
 
 ## CRM Zoho Mail connection cookies
 
-The shared office@q-ai.online connection no longer stores Zoho OAuth tokens in browser cookies. Its refresh token is held in server hosting secrets and access tokens exist temporarily in server memory. Legacy q_zoho_state and q_zoho_mail cookies are ignored and cleared on Q logout. Standard Q authentication remains required; personalised drafts and template previews remain in page memory.
+The shared office@q-ai.online connection no longer stores Zoho OAuth tokens in browser cookies. Its refresh token is held in server hosting secrets and access tokens exist temporarily in server memory. Legacy q_zoho_state and q_zoho_mail cookies are ignored and cleared on Q logout. Standard Q authentication remains required. Unsent drafts and personalised template values use account-scoped browser session storage for refresh recovery; Q logout clears the operator's recovery data.
 
 ## 1. Introduction
 
@@ -255,4 +255,4 @@ Support: office@q-ai.online
 
 The news relationships and Help Video step fields do not add a separate tracking cookie. Uploaded tutorial videos use the browser media player with preload disabled and are delivered from Supabase when requested. Hosted video links open another website when selected; Q does not automatically embed that external player. That website may use its own cookies or storage. Q's existing analytics preferences continue to apply to page visits.
 
-The CRM retains an unfinished news/update draft in browser local storage, including the related news item ID. It is cleared after successfully saving the draft. Help Video form fields are held in the current page and are not automatically saved to browser storage.
+The CRM saves unfinished forms as you type in account-scoped browser session storage under `q-crm-draft-v1:` keys. This includes news/update and Help Video details, customer notes/tasks, product and user creation, payment details, support replies, email recipients/subject/body, attachment references and personalised template values. Customer and mailbox drafts use separate keys. Draft recovery is plaintext, lasts within the browser tab's session, and is cleared on Q logout. Successful form submission clears the relevant creation draft. Selected video files that have not finished uploading must be selected again after a refresh. A legacy news draft in local storage is recovered into session storage when available and then removed from local storage.
