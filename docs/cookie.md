@@ -156,7 +156,7 @@ Email delivery, bounce and unsubscribe records are distinct from optional engage
 
 ## 5.2 Brevo Conversations Support Widget
 
-The widget loads from conversations-widget.brevo.com on application pages. Loading it connects your browser to Brevo even before you open a conversation. It may use cookies or local storage to recognise a returning browser, maintain conversation continuity and remember the widget's state. Associated visitor information may include pages visited, referrer, visit times, browser details and approximate location, depending on the enabled features.
+The widget loads from conversations-widget.brevo.com only when you select Chat with support. Merely opening an application page does not load the chat widget. Selecting chat connects your browser to Brevo before you send a message. It may use cookies or local storage to recognise a returning browser, maintain conversation continuity and remember the widget's state. Associated visitor information may include pages visited, referrer, visit times, browser details and approximate location, depending on the enabled features.
 
 Storage strictly necessary to provide a chat you request must be distinguished from optional visitor tracking or analytics. Optional storage or tracking must not be treated as essential merely because it belongs to a support widget; where consent is required, it must be obtained before that activity. Reading this policy, visiting Q or agreeing to the Terms does not itself provide that consent.
 

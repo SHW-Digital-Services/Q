@@ -7,6 +7,7 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { GlobalTextTranslator } from './components/GlobalTextTranslator';
 import { OnlinePresenceProvider } from './contexts/OnlinePresenceContext';
 import { BrevoTrackerConsent } from './components/BrevoTrackerConsent';
+import { SupportChatLauncher } from './components/SupportChatLauncher';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <GlobalTextTranslator />
         <BrevoTrackerConsent />
+        <SupportChatLauncher />
         <OnlinePresenceProvider><App /></OnlinePresenceProvider>
       </ThemeProvider>
     </LanguageProvider>

@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "check:public-trust": "tsx scripts/check-public-trust.ts",
+    "audit:public-trust": "node scripts/audit-public-trust.mjs",
+    "check:support-archive": "tsx scripts/check-support-archive.ts",
     "check:online-users": "tsx scripts/check-online-users.ts",
     "check:brevo-tracking": "tsx scripts/check-brevo-tracking.ts",
     "check:comms": "tsx scripts/check-comms.ts",

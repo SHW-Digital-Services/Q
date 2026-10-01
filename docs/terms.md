@@ -254,7 +254,7 @@ If a trial converts to a paid subscription, billing will occur in accordance wit
 
 # 16. Refunds
 
-Refund eligibility is governed by our separate **Refund & Cancellation Policy**.
+Refund eligibility is governed by our separate [Refund & Cancellation Policy](/legal/refund).
 
 Except where required by law, subscription fees are non-refundable once the relevant billing period has commenced.
 

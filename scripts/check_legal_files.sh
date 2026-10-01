@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 missing=0
-for f in docs/terms.md docs/privacy.md docs/cookie.md docs/dpa.md docs/accessibility.md docs/security.md; do
+for f in docs/terms.md docs/privacy.md docs/refund.md docs/cookie.md docs/dpa.md docs/accessibility.md docs/subscription_terms.md docs/security.md; do
   if [ ! -f "$f" ]; then
     echo "Missing $f"
     missing=1

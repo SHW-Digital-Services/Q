@@ -301,7 +301,7 @@ This enables us to respond effectively and improve customer service.
 
 ### Brevo Conversations live chat
 
-We use **Brevo Conversations** to provide website support chat. The widget loads when you visit an application page, so your browser connects to Brevo before you send a message. Brevo receives network information such as your IP address. Depending on widget settings, it may also process a visitor identifier, browser and device details, page URL, referrer, visit times and approximate location to operate the widget and provide context for support.
+We use **Brevo Conversations** to provide website support chat. The widget loads only when you select Chat with support. Your browser then connects to Brevo before you send a message. Brevo receives network information such as your IP address. Depending on widget settings, it may also process a visitor identifier, browser and device details, page URL, referrer, visit times and approximate location to operate the widget and provide context for support.
 
 If you use the chat, Q and Brevo process the messages, attachments and contact details you choose to submit, together with conversation history and delivery information. We use these records to answer enquiries, follow up and resolve support issues. We rely on contract where necessary to provide support for your service, or our legitimate interests in responding to other enquiries and maintaining secure support, subject to your rights. Any non-essential device tracking requires the consent described in the Cookie Policy.
 

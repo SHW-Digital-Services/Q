@@ -19,6 +19,7 @@ import { brevoWebhookReceiver, brevoWebhookAdminRouter } from './routes/brevoWeb
 import { commsRouter } from './routes/comms.js';
 import { adminDeleteUsersRouter } from './routes/adminDeleteUsers.js';
 import { onlinePresenceRouter } from './routes/onlinePresence.js';
+import { publicTrustRouter } from './routes/publicTrust.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -203,6 +204,7 @@ app.use('/api/peer-knowledge', peerKnowledgeRouter);
 app.use('/api/life-guides', lifeGuidesRouter);
 app.use('/api/help-videos', helpVideosRouter);
 app.use('/legal', legalRouter);
+app.use(publicTrustRouter);
 
 app.use(['/api', '/api/*', '/legal', '/legal/*'], (req, res) => {
   res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.originalUrl || req.url}` });
@@ -212,8 +214,17 @@ if (process.env.VERCEL !== '1' && process.env.NODE_ENV === 'production') {
   const clientDirectory = path.resolve(process.cwd(), 'dist');
   app.use(express.static(clientDirectory));
   app.get(['/app', '/app/*'], (_req, res) => res.sendFile(path.join(clientDirectory, 'index.html')));
-  app.get('*', (_req, res) => res.sendFile(path.join(clientDirectory, 'index.html')));
+  app.get('*', (req, res) => {
+    if (['/', '/news', '/updates', '/developer', '/crm', '/admin/crm'].includes(req.path) || /^\/(?:crm|admin\/crm)\//.test(req.path)) return res.sendFile(path.join(clientDirectory, 'index.html'));
+    res.setHeader('X-Robots-Tag', 'noindex');
+    return res.status(404).type('html').send('<!doctype html><html lang="en"><head><title>Page not found — Q Intelligence</title></head><body><h1>Page not found</h1><a href="/">Return to Q</a></body></html>');
+  });
 }
+
+if (process.env.VERCEL === '1') app.use((_req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex');
+  res.status(404).type('html').send('<!doctype html><html lang="en"><head><title>Page not found — Q Intelligence</title></head><body><h1>Page not found</h1><a href="/">Return to Q</a></body></html>');
+});
 
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const requestId = randomUUID();

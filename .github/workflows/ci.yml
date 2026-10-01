@@ -43,5 +43,11 @@ jobs:
       - name: Brevo events and tracking checks
         run: npm run check:webhooks && npm run check:brevo-tracking
 
+      - name: Support archive and permissions checks
+        run: npm run check:support-archive
+
       - name: Production build
         run: npm run build
+
+      - name: Public identity, crawl files and legal page checks
+        run: npm run check:public-trust

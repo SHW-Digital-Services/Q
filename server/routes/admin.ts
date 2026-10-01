@@ -945,7 +945,11 @@ adminRouter.post('/contact-requests', asyncHandler(async (req, res) => {
 adminRouter.get('/contact-requests', asyncHandler(async (req, res) => {
   const staffCtx = await requireStaff(req, res);
   if (!staffCtx) return;
-  const { data, error } = await staffCtx.serviceSupabase.from('contact_requests').select('*').order('created_at', { ascending: false }).limit(200);
+  if (req.query.archived !== undefined && !['true', 'false'].includes(String(req.query.archived))) return res.status(400).json({ error: 'Choose Inbox or Archived.' });
+  res.setHeader('Cache-Control', 'no-store');
+  let query = staffCtx.serviceSupabase.from('contact_requests').select('*');
+  query = req.query.archived === 'true' ? query.not('archived_at', 'is', null) : query.is('archived_at', null);
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(200);
   if (error) return res.status(500).json({ error: 'Unable to load contact requests.' });
   return res.json(data ?? []);
 }));
@@ -1096,6 +1100,21 @@ adminRouter.post('/communications', asyncHandler(async (req, res) => {
   const result = await recordCrmCommunication(staffCtx.serviceSupabase, { userId: req.body?.userId || null, contactRequestId: req.body?.contactRequestId || null, direction: 'outbound', channel, status, senderEmail: req.body?.senderEmail || null, recipientEmail: req.body?.recipientEmail || null, subject: req.body?.subject || null, body, actorId: staffCtx.identity.user.id, metadata: { manuallyLogged: true } });
   if (result.error) return res.status(500).json({ error: 'Unable to log the outbound communication.' });
   return res.status(201).json(result.data?.[0] ?? { success: true });
+}));
+
+adminRouter.patch('/contact-requests/:id/archive', asyncHandler(async (req, res) => {
+  const staffCtx = await requireStaff(req, res);
+  if (!staffCtx) return;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id) ||
+      !requireExactObject(req.body, ['archived']) || typeof req.body.archived !== 'boolean') return res.status(400).json({ error: 'Choose a valid support request and archive action.' });
+  const now = new Date().toISOString();
+  const { data, error } = await staffCtx.serviceSupabase.from('contact_requests')
+    .update({ archived_at: req.body.archived ? now : null, updated_at: now })
+    .eq('id', req.params.id).select('*').maybeSingle();
+  if (error) return res.status(500).json({ error: 'Unable to change the support request archive.' });
+  if (!data) return res.status(404).json({ error: 'Support request not found.' });
+  res.setHeader('Cache-Control', 'no-store');
+  return res.json(data);
 }));
 
 adminRouter.patch('/contact-requests/:id', asyncHandler(async (req, res) => {

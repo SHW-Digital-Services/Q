@@ -1,13 +1,18 @@
 import React from 'react';
+import { businessIdentity } from '../shared/businessIdentity';
 
 // Centralized list of all legal documents
 const legalLinks = [
+  { name: 'About us', path: '/about' },
+  { name: 'Contact us', path: '/contact' },
   { name: 'Acceptable Use', path: '/legal/acceptable_use_policy' },
   { name: 'Accessibility', path: '/legal/accessibility' },
   { name: 'AI Disclaimer', path: '/legal/ai_disclaimer' },
   { name: 'Cookie Policy', path: '/legal/cookie' },
   { name: 'DPA', path: '/legal/dpa' },
   { name: 'Privacy Policy', path: '/legal/privacy' },
+  { name: 'Refund Policy', path: '/legal/refund' },
+  { name: 'Subscription Terms', path: '/legal/subscription_terms' },
   { name: 'Processor Register', path: '/legal/PROCESSORS' },
   { name: 'Security Policy', path: '/legal/security' },
   { name: 'Terms of Service', path: '/legal/terms' },
@@ -38,6 +43,14 @@ export const LegalFooter = () => {
       ))}
     </div>
 
+    <div className="mx-auto mt-6 max-w-4xl space-y-2 text-xs leading-5 text-slate-300">
+      <p>{businessIdentity.operator}, trading as {businessIdentity.tradingName} · {businessIdentity.country}</p>
+      <a href={`mailto:${businessIdentity.email}`} className="inline-block underline">{businessIdentity.email}</a>
+      {businessIdentity.address && <address className="whitespace-pre-line not-italic">{businessIdentity.address}</address>}
+      {businessIdentity.phone && <p><a href={`tel:${businessIdentity.phone.replace(/[^+\d]/g, '')}`}>{businessIdentity.phone}</a></p>}
+      {businessIdentity.registration && <p>{businessIdentity.registration.authority}: <a href={businessIdentity.registration.url}>{businessIdentity.registration.number}</a></p>}
+      {businessIdentity.socialProfiles.length > 0 && <div className="flex flex-wrap justify-center gap-4">{businessIdentity.socialProfiles.map(profile => <a key={profile.url} href={profile.url} rel="noopener noreferrer">{profile.name}</a>)}</div>}
+    </div>
     <div className="mt-6 text-slate-400">
       Â© {new Date().getFullYear()} Q Life Operating System. All rights reserved.
     </div>

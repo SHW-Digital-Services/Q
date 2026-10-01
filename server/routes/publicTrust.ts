@@ -1,0 +1,41 @@
+import express from 'express';
+import { businessIdentity as identity, publicLegalPages } from '../../src/shared/businessIdentity.js';
+
+export const publicTrustRouter = express.Router();
+export const escapeHtml = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+export function identityDetails() {
+  return `<p><strong>${escapeHtml(identity.operator)}</strong>, trading as <strong>${escapeHtml(identity.tradingName)}</strong><br>${escapeHtml(identity.country)}</p>
+    <p><a href="mailto:${identity.email}">${identity.email}</a></p>
+    ${identity.address ? `<address>${escapeHtml(identity.address)}</address>` : ''}
+    ${identity.phone ? `<p>Telephone: <a href="tel:${escapeHtml(identity.phone.replace(/[^+\d]/g, ''))}">${escapeHtml(identity.phone)}</a></p>` : ''}
+    ${identity.registration ? `<p>Registration: ${escapeHtml(identity.registration.authority)} · <a href="${escapeHtml(identity.registration.url)}">${escapeHtml(identity.registration.number)}</a></p>` : ''}`;
+}
+export function publicTrustHtml(page: 'about' | 'contact') {
+  const title = page === 'about' ? 'About Q Intelligence' : 'Contact Q Intelligence';
+  const description = page === 'about' ? 'Learn who operates Q Intelligence, what the service provides, and how to contact us.' : 'Contact Q Intelligence for support, billing, refunds, privacy requests and security reports.';
+  const content = page === 'about' ? `
+    <p class="eyebrow">Who we are</p><h1>About Q Intelligence</h1>
+    <p class="intro">Affirming tools for LGBTQ+ wellbeing, private reflection and everyday guidance.</p>
+    <section><h2>Our purpose</h2><p>Q offers AI-assisted conversations, journalling and practical life resources. Our aim is to help people reflect and find useful information, with clear choices about local and hosted AI.</p></section>
+    <section><h2>Who operates Q</h2>${identityDetails()}<p>Scott Harvey-Whittle is the named operator and privacy contact in our Terms of Service and Privacy Policy.</p></section>
+    ${identity.team.length ? `<section><h2>Meet the team</h2>${identity.team.map(person => `<article><h3>${escapeHtml(person.name)}</h3><p>${escapeHtml(person.role)}</p><p>${escapeHtml(person.bio)}</p>${person.credentials.length ? `<p>${person.credentials.map(escapeHtml).join('; ')}</p>` : ''}</article>`).join('')}</section>` : ''}
+    <section><h2>What Q can and cannot do</h2><p>Q is a self-help and guidance service. It is not clinical treatment, an emergency responder or a staffed crisis helpline. AI responses can be incorrect. For urgent danger, contact local emergency services.</p><p>Local AI processes prompts in the browser. Authentication, model downloads, selected cloud continuity and hosted AI use network services. Cloud continuity backups are not end-to-end encrypted.</p><a href="/legal/ai_disclaimer">Read our AI and safety disclaimer</a></section>
+    <section><h2>Accountability and contact</h2><p>Questions, complaints and correction requests can be sent to <a href="mailto:${identity.email}">${identity.email}</a>. Our policies explain billing, cancellation, data handling and service limitations.</p><a class="button" href="/contact">Contact us</a></section>` : `
+    <p class="eyebrow">Get in touch</p><h1>Contact Q Intelligence</h1>
+    <p class="intro">A direct contact for support, billing and privacy questions.</p>
+    <section><h2>Business contact</h2>${identityDetails()}</section>
+    <section><h2>Support and account questions</h2><p>Email <a href="mailto:${identity.email}?subject=Q%20support">${identity.email}</a> with a description of the issue and the account email if relevant. Do not send passwords, app-lock PINs, full card details or private journal entries.</p><p>Website support requests are handled by authorised Staff and Admins. Contacting support does not subscribe you to marketing.</p></section>
+    <section><h2>Billing and refunds</h2><p>Include the payment date and PayPal transaction or subscription reference, if available. Never send payment login details.</p><p><a href="/legal/refund">Refund &amp; Cancellation Policy</a> · <a href="/legal/subscription_terms">Subscription Terms</a></p></section>
+    <section><h2>Privacy and security</h2><p>For a privacy request or security concern, email <a href="mailto:${identity.email}?subject=Q%20privacy%20or%20security">${identity.email}</a>. We may ask for proportionate evidence of identity before disclosing account information.</p><p><a href="/legal/privacy">Privacy Policy</a> · <a href="/legal/security">Security Policy</a></p></section>
+    <section><h2>Urgent help</h2><p>This inbox is not an emergency service or a crisis helpline. If there is immediate danger, contact local emergency services (999 in the UK).</p></section>`;
+  const schema = { '@context': 'https://schema.org', '@type': page === 'about' ? 'AboutPage' : 'ContactPage', name: title, url: `${identity.website}/${page}`, about: { '@type': 'Organization', name: identity.brand, url: identity.website, email: identity.email, ...(identity.phone ? { telephone: identity.phone } : {}), ...(identity.socialProfiles.length ? { sameAs: identity.socialProfiles.map(profile => profile.url) } : {}) } };
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${identity.website}/${page}"><link rel="icon" href="/logo.png"><script type="application/ld+json">${JSON.stringify(schema).replaceAll('<', '\\u003c')}</script><style>
+  *{box-sizing:border-box}body{margin:0;background:#020617;color:#cbd5e1;font:16px/1.75 system-ui}main{max-width:58rem;margin:auto;padding:2rem 1.5rem 4rem}nav,footer .links{display:flex;flex-wrap:wrap;gap:1rem}nav{padding-bottom:2rem;border-bottom:1px solid #334155}a{color:#a5b4fc;text-underline-offset:4px}a:hover{color:#e0e7ff}a:focus-visible{outline:2px solid #a5b4fc;outline-offset:4px}h1,h2,h3{color:#f8fafc;line-height:1.2}h1{font-size:clamp(2rem,5vw,3.5rem);margin:1rem 0}h2{font-size:1.35rem}.eyebrow{color:#c4b5fd;text-transform:uppercase;letter-spacing:.15em;font-size:.75rem;margin-top:3rem}.intro{font-size:1.2rem;color:#94a3b8;max-width:40rem}section{border-top:1px solid #263449;padding:1.5rem 0;margin-top:1rem}address{font-style:normal;white-space:pre-line}.button{display:inline-block;padding:.65rem 1rem;border:1px solid #6366f1;border-radius:.75rem}footer{border-top:1px solid #334155;padding-top:2rem;margin-top:2rem;font-size:.85rem;overflow-wrap:anywhere}p{overflow-wrap:anywhere}
+  </style></head><body><main><nav aria-label="Main navigation"><a href="/">Q Intelligence</a><a href="/about" ${page==='about'?'aria-current="page"':''}>About us</a><a href="/contact" ${page==='contact'?'aria-current="page"':''}>Contact us</a><a href="/news">News</a></nav>${content}<footer>${identityDetails()}<div class="links"><a href="/about">About us</a><a href="/contact">Contact us</a><a href="/legal/terms">Terms of Service</a><a href="/legal/privacy">Privacy Policy</a><a href="/legal/refund">Refund Policy</a><a href="/legal/cookie">Cookie Policy</a></div>${identity.socialProfiles.length ? `<p>${identity.socialProfiles.map(profile=>`<a href="${escapeHtml(profile.url)}" rel="noopener noreferrer">${escapeHtml(profile.name)}</a>`).join(' · ')}</p>` : ''}<p>© ${new Date().getFullYear()} ${escapeHtml(identity.brand)}</p></footer></main></body></html>`;
+}
+publicTrustRouter.get(['/about','/contact'], (req,res)=>res.type('html').send(publicTrustHtml(req.path === '/about' ? 'about' : 'contact')));
+publicTrustRouter.get('/robots.txt', (_req,res)=>res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /crm\nDisallow: /admin\nDisallow: /app\nDisallow: /*?view=app\nDisallow: /*?open=q\nSitemap: ${identity.website}/sitemap.xml\n`));
+publicTrustRouter.get('/sitemap.xml', (_req,res)=> {
+  const paths = ['/', '/about', '/contact', '/news', '/developer', ...publicLegalPages.map(page=>`/legal/${page}`)];
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path=>`<url><loc>${identity.website}${path}</loc></url>`).join('')}</urlset>`);
+});

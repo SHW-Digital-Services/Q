@@ -73,7 +73,7 @@ Provider references:
 
 ## 2.2 Brevo Conversations Support Chat
 
-Brevo Conversations also processes support records on Q's behalf under the applicable provider agreement. Its widget connects to Brevo when an application page loads. The integration does not automatically supply Q account profiles, private journals or AI conversation history. Chat contact details must not be repurposed for marketing without the separately required permission.
+Brevo Conversations also processes support records on Q's behalf under the applicable provider agreement. Its widget connects to Brevo only when a visitor selects Chat with support. The integration does not automatically supply Q account profiles, private journals or AI conversation history. Chat contact details must not be repurposed for marketing without the separately required permission.
 
 Requests concerning Brevo chat records are handled through office@q-ai.online. Q account export and deletion do not automatically export or erase these separate records. Support retention, international transfers and provider access remain subject to the applicable agreement and configured service; no fixed chat-retention period or exclusively UK hosting is asserted here.
 

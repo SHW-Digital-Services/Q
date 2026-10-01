@@ -6,6 +6,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { asyncHandler } from '../middleware.js';
+import { businessIdentity, publicLegalPages } from '../../src/shared/businessIdentity.js';
+import { identityDetails } from './publicTrust.js';
 
 export const legalRouter = express.Router();
 
@@ -20,8 +22,11 @@ function renderMarkdown(markdown: string) {
 }
 
 legalRouter.get('/:page', asyncHandler(async (req, res) => {
-  const page = String(req.params.page || '').replace(/[^a-z0-9_-]/gi, '');
-  if (!page) return res.status(400).json({ error: 'Invalid document request' });
+  const page = String(req.params.page || '');
+  if (!(publicLegalPages as readonly string[]).includes(page)) {
+    res.setHeader('X-Robots-Tag', 'noindex');
+    return res.status(404).send('Document not found');
+  }
 
   try {
     const filePath = path.join(process.cwd(), 'docs', `${page}.md`);
@@ -39,6 +44,7 @@ legalRouter.get('/:page', asyncHandler(async (req, res) => {
       <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
       <link rel="icon" href="/logo.png"/>
       <title>${page.replaceAll('_', ' ')} — Q Legal</title>
+      <link rel="canonical" href="${businessIdentity.website}/legal/${page}"/>
       <style>
         body{background:#020617;color:#e2e8f0;font:16px/1.7 system-ui;margin:0}
         main{max-width:56rem;margin:3rem auto;padding:0 1.5rem}
@@ -58,7 +64,7 @@ legalRouter.get('/:page', asyncHandler(async (req, res) => {
         @media(max-width:600px){main{margin:1.5rem auto;padding:0 1rem}h1{font-size:1.75rem}th,td{padding:.5rem}}
       </style></head>
       <body><main><nav><a href="/">← Return to Dashboard</a></nav><article>${html}</article>
-      <footer>© ${new Date().getFullYear()} Q Life Operating System. All rights reserved.</footer></main></body></html>`);
+      <footer>${identityDetails()}<p><a href="/about">About us</a> · <a href="/contact">Contact us</a> · <a href="/legal/terms">Terms of Service</a> · <a href="/legal/privacy">Privacy Policy</a> · <a href="/legal/refund">Refund Policy</a></p>© ${new Date().getFullYear()} Q Intelligence. All rights reserved.</footer></main></body></html>`);
   } catch (error) {
     console.error(`[Legal] Error rendering ${page}:`, error);
     return res.status(404).send('Document not found');
