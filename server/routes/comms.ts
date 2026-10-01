@@ -5,7 +5,7 @@ import { requireExactObject } from '../security.js';
 import { MailError, mailConfig, sealMail, openMail, mailId, mailRecipients, ZohoMailClient, boundedResponse, allowedMailOrigin } from '../zohoMail.js';
 import type { MailConfig, MailSession } from '../zohoMail.js';
 
-type Dependencies = { authoriseStaff: typeof requireStaff; config: () => MailConfig | null; fetcher: typeof fetch };
+type Dependencies = { authoriseStaff: typeof requireStaff; config: () => MailConfig | null; fetcher: typeof fetch; mailbox?: string; privateMailbox?: boolean };
 type AttachmentProof = { owner: string; account: string; expires: number; attachment: { storeName: string; attachmentName: string; attachmentPath: string } };
 const sessionCookie = 'q_zoho_mail';
 const stateCookie = 'q_zoho_state';
@@ -14,12 +14,18 @@ const mailMessagePage = (messages: any[], hasMore: boolean) => ({ messages: mess
 
 export function createCommsRouter(dependencies: Dependencies) {
   const router = express.Router();
+  const mailbox = dependencies.mailbox || 'office@q-ai.online';
+  const isScott = (context: any) => context.identity.user.email?.toLowerCase() === 'scott@q-ai.online';
+  if (!dependencies.privateMailbox) router.use('/personal', createCommsRouter({
+    ...dependencies, mailbox: 'scott@q-ai.online', privateMailbox: true, config: () => mailConfig('ZOHO_SCOTT_MAIL'),
+  }));
   router.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store, private'); res.setHeader('Pragma', 'no-cache'); res.setHeader('Referrer-Policy', 'no-referrer'); next(); });
   router.get('/oauth/callback', (_req, res) => res.redirect('/crm/comms?connection=setup'));
   let sharedClient: ZohoMailClient | null = null;
   let sharedConfig: MailConfig | null = null;
   router.use(asyncHandler(async (req, res, next) => {
     const context = await dependencies.authoriseStaff(req, res); if (!context) return;
+    if (dependencies.privateMailbox && !isScott(context)) return res.status(403).json({ error: 'This mailbox is private.' });
     res.locals.mailOwner = context.identity.user.id;
     res.locals.mailStaff = context;
     const config = dependencies.config(); res.locals.mailConfig = config;
@@ -29,9 +35,9 @@ export function createCommsRouter(dependencies: Dependencies) {
   }));
   router.get('/status', (_req, res) => {
     const config: MailConfig | null = res.locals.mailConfig;
-    return res.json({ configured: Boolean(config), connected: Boolean(config), shared: true, mailbox: 'office@q-ai.online', mailUrl: config?.mailOrigin || 'https://mail.zoho.eu', storage: 'zoho' });
+    return res.json({ configured: Boolean(config), connected: Boolean(config), shared: !dependencies.privateMailbox, mailbox, personalAvailable: !dependencies.privateMailbox && isScott(res.locals.mailStaff), mailUrl: config?.mailOrigin || 'https://mail.zoho.eu', storage: 'zoho' });
   });
-  router.post('/oauth/start', (_req, res) => res.status(409).json({ error: 'Q uses only office@q-ai.online. An admin configures its connection in the server hosting settings.' }));
+  router.post('/oauth/start', (_req, res) => res.status(409).json({ error: 'An admin configures mailbox connections in the server hosting settings.' }));
   // Logout must not revoke the shared credential and disconnect everyone else.
   router.post('/disconnect', (_req, res) => {
     for (const name of [sessionCookie, stateCookie]) res.append('Set-Cookie', `${name}=; Path=/api/comms; HttpOnly; SameSite=Lax; Max-Age=0`);
@@ -39,24 +45,24 @@ export function createCommsRouter(dependencies: Dependencies) {
   });
   router.use(asyncHandler(async (req, res, next) => {
     const config: MailConfig | null = res.locals.mailConfig;
-    if (!config?.refreshToken) return res.status(503).json({ error: 'An admin needs to configure the office@q-ai.online Zoho connection in Q hosting settings.' });
+    if (!config?.refreshToken) return res.status(503).json({ error: `An admin needs to configure the ${mailbox} Zoho connection in Q hosting settings.` });
     if (!sharedClient || !sharedConfig || sharedConfig.clientId !== config.clientId || sharedConfig.clientSecret !== config.clientSecret || sharedConfig.refreshToken !== config.refreshToken || sharedConfig.mailOrigin !== config.mailOrigin || sharedConfig.accountsOrigin !== config.accountsOrigin) {
-      const session: MailSession = { owner: 'office@q-ai.online', access: '', refresh: config.refreshToken, tokenExpires: 0, expires: Number.MAX_SAFE_INTEGER };
+      const session: MailSession = { owner: mailbox, access: '', refresh: config.refreshToken, tokenExpires: 0, expires: Number.MAX_SAFE_INTEGER };
       sharedClient = new ZohoMailClient(config, session, () => {}, dependencies.fetcher);
       sharedConfig = { ...config };
     }
     res.locals.mailClient = sharedClient;
     const accounts = await sharedClient.json('/accounts');
-    const matching = (Array.isArray(accounts) ? accounts : []).filter(a => String(a.primaryEmailAddress || a.mailboxAddress || '').toLowerCase() === 'office@q-ai.online');
-    if (matching.length !== 1) throw new MailError(403, 'The configured Zoho connection must belong to the office@q-ai.online mailbox. Ask an admin to check the server credentials.');
+    const matching = (Array.isArray(accounts) ? accounts : []).filter(a => String(a.primaryEmailAddress || a.mailboxAddress || '').toLowerCase() === mailbox);
+    if (matching.length !== 1) throw new MailError(403, `The configured Zoho connection must belong to the ${mailbox} mailbox. Ask an admin to check the server credentials.`);
     res.locals.officeMailbox = matching[0];
     const requestedAccount = req.path.match(/^\/accounts\/([^/]+)/)?.[1];
-    if (requestedAccount && mailId(requestedAccount) !== String(matching[0].accountId)) throw new MailError(403, 'Only office@q-ai.online is available in Q.');
+    if (requestedAccount && mailId(requestedAccount) !== String(matching[0].accountId)) throw new MailError(403, 'This account is not available in the selected mailbox.');
     next();
   }));
   router.get('/accounts', asyncHandler(async (_req, res) => {
     const a = res.locals.officeMailbox;
-    return res.json({ accounts: [{ accountId: String(a.accountId), email: 'office@q-ai.online', name: 'Q Office' }] });
+    return res.json({ accounts: [{ accountId: String(a.accountId), email: mailbox, name: dependencies.privateMailbox ? 'Scott' : 'Q Office' }] });
   }));
   router.get('/customers/:user/history', asyncHandler(async (req, res) => {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.user)) throw new MailError(400, 'Invalid customer.');
@@ -80,10 +86,10 @@ export function createCommsRouter(dependencies: Dependencies) {
       const from = addresses(message.fromAddress);
       const recipients = addresses([message.toAddress, message.ccAddress, message.bccAddress].filter(Boolean).join(','));
       const inbound = from.includes(email);
-      if (!inbound && !(from.includes('office@q-ai.online') && recipients.includes(email))) continue;
+      if (!inbound && !(from.includes(mailbox) && recipients.includes(email))) continue;
       const id = String(message.messageId);
       const date = new Date(Number(message.receivedTime || message.receivedtime || message.sentDateInGMT));
-      history.set(id, { id: `zoho-${id}`, messageId: id, folderId: String(message.folderId), accountId: account, direction: inbound ? 'inbound' : 'outbound', channel: 'email', status: inbound ? 'received' : 'sent', sender_email: message.fromAddress || '', recipient_email: inbound ? 'office@q-ai.online' : email, subject: message.subject || '(No subject)', body: 'Email held in Zoho. Open Communications to read it.', created_at: Number.isNaN(date.getTime()) ? '' : date.toISOString() });
+      history.set(id, { id: `zoho-${id}`, messageId: id, folderId: String(message.folderId), accountId: account, direction: inbound ? 'inbound' : 'outbound', channel: 'email', status: inbound ? 'received' : 'sent', sender_email: message.fromAddress || '', recipient_email: inbound ? mailbox : email, subject: message.subject || '(No subject)', body: 'Email held in Zoho. Open Communications to read it.', created_at: Number.isNaN(date.getTime()) ? '' : date.toISOString() });
     }
     return res.json({ communications: [...history.values()], hasMore: messages.length === 30, storage: 'zoho' });
   }));
@@ -162,7 +168,7 @@ export function createCommsRouter(dependencies: Dependencies) {
     if (!draft && /\{\{[^{}]+\}\}/.test(`${subject}\n${content}`)) throw new MailError(400, 'Complete all template placeholders before sending.');
     if (draft && replyTo) throw new MailError(400, 'Reply drafts are kept open in Q. Save a new message as a Zoho draft instead.');
     const client = res.locals.mailClient as ZohoMailClient;
-    const payload: any = { fromAddress: 'office@q-ai.online', toAddress: mailRecipients(req.body.to, true), ccAddress: mailRecipients(req.body.cc || ''), bccAddress: mailRecipients(req.body.bcc || ''), subject: subject.trim(), content, mailFormat: 'plaintext', encoding: 'UTF-8' };
+    const payload: any = { fromAddress: mailbox, toAddress: mailRecipients(req.body.to, true), ccAddress: mailRecipients(req.body.cc || ''), bccAddress: mailRecipients(req.body.bcc || ''), subject: subject.trim(), content, mailFormat: 'plaintext', encoding: 'UTF-8' };
     payload.attachments = attachments.map(proof => {
       if (typeof proof !== 'string') throw new MailError(400, 'Invalid attachment.');
       const data = openMail<AttachmentProof>(proof, res.locals.mailConfig.key, 'attachment');

@@ -7,12 +7,12 @@ export class MailError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 export type MailConfig = { clientId: string; clientSecret: string; refreshToken: string; key: Buffer; accountsOrigin: string; mailOrigin: string; redirectUri: string; appOrigin: string; secure: boolean };
-export function mailConfig(): MailConfig | null {
-  const clientId = process.env.ZOHO_MAIL_CLIENT_ID?.trim();
-  const clientSecret = process.env.ZOHO_MAIL_CLIENT_SECRET?.trim();
-  const key = process.env.ZOHO_MAIL_COOKIE_KEY?.trim();
-  const refreshToken = process.env.ZOHO_MAIL_REFRESH_TOKEN?.trim();
-  const region = process.env.ZOHO_MAIL_REGION?.trim() || 'eu';
+export function mailConfig(prefix = 'ZOHO_MAIL'): MailConfig | null {
+  const clientId = process.env[`${prefix}_CLIENT_ID`]?.trim();
+  const clientSecret = process.env[`${prefix}_CLIENT_SECRET`]?.trim();
+  const key = process.env[`${prefix}_COOKIE_KEY`]?.trim();
+  const refreshToken = process.env[`${prefix}_REFRESH_TOKEN`]?.trim();
+  const region = process.env[`${prefix}_REGION`]?.trim() || 'eu';
   if (!clientId || !clientSecret || !refreshToken || !key || !/^[a-f0-9]{64}$/i.test(key) || !(region in regions)) return null;
   const suffix = regions[region as keyof typeof regions];
   const appOrigin = getCanonicalAppUrl();
