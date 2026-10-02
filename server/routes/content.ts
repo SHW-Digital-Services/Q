@@ -1,3 +1,4 @@
+import { createPublisherStatusHandler } from '../contentPublisherStatus.js';
 import express from 'express';
 import { createHash } from 'node:crypto';
 import { asyncHandler, sendOpaqueError } from '../middleware.js';
@@ -135,6 +136,8 @@ contentRouter.get('/', asyncHandler(async (req, res) => {
   const posts = await attachUpdates(serviceSupabase, data ?? []);
   return res.json({ posts: type === 'update' ? posts.filter((post: any) => post.updates.length > 0) : posts });
 }));
+
+contentRouter.get('/publisher/status', createPublisherStatusHandler(getServiceSupabase));
 
 contentRouter.post('/publish', asyncHandler(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
