@@ -228,7 +228,10 @@ export default function App() {
 
     void checkCrmAccess();
     return () => { cancelled = true; };
-  }, [currentUser]);
+    // Token renewal and tab focus can produce a new user object for the same
+    // account. Rechecking then unmounts the CRM and interrupts ongoing edits.
+    // Each CRM API request still checks the current session and staff role.
+  }, [currentUser?.id]);
 
   // Subscribe to Supabase Auth state changes if client configured
   useEffect(() => {
@@ -536,6 +539,11 @@ export default function App() {
         onUserChanged={(user) => setCurrentUser(user)}
         initialMode={authInitialMode}
       />
+      <!-- TrustBox widget - Review Collector -->
+<div class="trustpilot-widget" data-locale="en-US" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="6ac0384b89ce8ac6e1466e1c" data-style-height="52px" data-style-width="100%" data-token="274376aa-6894-4313-94ac-79ee63517fed">
+  <a href="https://www.trustpilot.com/review/q-ai.online" target="_blank" rel="noopener">Trustpilot</a>
+</div>
+<!-- End TrustBox widget -->
       <SubscriptionModal isOpen={isSubscriptionOpen} onClose={() => setIsSubscriptionOpen(false)} />
       <LegalFooter />
     </div>

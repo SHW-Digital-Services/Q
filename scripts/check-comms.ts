@@ -5,7 +5,7 @@ import { createCommsRouter } from '../server/routes/comms';
 import { createAdminDeleteUsersRouter } from '../server/routes/adminDeleteUsers';
 import { sealMail, openMail, validMailSession, MailSession, MailConfig, mailRecipients, ZohoMailClient, parseZohoJson, tokenRequest, allowedMailOrigin } from '../server/zohoMail';
 import { emailTemplates, fillEmailTemplate, templatePlaceholders } from '../src/data/emailTemplates';
-import { inboxFolder } from '../src/services/mailFolders';
+import { inboxFolder, trashFolder } from '../src/services/mailFolders';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const target = '00000000-0000-4000-8000-000000000002';
@@ -175,6 +175,18 @@ try {
   assert.equal((await request('/accounts/10001/send', post({ ...payload, attachments: [uploaded.proof.slice(0, -4) + 'AAAA'] }))).status, 400);
   assert.equal((await request('/accounts/10001/messages/30001', { method: 'PATCH', body: JSON.stringify({ action: 'move', folderId: '20002' }) })).status, 200);
   assert.equal(JSON.parse(calls.at(-1)!.init.body as string).destfolderId, '20002');
+  const trashFolders = [
+    { folderId: 'custom', name: 'Trash', type: 'Inbox' },
+    { folderId: '20005', name: 'Deleted messages', type: 'Trash', path: '/Trash' },
+  ];
+  assert.equal(trashFolder(trashFolders), '20005');
+  assert.equal(trashFolder([{ folderId: '20005', name: 'Deleted messages', type: 'Trash' }]), '20005');
+  assert.equal(trashFolder([{ folderId: '20005', name: 'Trash', type: '' }]), '20005');
+  assert.equal(trashFolder([]), '');
+  assert.equal(trashFolder([{ folderId: '20001', name: 'Inbox', type: 'Inbox' }]), '');
+  assert.equal((await request('/accounts/10001/messages/30001', { method: 'PATCH', body: JSON.stringify({ action: 'move', folderId: trashFolder(trashFolders) }) })).status, 200);
+  assert.deepEqual(JSON.parse(calls.at(-1)!.init.body as string), { mode: 'moveMessage', messageId: ['30001'], destfolderId: '20005' });
+
   providerStatus = 403; const denied = await request('/accounts'); assert.equal(denied.status, 403); assert(!(await denied.text()).includes('DO_NOT_LEAK')); providerStatus = 200;
   let refreshCount = 0; const expired = { ...session, tokenExpires: 0 };
   const client = new ZohoMailClient(config, expired, () => refreshCount++, fetcher);
