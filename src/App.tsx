@@ -410,7 +410,7 @@ export default function App() {
     );
   }
 
-  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector compact /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} onPreview={startPreview} /><button onClick={enableCamouflage} className="fixed left-4 top-20 z-40 min-h-11 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} <span className="q-fixed-label">(Alt+M)</span></button></>;
+  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector compact /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} onPreview={startPreview} /><button onClick={enableCamouflage} className="fixed left-4 top-20 z-[110] min-h-11 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} <span className="q-fixed-label">(Alt+M)</span></button></>;
 
   if (!currentUser) {
     return (
@@ -422,7 +422,7 @@ export default function App() {
           onOpenCrisis={() => setIsCrisisOpen(true)}
         />
         <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
-        <button onClick={enableCamouflage} className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 min-h-11 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} <span className="q-fixed-label">(Alt+M)</span></button>
+        <button onClick={enableCamouflage} className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-[110] min-h-11 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} <span className="q-fixed-label">(Alt+M)</span></button>
       </>
     );
   }
@@ -516,7 +516,7 @@ export default function App() {
 
       {/* Modals */}
       <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
-      <button onClick={enableCamouflage} className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] right-4 z-40 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 shadow-md hover:bg-slate-700 sm:bottom-4">{t('disguise')} (Alt+M)</button>
+      <button onClick={enableCamouflage} className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] right-4 z-[110] rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 shadow-md hover:bg-slate-700 sm:bottom-4">{t('disguise')} (Alt+M)</button>
       <BackupModal
         isOpen={isBackupOpen}
         userId={currentUser?.id}
