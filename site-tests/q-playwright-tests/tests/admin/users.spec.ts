@@ -1,21 +1,16 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Admin Support', () => {
-  test('support area loads', async ({ page }) => {
-    await page.goto('/admin/support');
-
-    await expect(
-      page.locator('body')
-    ).toBeVisible();
+test.describe('Admin Users access', () => {
+  test('requires staff sign-in before showing management controls', async ({ page }) => {
+    await page.goto('/crm');
+    await expect(page.getByRole('heading', { name: 'Q Customer Operations' })).toBeVisible();
+    await expect(page.getByLabel('Email')).toBeVisible();
+    await expect(page.getByLabel('Password')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Enter CRM' })).toBeEnabled();
   });
 
-  test('support management controls appear', async ({ page }) => {
-    await page.goto('/admin/support');
-
-    await expect(
-      page.locator('button')
-    ).toHaveCount(
-      await page.locator('button').count()
-    );
+  test('rejects anonymous access to management data', async ({ request }) => {
+    const response = await request.get('/api/v1/admin/crm/users');
+    expect(response.status()).toBe(401);
   });
 });
