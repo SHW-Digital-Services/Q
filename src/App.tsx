@@ -406,13 +406,13 @@ export default function App() {
       <div className="q-scroll-page bg-slate-950 p-0 text-slate-100 sm:p-6">
         <StatusPageButton />
         <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><Suspense fallback={<LoadingView label="Loading CRM..." />}>
-          {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} />}
+          {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = "/"; }} onSignOut={handleSignOut} />}
         </Suspense></CrmDraftProvider>
       </div>
     );
   }
 
-  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector compact /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} /></>;
+  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector compact /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} onPreview={startPreview} /></>;
 
   if (!currentUser) {
     return (
@@ -460,7 +460,7 @@ export default function App() {
 
         <main className="min-w-0 flex-1 p-3 pb-5 sm:p-5 lg:p-6">
           <Suspense fallback={<LoadingView />}>
-            {isAdminPanelOpen && canAccessCrm && <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} /></CrmDraftProvider>}
+            {isAdminPanelOpen && canAccessCrm && <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} /></CrmDraftProvider>}
             {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} />}
             {!isAdminPanelOpen && activeTab === 'guides' && <><GuidedProgrammes onCourseOpenChange={handleProgrammeCourseOpenChange} />{!isProgrammeCourseOpen && <LifeGuidesView />}</>}
             {!isAdminPanelOpen && activeTab === 'stories' && <LivedExperiencesView />}
@@ -533,8 +533,8 @@ export default function App() {
         onUserChanged={(user) => setCurrentUser(user)}
         initialMode={authInitialMode}
       />
-            {/* TrustBox widget - Review Collector */}
-      <div class="trustpilot-widget" data-locale="en-US" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="6ac0384b89ce8ac6e1466e1c" data-style-height="52px" data-style-width="100%" dat[...]>
+      {/* TrustBox widget - Review Collector */}
+      <div className="trustpilot-widget" data-locale="en-US" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="6ac0384b89ce8ac6e1466e1c" data-style-height="52px" data-style-width="100%">
         <a href="https://www.trustpilot.com/review/q-ai.online" target="_blank" rel="noopener">Trustpilot</a>
       </div>
       {/* End TrustBox widget */}
