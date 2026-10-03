@@ -1,3 +1,4 @@
+import { createPublisherMediaHandler } from '../contentPublisherMedia.js';
 import { createPublisherStatusHandler } from '../contentPublisherStatus.js';
 import express from 'express';
 import { createHash } from 'node:crypto';
@@ -138,6 +139,7 @@ contentRouter.get('/', asyncHandler(async (req, res) => {
 }));
 
 contentRouter.get('/publisher/status', createPublisherStatusHandler(getServiceSupabase));
+contentRouter.post('/media', express.raw({ type: ['image/png', 'image/jpeg', 'image/webp'], limit: '3mb' }), asyncHandler(createPublisherMediaHandler(getServiceSupabase)));
 
 contentRouter.post('/publish', asyncHandler(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
