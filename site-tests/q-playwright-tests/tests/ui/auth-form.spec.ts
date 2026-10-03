@@ -6,6 +6,7 @@ test.describe('UI - Authentication Form', () => {
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
 
     const form = page.locator('form').first();
+    await expect(form).toBeVisible();
     const box = await form.boundingBox();
 
     expect(box).not.toBeNull();
