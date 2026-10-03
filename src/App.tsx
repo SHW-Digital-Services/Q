@@ -213,7 +213,7 @@ export default function App() {
         if (cancelled) return;
         setCanAccessCrm(allowed);
         setCrmAccessChecked(true);
-        if (staff.role !== 'partner_admin') setPreviewUserId(null);
+        if (!allowed) setPreviewUserId(null);
 
       } catch {
         if (!cancelled) {
@@ -390,7 +390,16 @@ export default function App() {
   if (isNewsRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
   if (isDeveloperRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
 
-  if (previewSignInUserId) return <><StatusPageButton /><div className="bg-slate-950 px-6 py-4 text-center text-sm text-white"><p>Sign in with the same Staff or Admin account you used for the CRM.</p><p className="mt-2 text-xs text-slate-300">{previewSignInMessage || 'We are verifying your access.'}</p></div></>;
+  if (previewSignInUserId) return (
+    <>
+      <StatusPageButton />
+      <div className="bg-slate-950 px-6 py-4 text-center text-sm text-white">
+        <p>Sign in with the same Staff or Admin account you used for the CRM.</p>
+        {previewSignInMessage && <p role="alert" className="mt-2 text-xs text-rose-300">{previewSignInMessage}</p>}
+      </div>
+      <CrmAccessPage onUserSignedIn={completePreviewSignIn} />
+    </>
+  );
 
   if (isCrmRoute && !previewActive) {
     if (!currentUser) {
