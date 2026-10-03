@@ -25,6 +25,8 @@ try {
   assert.equal(JSON.stringify(body).includes('test-content-token'), false);
   assert.ok(filters.some(([key, value]) => key === 'token_hash' && value === createHash('sha256').update('test-content-token').digest('hex')));
   assert.ok(filters.some(([key, value]) => key === 'active' && value === true));
+  assert.equal((await fetch(url, { headers: { Authorization: 'bEaReR    test-content-token' } })).status, 200);
+  assert.equal((await fetch(url, { headers: { Authorization: 'Bearer ' + ' '.repeat(8000) } })).status, 401);
   state = 'revoked'; assert.equal((await fetch(url, { headers: { 'x-q-content-api-key': 'revoked-token' } })).status, 403);
   state = 'error'; const failed = await fetch(url, { headers: { Authorization: 'Bearer test-content-token' } }); assert.equal(failed.status, 503); assert.equal((await failed.text()).includes('PRIVATE_ERROR'), false);
   state = 'unavailable'; assert.equal((await fetch(url, { headers: { Authorization: 'Bearer test-content-token' } })).status, 503);
