@@ -9,6 +9,15 @@ const readConsent = readBrevoConsent;
 export function BrevoTrackerConsent() {
   const [consent, setConsent] = useState<boolean | null>(() => readConsent());
   const [visible, setVisible] = useState(() => readConsent() === null);
+  const [masked, setMasked] = useState(() => {
+    try { return localStorage.getItem('q_camouflage_active') === 'true'; } catch { return false; }
+  });
+
+  useEffect(() => {
+    const onCamouflage = (event: Event) => setMasked(Boolean((event as CustomEvent<{ active: boolean }>).detail?.active));
+    window.addEventListener('q:camouflage', onCamouflage);
+    return () => window.removeEventListener('q:camouflage', onCamouflage);
+  }, []);
 
   useEffect(() => {
     if (consent === true) startBrevoTracker(clientKey);
@@ -23,7 +32,8 @@ export function BrevoTrackerConsent() {
     return () => window.removeEventListener('q:manage-cookie-consent', openPreferences);
   }, []);
 
-  if (!clientKey || !visible) return null;
+  // Consent controls must not reveal Q or block the Notes return control.
+  if (!clientKey || !visible || masked) return null;
 
   const saveChoice = (accepted: boolean) => {
     try {
