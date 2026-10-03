@@ -5,12 +5,19 @@ import type { Request, Response } from 'express';
 export function createPublisherStatusHandler(getDatabase: () => any) {
   return async (req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-store');
-    const token = (req.headers.authorization?.match(/^Bearer\s+(.+)$/i)?.[1] || req.header('x-q-content-api-key') || '').trim();
+    const authorization = req.headers.authorization || '';
+    // Parse in linear time; overlapping regex quantifiers allow expensive backtracking.
+    const separator = authorization.search(/[ \t]/);
+    const bearer = separator > 0 && authorization.slice(0, separator).toLowerCase() === 'bearer'
+      ? authorization.slice(separator + 1).trim() : '';
+    const token = (bearer || req.header('x-q-content-api-key') || '').trim();
     if (!token) return res.status(401).json({ error: 'A CRM-authorised content API token is required.' });
     try {
       const database = getDatabase();
       if (!database) return res.status(503).json({ error: 'Content publishing is temporarily unavailable.' });
       const { data: client, error } = await database.from('content_api_clients')
+        // CRM tokens contain 32 random bytes (admin.ts), not human passwords.
+        // SHA-256 matches the existing token fingerprint stored by the issuer.
         .select('id,name,active').eq('token_hash', createHash('sha256').update(token, 'utf8').digest('hex'))
         .eq('active', true).maybeSingle();
       if (error) return res.status(503).json({ error: 'Unable to verify content API authorisation.' });
