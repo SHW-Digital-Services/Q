@@ -36,7 +36,6 @@ const DeveloperPage = lazy(() => import('./components/DeveloperPage').then(({ De
 const NewsUpdatesPage = lazy(() => import('./components/NewsUpdatesPage').then(({ NewsUpdatesPage }) => ({ default: NewsUpdatesPage })));
 const GuidedProgrammes = lazy(() => import('./components/GuidedProgrammes').then(({ GuidedProgrammes }) => ({ default: GuidedProgrammes })));
 
-
 function isViewAppRequest() {
   if (typeof window === 'undefined') return false;
 
@@ -64,7 +63,7 @@ function StatusPageButton({ placement = 'left' }: { placement?: 'left' | 'right'
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Open Q Status Page in a new tab"
-      className={`${placement === 'right' ? 'q-fixed-top-right' : 'q-fixed-top-left'} q-compact-fixed fixed z-[60] inline-flex min-h-11 items-center gap-1.5 rounded-full border border-purple-300/60 bg-slate-950/90 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur transition hover:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2`}
+      className={`${placement === 'right' ? 'q-fixed-top-right' : 'q-fixed-top-left'} q-compact-fixed fixed z-[60] inline-flex min-h-11 items-center gap-1.5 rounded-full border border-purple-300/60 bg-white/80 px-2.5 py-1.5 text-[11px] font-semibold text-purple-900 shadow-sm backdrop-blur-sm transition hover:bg-white dark:border-purple-400/40 dark:bg-slate-900/80 dark:text-purple-100`}
     >
       <span className="q-fixed-label">Status Page</span>
       <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
@@ -391,7 +390,7 @@ export default function App() {
   if (isNewsRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
   if (isDeveloperRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
 
-  if (previewSignInUserId) return <><StatusPageButton /><div className="bg-slate-950 px-6 py-4 text-center text-sm text-white"><p>Sign in with the same Staff or Admin account you used for the CRM to preview the site.</p>{previewSignInMessage && <p role="alert" className="mt-2 text-rose-300">{previewSignInMessage}</p>}<button type="button" onClick={() => { setPreviewSignInUserId(null); window.location.href = '/crm'; }} className="mt-2 font-bold underline">Return to CRM</button></div><AuthScreen onUserSignedIn={(user) => { void completePreviewSignIn(user); }} /></>;
+  if (previewSignInUserId) return <><StatusPageButton /><div className="bg-slate-950 px-6 py-4 text-center text-sm text-white"><p>Sign in with the same Staff or Admin account you used for the CRM.</p></div></>;
 
   if (isCrmRoute && !previewActive) {
     if (!currentUser) {
@@ -407,13 +406,13 @@ export default function App() {
       <div className="q-scroll-page bg-slate-950 p-0 text-slate-100 sm:p-6">
         <StatusPageButton />
         <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><Suspense fallback={<LoadingView label="Loading CRM..." />}>
-          {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />}
+          {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} />}
         </Suspense></CrmDraftProvider>
       </div>
     );
   }
 
-  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector compact /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} onPreview={startPreview} /><button onClick={enableCamouflage} className="fixed left-4 top-20 z-40 min-h-11 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} <span className="q-fixed-label">(Alt+M)</span></button></>;
+  if (!isAppRoute) return <><StatusPageButton /><div className="fixed right-4 top-4 z-50"><LanguageSelector compact /></div><LandingPage launchEnabled={launchEnabled} onToggleLaunch={setLaunchEnabled} /></>;
 
   if (!currentUser) {
     return (
@@ -425,7 +424,7 @@ export default function App() {
           onOpenCrisis={() => setIsCrisisOpen(true)}
         />
         <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
-        <button onClick={enableCamouflage} className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 min-h-11 rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-md">{t('disguise')} <span className="q-fixed-label">(Alt+M)</span></button>
+        <button onClick={enableCamouflage} className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 min-h-11 rounded-lg bg-slate-800 px-3 py-2 text-xs font-medium text-slate-200 shadow-md hover:bg-slate-700">Disguise (Alt+M)</button>
       </>
     );
   }
@@ -434,15 +433,13 @@ export default function App() {
     <PremiumProvider key={currentUser.id} userId={currentUser.id} upgrade={() => setIsSubscriptionOpen(true)}><ContinuityProvider>
     <div className="q-app-shell q-scroll-page relative flex flex-col bg-gradient-to-br from-rose-50 via-violet-50 to-sky-50 font-sans text-slate-900 antialiased selection:bg-fuchsia-600 selection:text-white">
       <StatusPageButton />
-      {previewActive && <div className="relative z-50 mt-14 flex items-center justify-center gap-4 bg-amber-100 px-4 py-3 text-sm text-amber-950"><span>Staff preview: Public site {launchEnabled ? 'live' : 'on waitlist'}</span><button type="button" onClick={() => setPreviewUserId(null)} className="font-bold underline">Exit preview</button></div>}
+      {previewActive && <div className="relative z-50 mt-14 flex items-center justify-center gap-4 bg-amber-100 px-4 py-3 text-sm text-amber-950"><span>Staff preview: Public site {launchEnabled ? 'enabled' : 'disabled'}</span></div>}
       {/* Soft Pride-spectrum ambient colour keeps content readable while adding identity. */}
       <div className="pointer-events-none fixed -left-24 top-10 -z-10 h-72 w-72 rounded-full bg-rose-300/25 blur-[90px]" />
       <div className="pointer-events-none fixed -right-28 top-1/3 -z-10 h-80 w-80 rounded-full bg-sky-300/25 blur-[100px]" />
       <div className="pointer-events-none fixed bottom-0 left-1/3 -z-10 h-72 w-72 rounded-full bg-violet-300/25 blur-[100px]" />
 
-      {/* Mobile-First App Shell Container */}
-      <div className="q-content-shell relative mx-auto flex min-h-dvh w-full min-w-0 max-w-md flex-col bg-white/72 pb-[calc(6rem+env(safe-area-inset-bottom))] shadow-2xl shadow-purple-950/5 backdrop-blur-xl sm:max-w-2xl sm:border-x sm:border-white/70 sm:pb-0 lg:max-w-5xl xl:max-w-6xl">
-        {/* Main Navigation (Sticky Header & Bottom Nav) */}
+      <div className="q-content-shell relative mx-auto flex min-h-dvh w-full min-w-0 max-w-md flex-col bg-white/72 pb-[calc(6rem+env(safe-area-inset-bottom))] shadow-2xl shadow-purple-950/5 backdrop-blur-sm sm:max-w-3xl">
         <Navbar
           activeTab={activeTab}
           setActiveTab={handleTabChange}
@@ -461,11 +458,10 @@ export default function App() {
           onSignOut={handleSignOut}
         />
 
-        {/* Main Content Viewport */}
         <main className="min-w-0 flex-1 p-3 pb-5 sm:p-5 lg:p-6">
           <Suspense fallback={<LoadingView />}>
-            {isAdminPanelOpen && canAccessCrm && <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} /></CrmDraftProvider>}
-            {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
+            {isAdminPanelOpen && canAccessCrm && <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} /></CrmDraftProvider>}
+            {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} />}
             {!isAdminPanelOpen && activeTab === 'guides' && <><GuidedProgrammes onCourseOpenChange={handleProgrammeCourseOpenChange} />{!isProgrammeCourseOpen && <LifeGuidesView />}</>}
             {!isAdminPanelOpen && activeTab === 'stories' && <LivedExperiencesView />}
             {!isAdminPanelOpen && activeTab === 'journal' && (
@@ -502,7 +498,6 @@ export default function App() {
         </main>
       </div>
 
-      {/* Security Lock Screen Overlay */}
       {isLockActive && (
         <SecurityLockOverlay
           settings={securitySettings}
@@ -517,7 +512,6 @@ export default function App() {
         />
       )}
 
-      {/* Modals */}
       <CrisisModal isOpen={isCrisisOpen} onClose={() => { setIsCrisisOpen(false); setCrisisCountry(undefined); }} initialCountry={crisisCountry} />
       <button onClick={enableCamouflage} className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] right-4 z-40 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200 shadow-md hover:bg-slate-700 sm:bottom-4">{t('disguise')} (Alt+M)</button>
       <BackupModal
@@ -539,11 +533,10 @@ export default function App() {
         onUserChanged={(user) => setCurrentUser(user)}
         initialMode={authInitialMode}
       />
-      <!-- TrustBox widget - Review Collector -->
-<div class="trustpilot-widget" data-locale="en-US" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="6ac0384b89ce8ac6e1466e1c" data-style-height="52px" data-style-width="100%" data-token="274376aa-6894-4313-94ac-79ee63517fed">
-  <a href="https://www.trustpilot.com/review/q-ai.online" target="_blank" rel="noopener">Trustpilot</a>
-</div>
-<!-- End TrustBox widget -->
+      {/* TrustBox widget - Review Collector */}
+      <div className="trustpilot-widget" data-locale="en-US" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="6ac0384b89ce8ac6e1466e1c" data-style-height="52px" data-style-width="100%" data-token="274376aa-6894-4313-94ac-79ee63517fed">
+        <a href="https://www.trustpilot.com/review/q-ai.online" target="_blank" rel="noopener noreferrer">Trustpilot</a>
+      </div>
       <SubscriptionModal isOpen={isSubscriptionOpen} onClose={() => setIsSubscriptionOpen(false)} />
       <LegalFooter />
     </div>
