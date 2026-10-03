@@ -533,10 +533,11 @@ export default function App() {
         onUserChanged={(user) => setCurrentUser(user)}
         initialMode={authInitialMode}
       />
-      {/* TrustBox widget - Review Collector */}
-      <div className="trustpilot-widget" data-locale="en-US" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="6ac0384b89ce8ac6e1466e1c" data-style-height="52px" data-style-width="100%" data-token="274376aa-6894-4313-94ac-79ee63517fed">
-        <a href="https://www.trustpilot.com/review/q-ai.online" target="_blank" rel="noopener noreferrer">Trustpilot</a>
+            {/* TrustBox widget - Review Collector */}
+      <div class="trustpilot-widget" data-locale="en-US" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="6ac0384b89ce8ac6e1466e1c" data-style-height="52px" data-style-width="100%" dat[...]>
+        <a href="https://www.trustpilot.com/review/q-ai.online" target="_blank" rel="noopener">Trustpilot</a>
       </div>
+      {/* End TrustBox widget */}
       <SubscriptionModal isOpen={isSubscriptionOpen} onClose={() => setIsSubscriptionOpen(false)} />
       <LegalFooter />
     </div>
