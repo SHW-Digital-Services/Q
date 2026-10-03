@@ -196,6 +196,15 @@ export function createCommsRouter(dependencies: Dependencies) {
     await client.json(`/accounts/${account}/messages${replyTo ? `/${mailId(replyTo)}` : ''}`, jsonBody(payload));
     return res.json({ success: true, draft });
   }));
+  router.patch('/accounts/:account/messages', asyncHandler(async (req, res) => {
+    if (!requireExactObject(req.body, ['action', 'folderId', 'messageIds']) || !['read', 'unread', 'archive', 'move'].includes(req.body.action)) throw new MailError(400, 'Choose a valid email action.');
+    if (!Array.isArray(req.body.messageIds) || !req.body.messageIds.length || req.body.messageIds.length > 30) throw new MailError(400, 'Select between 1 and 30 emails.');
+    const messageIds = [...new Set(req.body.messageIds.map((id: unknown) => mailId(id)))];
+    const mode = { read: 'markAsRead', unread: 'markAsUnread', archive: 'archiveMails', move: 'moveMessage' }[req.body.action as string];
+    const payload = { mode, messageId: messageIds, ...(req.body.action === 'move' ? { destfolderId: mailId(req.body.folderId) } : {}) };
+    await (res.locals.mailClient as ZohoMailClient).json(`/accounts/${mailId(req.params.account)}/updatemessage`, { ...jsonBody(payload), method: 'PUT' });
+    return res.json({ success: true, count: messageIds.length });
+  }));
   router.patch('/accounts/:account/messages/:message', asyncHandler(async (req, res) => {
     if (!requireExactObject(req.body, ['action', 'folderId']) || !['read', 'unread', 'archive', 'move'].includes(req.body.action)) throw new MailError(400, 'Choose a valid email action.');
     const mode = { read: 'markAsRead', unread: 'markAsUnread', archive: 'archiveMails', move: 'moveMessage' }[req.body.action as string];

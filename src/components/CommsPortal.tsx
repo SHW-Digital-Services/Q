@@ -33,6 +33,11 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
   const totalUnread = folders.reduce((total, item) => total + (item.unreadCount || 0), 0);
   const [messages, setMessages] = useState<MailMessage[]>([]);
   const [selected, setSelected] = useState<MailMessage | null>(null);
+  const [checkedIds, setCheckedIds] = useState<string[]>([]);
+  const [bulkMoveFolder, setBulkMoveFolder] = useState('');
+  const bulkInFlight = useRef(false);
+  const checkedMessages = messages.filter(message => checkedIds.includes(message.messageId));
+  const allChecked = messages.length > 0 && checkedMessages.length === messages.length;
   const [detail, setDetail] = useState<MailDetail | null>(null);
   const [searchText, setSearchText] = useCrmDraftState(`mail:${mailboxMode}:${account}:searchText`, '');
   const [search, setSearch] = useState('');
@@ -90,7 +95,9 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
   const mailJson = async (path: string, init?: RequestInit, signal?: AbortSignal) => (await mailRequest(path, init, signal)).json();
   const postJson = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) });
   const report = (err: unknown) => setError(err instanceof Error ? err.message : 'Unable to complete this email request.');
-  function clearMailbox() { unreadBaseline.current = null; requestVersion.current++; setMessages([]); setSelected(null); setDetail(null); setFolders([]); setAccount(''); setFolder(''); setAccounts([]); }
+  function clearMailbox() { unreadBaseline.current = null; requestVersion.current++; setCheckedIds([]); setBulkMoveFolder(''); setMessages([]); setSelected(null); setDetail(null); setFolders([]); setAccount(''); setFolder(''); setAccounts([]); }
+
+  useEffect(() => { setCheckedIds([]); setBulkMoveFolder(''); }, [account, mailboxMode, folder, search, start]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -133,6 +140,7 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
         if (controller.signal.aborted) return;
         // Update only the list. Keep the open message, composer and input focus.
         setMessages(data.messages); setHasMore(data.hasMore);
+        setCheckedIds(ids => ids.filter(id => data.messages.some((message: MailMessage) => message.messageId === id)));
         if (!background && linkedMessage.current && /^\d{1,30}$/.test(linkedMessage.current)) {
           const id = linkedMessage.current; linkedMessage.current = null;
           void openMessage(data.messages.find((m: MailMessage) => m.messageId === id) || { messageId: id, folderId: folder, subject: 'Customer email', from: '', to: '', summary: '', receivedAt: '', unread: false, hasAttachment: false });
@@ -214,6 +222,29 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
     setBusy(true); setError('');
     try { await mailJson(`/accounts/${account}/messages/${selected.messageId}`, { method: 'PATCH', body: JSON.stringify({ action: action === 'trash' ? 'move' : action, ...(['move', 'trash'].includes(action) ? { folderId: action === 'trash' ? trashFolderId : moveFolder } : {}) }) }); unreadBaseline.current = null; setNotice(action === 'trash' ? 'Email moved to Trash in Zoho.' : 'Your mailbox was updated in Zoho.'); setFolderRevision(v => v + 1); setRevision(v => v + 1); } catch (e) { report(e); } finally { setBusy(false); }
   }
+  async function bulkAction(action: 'read' | 'unread' | 'archive' | 'move' | 'trash') {
+    if (busy || bulkInFlight.current || !account || !checkedMessages.length) return;
+    const destination = action === 'trash' ? trashFolderId : bulkMoveFolder;
+    if ((action === 'trash' || action === 'move') && (!destination || !folders.some(item => item.folderId === destination))) {
+      setError('Choose an available destination folder.'); return;
+    }
+    const targets = action === 'trash' || action === 'move'
+      ? checkedMessages.filter(message => message.folderId !== destination) : checkedMessages;
+    if (!targets.length) { setError('The selected emails are already in that folder.'); return; }
+    if (action === 'trash' && !window.confirm(`Move ${targets.length} selected email${targets.length === 1 ? '' : 's'} to Trash?`)) return;
+    bulkInFlight.current = true; setBusy(true); setError(''); setNotice('');
+    try {
+      await mailJson(`/accounts/${account}/messages`, { method: 'PATCH', body: JSON.stringify({
+        action: action === 'trash' ? 'move' : action,
+        messageIds: targets.map(message => message.messageId),
+        ...((action === 'move' || action === 'trash') ? { folderId: destination } : {}),
+      }) });
+      setCheckedIds([]); setBulkMoveFolder(''); unreadBaseline.current = null;
+      setNotice(`${targets.length} email${targets.length === 1 ? '' : 's'} ${action === 'trash' ? 'moved to Trash' : action === 'move' ? 'moved to the selected folder' : action === 'archive' ? 'archived' : `marked ${action}`} in Zoho.`);
+      setFolderRevision(value => value + 1); setRevision(value => value + 1);
+    } catch (err) { report(err); }
+    finally { bulkInFlight.current = false; setBusy(false); }
+  }
   return <main className="mx-auto w-full max-w-7xl bg-slate-950 p-4 text-slate-100 sm:p-6">
     <header className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-semibold text-purple-300">Q Customer Operations</p><h1 className="mt-2 flex items-center gap-2 text-2xl font-bold"><Mail className="h-6 w-6" /> Communications</h1><p className="mt-2 max-w-2xl text-sm text-slate-400">Your available mailboxes, inside Q. Messages and attachments stay in Zoho. Unsent drafts are recovered in this browser tab after a refresh.</p></div><div className="flex flex-wrap gap-2"><a href="/crm" className={button}><ArrowLeft className="h-4 w-4" /> Back to CRM</a><button disabled={busy} onClick={() => void onSignOut()} className={button}><LogOut className="h-4 w-4" /> Log out</button></div></header>
     <button type="button" aria-pressed={soundEnabled} onClick={() => void toggleSound()} className={`${button} mt-4`}>{soundEnabled ? 'Sound notifications on' : 'Enable sound notifications'}</button>
@@ -233,9 +264,38 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
       </section>}
       <div className="mt-5 grid items-start gap-4 lg:grid-cols-[180px_320px_minmax(0,1fr)]">
         <nav aria-label="Mail folders" className="flex flex-wrap gap-2 lg:flex-col">{folders.map(f => <button key={f.folderId} disabled={busy} aria-pressed={folder === f.folderId && !search} onClick={() => { setFolder(f.folderId); setSearch(''); setSearchText(''); setStart(1); }} className={`min-h-11 rounded-xl px-3 py-2 text-left text-sm ${folder === f.folderId && !search ? 'bg-purple-500/20 text-purple-100' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}><span>{f.name}</span>{Boolean(f.unreadCount) && <span aria-label={`${f.unreadCount} unread`} className={unreadBadge}>{f.unreadCount}</span>}</button>)}</nav>
-        <section aria-label="Message list" className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-3"><form onSubmit={e => { e.preventDefault(); setStart(1); setSearch(searchText.trim()); }} className="flex gap-2"><input aria-label="Search Zoho mail" value={searchText} maxLength={300} onChange={e => setSearchText(e.target.value)} placeholder="Search mail" className={`${control} min-w-0 flex-1`} /><button aria-label="Search" className={button}><Search className="h-4 w-4" /></button></form><p className="mt-2 text-[11px] text-slate-500">Search uses Zoho’s search syntax across your mailbox.</p>
+        <section aria-label="Message list" className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-3"><form onSubmit={e => { e.preventDefault(); if (busy) return; setStart(1); setSearch(searchText.trim()); }} className="flex gap-2"><input aria-label="Search Zoho mail" disabled={busy} value={searchText} maxLength={300} onChange={e => setSearchText(e.target.value)} placeholder="Search mail" className={`${control} min-w-0 flex-1`} /><button disabled={busy} aria-label="Search" className={button}><Search className="h-4 w-4" /></button></form><p className="mt-2 text-[11px] text-slate-500">Search uses Zoho’s search syntax across your mailbox.</p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-slate-200">
+              <input type="checkbox" ref={input => { if (input) input.indeterminate = checkedMessages.length > 0 && !allChecked; }} aria-label="Select all emails on this page" checked={allChecked} disabled={busy || loading || !messages.length} onChange={e => setCheckedIds(e.target.checked ? messages.map(message => message.messageId) : [])} className="h-5 w-5 accent-purple-500" />
+              Select this page
+            </label>
+            <span role="status" className="text-slate-300">{checkedMessages.length} selected</span>
+          </div>
+          {checkedMessages.length > 0 && <fieldset disabled={busy || loading} aria-label="Bulk email actions" className="mt-2 space-y-2 rounded-xl border border-purple-400/30 bg-purple-500/10 p-3">
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => void bulkAction('read')} className={button}>Mark read</button>
+              <button type="button" onClick={() => void bulkAction('unread')} className={button}>Mark unread</button>
+              <button type="button" onClick={() => void bulkAction('archive')} className={button}>Archive</button>
+              <button type="button" disabled={!trashFolderId || checkedMessages.every(message => message.folderId === trashFolderId)} onClick={() => void bulkAction('trash')} className={`${button} text-red-300`}><Trash2 className="h-4 w-4" /> Delete selected</button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select aria-label="Move selected emails to folder" value={bulkMoveFolder} onChange={e => setBulkMoveFolder(e.target.value)} className={`${control} min-w-0 flex-1`}>
+                <option value="">Move selected to…</option>
+                {folders.filter(item => checkedMessages.some(message => message.folderId !== item.folderId)).map(item => <option key={item.folderId} value={item.folderId}>{item.name}</option>)}
+              </select>
+              <button type="button" disabled={!bulkMoveFolder} onClick={() => void bulkAction('move')} className={button}>Move selected</button>
+            </div>
+            <button type="button" onClick={() => setCheckedIds([])} className={`${button} w-full`}>Clear selection</button>
+            <p className="text-xs text-slate-300">Delete moves selected emails to Trash.</p>
+          </fieldset>}
           {loading && <p role="status" className="p-4 text-sm text-slate-400">Loading from Zoho…</p>}{!loading && !error && !messages.length && <p className="p-4 text-sm text-slate-400">No messages in this view. Check Spam or open Zoho Mail if an expected email is missing.</p>}
-          <div className="mt-3 max-h-[650px] space-y-2 overflow-y-auto">{messages.map(m => <button key={m.messageId} onClick={() => void openMessage(m)} className={`w-full rounded-xl border p-3 text-left ${selected?.messageId === m.messageId ? 'border-purple-400/40 bg-purple-500/15' : 'border-white/5 bg-slate-900/60 hover:bg-white/10'}`}><span className="block truncate text-xs text-slate-400">{m.from}</span><span className={`mt-1 block break-words text-sm ${m.unread ? 'font-bold text-white' : 'text-slate-300'}`}>{m.subject}</span><span className="mt-1 block text-[11px] text-slate-500">{readableDate(m.receivedAt)}{m.hasAttachment ? ' · Attachment' : ''}</span></button>)}</div>
+          <div className="mt-3 max-h-[650px] space-y-2 overflow-y-auto">{messages.map(m => <div key={m.messageId} className={`flex items-start rounded-xl border ${selected?.messageId === m.messageId || checkedIds.includes(m.messageId) ? 'border-purple-400/40 bg-purple-500/15' : 'border-white/5 bg-slate-900/60 hover:bg-white/10'}`}>
+            <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center pt-1">
+              <input type="checkbox" aria-label={`Select email: ${m.subject}`} checked={checkedIds.includes(m.messageId)} disabled={busy || loading} onChange={e => setCheckedIds(ids => e.target.checked ? [...ids, m.messageId] : ids.filter(id => id !== m.messageId))} className="h-5 w-5 accent-purple-500" />
+            </label>
+            <button type="button" disabled={busy} onClick={() => void openMessage(m)} className="min-w-0 flex-1 p-3 pl-0 text-left"><span className="block truncate text-xs text-slate-400">{m.from}</span><span className={`mt-1 block break-words text-sm ${m.unread ? 'font-bold text-white' : 'text-slate-300'}`}>{m.subject}</span><span className="mt-1 block text-[11px] text-slate-500">{readableDate(m.receivedAt)}{m.hasAttachment ? ' · Attachment' : ''}</span></button>
+          </div>)}</div>
           <div className="mt-3 flex items-center justify-between gap-2"><button disabled={start === 1 || loading || busy} onClick={() => setStart(s => Math.max(1, s - 30))} className={button}>Newer</button><span className="text-xs text-slate-500">Page {Math.floor((start - 1) / 30) + 1}</span><button disabled={!hasMore || loading || busy} onClick={() => setStart(s => s + 30)} className={button}>Older</button></div>
         </section>
         <section aria-label="Selected email" className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4">{!selected ? <p className="py-16 text-center text-sm text-slate-400">Choose an email to read it here.</p> : <><div className="flex items-start justify-between gap-3"><h2 className="min-w-0 break-words text-lg font-bold">{selected.subject}</h2><button type="button" aria-label="Delete email (move to Trash)" title={trashFolderId ? "Move email to Trash" : "Refresh the mailbox to load the Trash folder"} disabled={busy || !trashFolderId || selected.folderId === trashFolderId} onClick={() => void messageAction('trash')} className={`${button} shrink-0 text-red-300 hover:text-red-200`}><Trash2 className="h-5 w-5" /></button></div><p className="mt-2 break-words text-xs text-slate-400">From: {selected.from}</p><p className="mt-1 break-words text-xs text-slate-400">To: {selected.to}</p><p className="mt-1 text-xs text-slate-500">{readableDate(selected.receivedAt)}</p>

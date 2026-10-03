@@ -187,6 +187,33 @@ try {
   assert.equal((await request('/accounts/10001/messages/30001', { method: 'PATCH', body: JSON.stringify({ action: 'move', folderId: trashFolder(trashFolders) }) })).status, 200);
   assert.deepEqual(JSON.parse(calls.at(-1)!.init.body as string), { mode: 'moveMessage', messageId: ['30001'], destfolderId: '20005' });
 
+  const bulkRequest = (body: unknown, accountId = '10001', auth = 'fixture-admin', requestOrigin?: string) => request(`/accounts/${accountId}/messages`, { method: 'PATCH', body: JSON.stringify(body), ...(requestOrigin ? { headers: { Origin: requestOrigin } } : {}) }, auth);
+  const bulkIds = ['30001', '1709876190693100009'];
+  for (const [action, mode] of [['read', 'markAsRead'], ['unread', 'markAsUnread'], ['archive', 'archiveMails'], ['move', 'moveMessage']]) {
+    const response = await bulkRequest({ action, messageIds: bulkIds, ...(action === 'move' ? { folderId: '20005' } : {}) });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { success: true, count: 2 });
+    assert.equal(calls.at(-1)!.init.method, 'PUT');
+    assert.deepEqual(JSON.parse(calls.at(-1)!.init.body as string), { mode, messageId: bulkIds, ...(action === 'move' ? { destfolderId: '20005' } : {}) });
+  }
+  assert.equal((await bulkRequest({ action: 'read', messageIds: ['30001', '30001'] })).status, 200);
+  assert.deepEqual(JSON.parse(calls.at(-1)!.init.body as string).messageId, ['30001']);
+  const updatesBeforeInvalid = calls.filter(call => call.url.pathname.endsWith('/updatemessage')).length;
+  for (const body of [
+    { action: 'read', messageIds: [] }, { action: 'read', messageIds: Array(31).fill('30001') },
+    { action: 'read', messageIds: ['30001', 'bad'] }, { action: 'read', messageIds: '30001' },
+    { action: 'read' }, { action: 'delete', messageIds: bulkIds },
+    { action: 'move', messageIds: bulkIds }, { action: 'move', messageIds: bulkIds, folderId: 'bad' },
+    { action: 'read', messageIds: bulkIds, fromAddress: 'spoof@example.test' },
+  ]) assert.equal((await bulkRequest(body)).status, 400);
+  assert.equal((await bulkRequest({ action: 'read', messageIds: bulkIds }, '99999')).status, 403);
+  assert.equal((await bulkRequest({ action: 'read', messageIds: bulkIds }, '10001', 'fixture-user')).status, 403);
+  assert.equal((await bulkRequest({ action: 'read', messageIds: bulkIds }, '10001', 'fixture-admin', 'https://evil.example.test')).status, 403);
+  assert.equal(calls.filter(call => call.url.pathname.endsWith('/updatemessage')).length, updatesBeforeInvalid);
+  providerStatus = 403;
+  assert.equal((await bulkRequest({ action: 'move', messageIds: bulkIds, folderId: '20005' })).status, 403);
+  providerStatus = 200;
+
   providerStatus = 403; const denied = await request('/accounts'); assert.equal(denied.status, 403); assert(!(await denied.text()).includes('DO_NOT_LEAK')); providerStatus = 200;
   let refreshCount = 0; const expired = { ...session, tokenExpires: 0 };
   const client = new ZohoMailClient(config, expired, () => refreshCount++, fetcher);
@@ -201,5 +228,5 @@ try {
   deletionRole = 'partner_admin'; assert.equal((await deleteRequest()).status, 409); deletionRole = 'user';
   for (const state of ['APPROVAL_PENDING', 'APPROVED', 'ACTIVE', 'SUSPENDED']) { subscriptionStatus = state; assert.equal((await deleteRequest()).status, 409); }
   subscriptionStatus = 'CANCELLED'; assert.equal((await deleteRequest()).status, 200); assert.equal(deletes, 1); assert(audits.some(a => a.action === 'admin.user.deleted'));
-  console.log('PASS: shared office mailbox enforcement and Staff/Admin access, provider relay, drafts/replies/attachments, privacy errors, 30 templates and admin deletion guards. No live provider or database was used.');
+  console.log('PASS: shared office mailbox enforcement and Staff/Admin access, provider relay, bulk email actions and validation, drafts/replies/attachments, privacy errors, 30 templates and admin deletion guards. No live provider or database was used.');
 } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
