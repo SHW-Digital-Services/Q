@@ -213,7 +213,7 @@ export default function App() {
         if (cancelled) return;
         setCanAccessCrm(allowed);
         setCrmAccessChecked(true);
-        if (staff.role !== 'partner_admin') setPreviewUserId(null);
+        if (!allowed) setPreviewUserId(null);
 
       } catch {
         if (!cancelled) {
@@ -390,7 +390,16 @@ export default function App() {
   if (isNewsRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
   if (isDeveloperRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
 
-  if (previewSignInUserId) return <><StatusPageButton /><div className="bg-slate-950 px-6 py-4 text-center text-sm text-white"><p>Sign in with the same Staff or Admin account you used for the CRM.</p><p className="mt-2 text-xs text-slate-300">{previewSignInMessage || 'We are verifying your access.'}</p></div></>;
+  if (previewSignInUserId) return (
+    <>
+      <StatusPageButton />
+      <div className="bg-slate-950 px-6 py-4 text-center text-sm text-white">
+        <p>Sign in with the same Staff or Admin account you used for the CRM.</p>
+        {previewSignInMessage && <p role="alert" className="mt-2 text-xs text-rose-300">{previewSignInMessage}</p>}
+      </div>
+      <CrmAccessPage onUserSignedIn={completePreviewSignIn} />
+    </>
+  );
 
   if (isCrmRoute && !previewActive) {
     if (!currentUser) {
@@ -406,7 +415,7 @@ export default function App() {
       <div className="q-scroll-page bg-slate-950 p-0 text-slate-100 sm:p-6">
         <StatusPageButton />
         <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><Suspense fallback={<LoadingView label="Loading CRM..." />}>
-          {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />}
+          {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onClose={() => window.location.assign('/app')} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onSignOut={handleSignOut} />}
         </Suspense></CrmDraftProvider>
       </div>
     );
