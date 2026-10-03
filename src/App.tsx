@@ -36,7 +36,6 @@ const DeveloperPage = lazy(() => import('./components/DeveloperPage').then(({ De
 const NewsUpdatesPage = lazy(() => import('./components/NewsUpdatesPage').then(({ NewsUpdatesPage }) => ({ default: NewsUpdatesPage })));
 const GuidedProgrammes = lazy(() => import('./components/GuidedProgrammes').then(({ GuidedProgrammes }) => ({ default: GuidedProgrammes })));
 
-
 function isViewAppRequest() {
   if (typeof window === 'undefined') return false;
 
@@ -64,7 +63,7 @@ function StatusPageButton({ placement = 'left' }: { placement?: 'left' | 'right'
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Open Q Status Page in a new tab"
-      className={`${placement === 'right' ? 'q-fixed-top-right' : 'q-fixed-top-left'} q-compact-fixed fixed z-[60] inline-flex min-h-11 items-center gap-1.5 rounded-full border border-purple-300/60 bg-slate-950/90 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur transition hover:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2`}
+      className={`${placement === 'right' ? 'q-fixed-top-right' : 'q-fixed-top-left'} q-compact-fixed fixed z-[60] inline-flex min-h-11 items-center gap-1.5 rounded-full border border-purple-300/60 bg-white/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-violet-700 shadow-lg shadow-violet-200/50 backdrop-blur-sm transition hover:bg-white dark:border-purple-500/30 dark:bg-slate-900/80 dark:text-violet-200`}
     >
       <span className="q-fixed-label">Status Page</span>
       <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
@@ -228,7 +227,10 @@ export default function App() {
 
     void checkCrmAccess();
     return () => { cancelled = true; };
-  }, [currentUser]);
+    // Token renewal and tab focus can produce a new user object for the same
+    // account. Rechecking then unmounts the CRM and interrupts ongoing edits.
+    // Each CRM API request still checks the current session and staff role.
+  }, [currentUser?.id]);
 
   // Subscribe to Supabase Auth state changes if client configured
   useEffect(() => {
@@ -388,7 +390,7 @@ export default function App() {
   if (isNewsRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
   if (isDeveloperRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
 
-  if (previewSignInUserId) return <><StatusPageButton /><div className="bg-slate-950 px-6 py-4 text-center text-sm text-white"><p>Sign in with the same Staff or Admin account you used for the CRM to preview the site.</p>{previewSignInMessage && <p role="alert" className="mt-2 text-rose-300">{previewSignInMessage}</p>}<button type="button" onClick={() => { setPreviewSignInUserId(null); window.location.href = '/crm'; }} className="mt-2 font-bold underline">Return to CRM</button></div><AuthScreen onUserSignedIn={(user) => { void completePreviewSignIn(user); }} /></>;
+  if (previewSignInUserId) return <><StatusPageButton /><div className="bg-slate-950 px-6 py-4 text-center text-sm text-white"><p>Sign in with the same Staff or Admin account you used for the CRM.</p><p className="mt-2 text-xs text-slate-300">{previewSignInMessage || 'We are verifying your access.'}</p></div></>;
 
   if (isCrmRoute && !previewActive) {
     if (!currentUser) {
@@ -404,7 +406,7 @@ export default function App() {
       <div className="q-scroll-page bg-slate-950 p-0 text-slate-100 sm:p-6">
         <StatusPageButton />
         <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><Suspense fallback={<LoadingView label="Loading CRM..." />}>
-          {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => { window.location.href = '/'; }} onSignOut={handleSignOut} />}
+          {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onSignOut={handleSignOut} />}
         </Suspense></CrmDraftProvider>
       </div>
     );

@@ -7,3 +7,10 @@ export function inboxFolder(folders: MailFolder[]): string {
     || folders.find(f => String(f.type).toLowerCase() === 'inbox')
     || folders[0])?.folderId || '';
 }
+
+// Prefer Zoho's system folder over a custom folder with a similar name.
+export function trashFolder(folders: MailFolder[]): string {
+  return (folders.find(f => f.path?.toLowerCase() === '/trash')
+    || folders.find(f => String(f.type).toLowerCase() === 'trash')
+    || folders.find(f => f.name?.toLowerCase() === 'trash'))?.folderId || '';
+}

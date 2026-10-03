@@ -45,4 +45,35 @@ mount('staff-b'); change({ subject: 'Another account', body: 'Retained' });
 clearCrmDrafts('staff-a');
 assert.equal(Object.keys(records).filter(key => key.startsWith(`${CRM_DRAFT_PREFIX}staff-a:`)).length, 0);
 mount('staff-b'); assert.equal(recovered.subject, 'Another account');
-console.log('PASS: immediate last-keystroke persistence, reload recovery, account/mailbox/customer isolation, successful reset, corrupt data, storage failure warning, and scoped logout cleanup.');
+// Template drafts must survive switching templates and remounting the section.
+let templateValues: Record<string, string> = {};
+let changeTemplate!: Dispatch<SetStateAction<Record<string, string>>>;
+let searchText = '';
+let changeSearch!: Dispatch<SetStateAction<string>>;
+function CommunicationsInputs({ template, mailbox }: { template: string; mailbox: string }) {
+  [templateValues, changeTemplate] = useCrmDraftState(`template:${template}:values`, {});
+  [searchText, changeSearch] = useCrmDraftState(`mail:${mailbox}:account-1:searchText`, '');
+  return <p>{searchText}</p>;
+}
+function mountInputs(template = 'welcome', mailbox = 'office') {
+  renderToString(<CrmDraftProvider userId="staff-a"><CommunicationsInputs template={template} mailbox={mailbox} /></CrmDraftProvider>);
+}
+mountInputs();
+changeTemplate({ name: 'Alex', details: 'Unfinished personalised reply' });
+changeSearch('sender:alex@example.test');
+mountInputs('follow-up');
+assert.deepEqual(templateValues, {});
+assert.equal(searchText, 'sender:alex@example.test');
+changeTemplate({ name: 'Sam' });
+mountInputs();
+assert.deepEqual(templateValues, { name: 'Alex', details: 'Unfinished personalised reply' });
+mountInputs('follow-up', 'personal');
+assert.deepEqual(templateValues, { name: 'Sam' });
+assert.equal(searchText, '');
+mountInputs();
+assert.equal(searchText, 'sender:alex@example.test');
+clearCrmDrafts('staff-a');
+mountInputs();
+assert.deepEqual(templateValues, {});
+assert.equal(searchText, '');
+console.log('PASS: immediate last-keystroke persistence, reload recovery, account/mailbox/customer isolation, successful reset, corrupt data, storage failure warning, scoped logout cleanup, per-template recovery, and mailbox search recovery.');
