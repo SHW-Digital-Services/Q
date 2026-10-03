@@ -8,6 +8,6 @@ coverage/
 !.env.example
 sbom.cdx.json
 /artifacts/
-
 .vercel
-.env*
+.tmp-status-page*.html
+4661b82a-b856-48ad-b6cd-652fa9f9e266.html
