@@ -180,6 +180,19 @@ export default function App() {
     setIsSubscriptionOpen(true);
   }, [currentUser]);
 
+  // Associate Better Stack sessions with the signed-in Q account.
+  useEffect(() => {
+    if (!currentUser || typeof window === 'undefined') return;
+    const betterstack = (window as Window & {
+      betterstack?: (command: string, user?: Record<string, unknown>) => void;
+    }).betterstack;
+    betterstack?.('user', {
+      id: currentUser.id,
+      email: currentUser.email,
+      username: currentUser.name || undefined,
+    });
+  }, [currentUser]);
+
   // Ask the protected admin endpoint for the signed-in user's effective role.
   // Visibility is only a convenience; every CRM request remains server-authorised.
   useEffect(() => {
@@ -365,6 +378,10 @@ export default function App() {
     if (currentUser) clearCrmDrafts(currentUser.id);
     setPreviewUserId(null);
     setPreviewSignInUserId(null);
+    const betterstack = (window as Window & {
+      betterstack?: (command: string, user?: Record<string, unknown> | null) => void;
+    }).betterstack;
+    betterstack?.('user', null);
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
