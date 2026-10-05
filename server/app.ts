@@ -20,6 +20,7 @@ import { commsRouter } from './routes/comms.js';
 import { adminDeleteUsersRouter } from './routes/adminDeleteUsers.js';
 import { onlinePresenceRouter } from './routes/onlinePresence.js';
 import { publicTrustRouter } from './routes/publicTrust.js';
+import { communityNewsletterRouter } from './routes/communityNewsletter.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -201,6 +202,7 @@ app.use('/api/privacy', privacyRouter);
 app.use('/api/premium', premiumRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/peer-knowledge', peerKnowledgeRouter);
+app.use('/api/internal/community-newsletter', communityNewsletterRouter);
 app.use('/api/life-guides', lifeGuidesRouter);
 app.use('/api/help-videos', helpVideosRouter);
 app.use('/legal', legalRouter);
