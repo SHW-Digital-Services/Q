@@ -8,6 +8,7 @@ import { GlobalTextTranslator } from './components/GlobalTextTranslator';
 import { OnlinePresenceProvider } from './contexts/OnlinePresenceContext';
 import { BrevoTrackerConsent } from './components/BrevoTrackerConsent';
 import { SupportChatLauncher } from './components/SupportChatLauncher';
+import { Analytics } from '@vercel/analytics/react';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')!).render(
         <BrevoTrackerConsent />
         <SupportChatLauncher />
         <OnlinePresenceProvider><App /></OnlinePresenceProvider>
+        <Analytics />
       </ThemeProvider>
     </LanguageProvider>
   </StrictMode>,
