@@ -62,3 +62,16 @@ Voting, attachments, a public incident page and automated monitoring remain defe
 ## Hosted schema verification, 8 October 2026
 
 Release-one migration `20261008001518_support_conversations.sql` is applied to Q's linked Supabase project (`brnhalxydcakutxiregp`). Its migration history matches the repository version. The ownership columns, four conversation/access/notification tables, RLS and service-only function permissions were verified. A service-role support-list query through hosted PostgREST returned 200, and unauthenticated `https://q-ai.online/api/support/requests` returned the expected 401. Authenticated browser submission, replies and Zoho delivery still require live verification. Release-two feedback migration `20261008120641_feedback_roadmap.sql` is now applied. Hosted service-role reads of all three feedback tables returned 200. A rolled-back hosted transaction verified draft creation, publication snapshots and stale revision rejection without leaving test data. RLS and service-only table/function permissions were verified; hosted browser flows remain to be checked after Release 2 deployment.
+
+
+## Release 3: help centre and private attachments
+
+Public `/help` and Q Help share searchable guides and FAQs, category/type filters and article links. Seed content: 46 existing guides and five support FAQs. Communications > Help centre provides saved drafts, preview, explicit review and publication snapshots. Editing a draft does not change published content. Revision checks protect concurrent edits. Archive/unpublish removes the public snapshot; restore does not republish.
+
+Support files accept PNG/JPEG, PDF and plain text, up to 2 MB each and ten files per request. Server validation checks bytes rather than browser MIME. Downloads are forced attachments. Verified request owners and guest sessions access shared files; authorised staff also access internal files. Owners remove their own uploads; staff can remove any request attachment. Failed uploads retain selection for retry, but refreshing requires selecting the file again. Files are not included in email notices.
+
+Private bucket `q-support-private` uses server request checks and restrictive client Storage policies. Metadata deletion/purge queues paths for Storage API deletion; failures remain queued. Communications > Support > Retry queued file cleanup processes up to 50 paths and removes incomplete uploads older than 24 hours. Run after an operational purge; repeat while queued files remain. No automatic cleanup scheduler is configured.
+
+Migration `20261008125504_help_centre_support_attachments.sql` was applied and verified on the linked project on 8 October 2026. Better Stack remains the status provider; no public status page was added.
+
+Validation: check:help-support-release3, check:public-trust, check:crm-drafts, lint and build. Local browser fixtures cover search/FAQ filters, publication review, draft recovery, upload failure/retry/removal, desktop/mobile layout and runtime errors. Production deployment and live authenticated uploads remain unverified.

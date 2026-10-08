@@ -1,4 +1,5 @@
 import express from 'express';
+import {attachmentColumns,attachmentType,supportAttachmentLimit,cleanupSupportFiles} from '../supportAttachments.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { asyncHandler, getAuthenticatedUser, getCanonicalAppUrl } from '../middleware.js';
 import { getServiceSupabase, requireStaff } from './admin.js';
@@ -7,7 +8,7 @@ import { supportCategories, supportStatuses } from '../../src/shared/support.js'
 import { sendSupportEmail } from '../supportMail.js';
 import { allowedMailOrigin } from '../zohoMail.js';
 
-const hash = (token: string) => createHash('sha256').update(token).digest('hex');
+const hash = (token: string | Buffer) => createHash('sha256').update(token).digest('hex');
 const cookieName = 'q_support_session';
 const publicColumns = 'id,category,subject,message,status,created_at,updated_at';
 const messageColumns = 'id,author_kind,internal,body,created_at';
@@ -217,6 +218,44 @@ export function createSupportRouter(deps: Dependencies) {
     await notify(res.locals.db,found.request,req.params.message);
     return res.json({ success:true });
   }));
+  function attachmentRoutes(prefix:string,staff:boolean){
+    const authorised=asyncHandler(async(req,res,next)=>{const found=await ticket(req,res,staff);if(found){res.locals.attachmentTicket=found;next();}});
+    router.get(`${prefix}/:id/attachments`,authorised,asyncHandler(async(req,res)=>{
+      let query=res.locals.db.from('support_attachments').select(attachmentColumns+',author_id,author_kind').eq('request_id',req.params.id).eq('status','ready');if(!staff)query=query.eq('internal',false);
+      const{data,error}=await query.order('created_at');if(error)return failure(res,error);res.json((data||[]).map(({author_id,author_kind,...file}:any)=>({...file,canRemove:staff||(author_kind==='user'&&author_id===res.locals.attachmentTicket.actor.userId)})));
+    }));
+    router.post(`${prefix}/:id/attachments`,authorised,express.raw({type:'application/octet-stream',limit:supportAttachmentLimit}),asyncHandler(async(req,res)=>{
+      const bytes=req.body,id=req.headers['x-attachment-id'];let name='';try{name=decodeURIComponent(String(req.headers['x-file-name']||''));}catch{}
+      if(!isUuid(id)||!Buffer.isBuffer(bytes)||!name||name.length>160||/[\x00-\x1f\x7f/\\]/.test(name))return res.status(400).json({error:'Choose a file with a valid name.'});
+      const mime=attachmentType(bytes);if(!mime)return res.status(400).json({error:'Choose a PNG, JPEG, PDF or plain-text file up to 2 MB.'});
+      const internal=req.headers['x-internal-file']==='true';if(internal&&!staff)return res.status(403).json({error:'Only staff can upload an internal file.'});
+      const found=res.locals.attachmentTicket,actor=staff?res.locals.staff.identity.user.id:found.actor.userId;
+      const reserved=await res.locals.db.rpc('reserve_support_attachment',{p_id:id,p_request:req.params.id,p_author:actor,p_staff:staff,p_internal:internal,p_name:name,p_mime:mime,p_size:bytes.length,p_hash:hash(bytes)});
+      if(reserved.error){if(String(reserved.error.message).includes('ATTACHMENT_LIMIT'))return res.status(409).json({error:'This request already has 10 files. Remove an unneeded file before uploading another.'});return failure(res,reserved.error);}
+      const item=reserved.data;if(item.status==='ready')return res.status(201).json({id:item.id});
+      const storage=res.locals.db.storage.from('q-support-private');const uploaded=await storage.upload(item.object_path,bytes,{contentType:mime,upsert:false});
+      if(uploaded.error){
+        // A lost response may have left the exact object saved. Verify before retrying.
+        const previous=await storage.download(item.object_path);if(previous.error||!previous.data||hash(Buffer.from(await previous.data.arrayBuffer()))!==item.sha256)return res.status(503).json({error:'File upload failed. Keep the selected file and retry.'});
+      }
+      const ready=await res.locals.db.from('support_attachments').update({status:'ready'}).eq('id',id).eq('request_id',req.params.id).select('id').maybeSingle();if(ready.error||!ready.data){const exists=await res.locals.db.from('support_attachments').select('id').eq('id',id).maybeSingle();if(!exists.data){await storage.remove([item.object_path]);await res.locals.db.from('support_storage_cleanup').upsert({object_path:item.object_path});}return res.status(503).json({error:'File was transferred but could not be confirmed. Retry with the same file.'});}
+      await res.locals.db.from('contact_requests').update({updated_at:new Date().toISOString()}).eq('id',req.params.id);
+      return res.status(201).json({id:item.id});
+    }));
+    router.get(`${prefix}/:id/attachments/:attachment`,authorised,asyncHandler(async(req,res)=>{
+      if(!isUuid(req.params.attachment))return res.status(400).json({error:'Invalid file.'});let query=res.locals.db.from('support_attachments').select('*').eq('id',req.params.attachment).eq('request_id',req.params.id).eq('status','ready');if(!staff)query=query.eq('internal',false);
+      const{data,error}=await query.maybeSingle();if(error)return failure(res,error);if(!data)return res.status(404).json({error:'File not found.'});
+      const file=await res.locals.db.storage.from('q-support-private').download(data.object_path);if(file.error||!file.data)return res.status(503).json({error:'File download is temporarily unavailable.'});
+      res.setHeader('Content-Type','application/octet-stream');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Content-Disposition',`attachment; filename="support-file"; filename*=UTF-8''${encodeURIComponent(data.name).replace(/['()*]/g,c=>'%'+c.charCodeAt(0).toString(16))}`);res.send(Buffer.from(await file.data.arrayBuffer()));
+    }));
+    router.delete(`${prefix}/:id/attachments/:attachment`,authorised,asyncHandler(async(req,res)=>{
+      if(!isUuid(req.params.attachment))return res.status(400).json({error:'Invalid file.'});let query=res.locals.db.from('support_attachments').delete().eq('id',req.params.attachment).eq('request_id',req.params.id);if(!staff){query=query.eq('author_kind','user');query=(res.locals.attachmentTicket.actor.userId?query.eq('author_id',res.locals.attachmentTicket.actor.userId):query.is('author_id',null)).eq('internal',false);}
+      const{data,error}=await query.select('id');if(error)return failure(res,error);if(!data?.length)return res.status(404).json({error:'File not found or removal is not permitted.'});let cleanupPending=false;try{await cleanupSupportFiles(res.locals.db);}catch{cleanupPending=true;}res.json({success:true,cleanupPending});
+    }));
+  }
+  attachmentRoutes('/requests',false);attachmentRoutes('/staff/requests',true);
+  router.post('/staff/attachments/cleanup',asyncHandler(async(_req,res)=>{try{res.json({removed:await cleanupSupportFiles(res.locals.db)});}catch{return res.status(503).json({error:'File cleanup failed. It can be retried safely.'});}}));
+  router.use((err:any,_req:express.Request,res:express.Response,next:express.NextFunction)=>{if(err?.type==='entity.too.large')return res.status(413).json({error:'Choose a file up to 2 MB.'});next(err);});
   return router;
 }
 export const supportRouter = createSupportRouter({ db: getServiceSupabase, authenticate: getAuthenticatedUser, staff: requireStaff, email: sendSupportEmail, origin: getCanonicalAppUrl });

@@ -36,6 +36,6 @@ export function publicTrustHtml(page: 'about' | 'contact') {
 publicTrustRouter.get(['/about','/contact'], (req,res)=>res.type('html').send(publicTrustHtml(req.path === '/about' ? 'about' : 'contact')));
 publicTrustRouter.get('/robots.txt', (_req,res)=>res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /crm\nDisallow: /admin\nDisallow: /app\nDisallow: /support\nDisallow: /*?view=app\nDisallow: /*?open=q\nSitemap: ${identity.website}/sitemap.xml\n`));
 publicTrustRouter.get('/sitemap.xml', (_req,res)=> {
-  const paths = ['/', '/about', '/contact', '/news', '/developer', '/roadmap', ...publicLegalPages.map(page=>`/legal/${page}`)];
+  const paths = ['/', '/about', '/contact', '/news', '/developer', '/roadmap', '/help', ...publicLegalPages.map(page=>`/legal/${page}`)];
   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path=>`<url><loc>${identity.website}${path}</loc></url>`).join('')}</urlset>`);
 });

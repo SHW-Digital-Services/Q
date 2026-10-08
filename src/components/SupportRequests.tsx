@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { MessageSquareText, RefreshCw, Send, ArrowLeft } from 'lucide-react';
 import { useCrmDraftState } from '../hooks/useCrmDraftState';
+import SupportAttachments from './SupportAttachments';
 import { supportApi } from '../services/support';
 import { supportCategories, supportStatuses, supportStatusLabels, type SupportConversation, type SupportRequest } from '../shared/support';
 
@@ -154,6 +155,7 @@ export default function SupportRequests({ staff = false, guest = false, initialR
               {staff && message.notification_status && message.notification_status !== 'sent' && <button type="button" disabled={busy} className={`mt-2 ${control}`} onClick={() => void retryNotification(message.id)}>Retry email notification</button>}
             </div>)}
           </div>
+          <SupportAttachments key={detail.request.id} requestId={detail.request.id} staff={staff} guest={guest} disabled={busy} onBusy={setBusy} />
           <form onSubmit={sendReply} className="space-y-3"><fieldset disabled={busy} className="space-y-3">
             {staff && <><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={reply.internal} onChange={event => editReply({ internal: event.target.checked })} />Internal note (staff only)</label><label className="block text-xs">Response template<select aria-label="Response template" value="" onChange={event => { const template = templates[Number(event.target.value)]; if (template) editReply({ body: reply.body ? `${reply.body}\n\n${template.body}` : template.body }); }} className={`ml-2 ${control}`}><option value="">Add a template…</option>{templates.map((template,index) => <option key={template.label} value={index}>{template.label}</option>)}</select></label></>}
             <label className="block text-sm">{reply.internal ? 'Internal note' : 'Reply'}<textarea required maxLength={5000} rows={4} value={reply.body} onChange={event => editReply({ body: event.target.value })} className={`mt-1 block w-full ${control}`} /></label>
