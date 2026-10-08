@@ -9,6 +9,7 @@ const control = 'min-h-11 rounded-lg border border-white/10 px-3 py-2 text-sm ho
 
 export default function StaffChat({ page = true }: { page?: boolean }) {
   const [userId, setUserId] = useState<string | null>(null);
+  const [signedInEmail, setSignedInEmail] = useState('');
   const [allowed, setAllowed] = useState(false);
   const open = page;
   const [messages, setMessages] = useState<Message[]>([]);
@@ -107,8 +108,11 @@ export default function StaffChat({ page = true }: { page?: boolean }) {
   }, [userId]);
   useEffect(() => {
     const client = getSupabaseClient(); if (!client) return;
-    const { data } = client.auth.onAuthStateChange((_event, value) => setUserId(value?.user.id || null));
-    return () => { data.subscription.unsubscribe(); void audio.current?.close(); };
+    const updateAccount = (value: { user: { id: string; email?: string } } | null) => { setUserId(value?.user.id || null); setSignedInEmail(value?.user.email || ''); };
+    let active = true;
+    const { data } = client.auth.onAuthStateChange((_event, value) => { if (active) updateAccount(value); });
+    void client.auth.getSession().then(({ data }) => { if (active) updateAccount(data.session); });
+    return () => { active = false; data.subscription.unsubscribe(); void audio.current?.close(); };
   }, []);
   useEffect(() => {
     const linkedRecipient = page ? new URLSearchParams(window.location.search).get('recipient') || '' : '';
@@ -129,6 +133,7 @@ export default function StaffChat({ page = true }: { page?: boolean }) {
         }
         const data = await request('/api/staff-chat/sync', { session: session.current, cursor: cursor.current }, controller.signal);
         if (controller.signal.aborted) return;
+        if (data.userId !== userId) throw Error('Your signed-in account changed. Refresh Team chat to reconnect with the current account.');
         const incoming: Message[] = data.messages;
         const fresh = cursor.current !== undefined ? incoming.filter(message => message.user_id !== userId) : [];
         if (incoming.length) {
@@ -191,7 +196,7 @@ export default function StaffChat({ page = true }: { page?: boolean }) {
   return <div className="w-full min-w-0 text-slate-100">
     {toast && <button onClick={() => chooseConversation(toastRecipient.current)} role="status" className="fixed bottom-5 right-5 z-[120] w-80 max-w-[calc(100vw-40px)] rounded-xl border border-violet-400/40 bg-slate-900 p-4 text-left text-sm shadow-xl"><strong className="block text-violet-300">New message</strong>{toast}</button>}
     <section aria-label="Staff and Admin team chat" className="flex h-[max(680px,calc(100dvh-64px))] w-full flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-950">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-4 py-3 sm:px-6"><div><h1 className="text-xl font-bold">Team chat</h1><p className="mt-1 text-xs text-slate-400">{recipient ? `Private · ${recipientName}` : 'Everyone'} · {connected ? 'Connected' : 'Reconnecting…'}</p></div><div className="flex items-center gap-2">{unreadCount > 0 && <span className="rounded-full bg-rose-600 px-3 py-1 text-sm">{unreadCount} unread</span>}<button type="button" aria-expanded={showChatOptions} aria-controls="team-chat-options" onClick={() => setShowChatOptions(value => !value)} className={`${control} lg:hidden`}>Conversations & options</button></div></header>
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-4 py-3 sm:px-6"><div><h1 className="text-xl font-bold">Team chat</h1><p className="mt-1 text-xs text-slate-400">{recipient ? `Private · ${recipientName}` : 'Everyone'} · {connected ? 'Connected' : 'Reconnecting…'}</p><p className="mt-1 break-all text-xs text-slate-400">Signed in as {signedInEmail}</p></div><div className="flex items-center gap-2">{unreadCount > 0 && <span className="rounded-full bg-rose-600 px-3 py-1 text-sm">{unreadCount} unread</span>}<button type="button" aria-expanded={showChatOptions} aria-controls="team-chat-options" onClick={() => setShowChatOptions(value => !value)} className={`${control} lg:hidden`}>Conversations & options</button></div></header>
       <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside id="team-chat-options" aria-label="Chat options and team members" className={`${showChatOptions ? 'block' : 'hidden'} max-h-[40dvh] shrink-0 overflow-y-auto border-b border-slate-800 bg-slate-900/40 lg:block lg:max-h-none lg:border-b-0 lg:border-r`}>
       <div className="border-b border-slate-800 px-4 py-3"><button type="button" disabled={systemBusy || !systemNotificationsSupported()} aria-pressed={systemEnabled} onClick={() => void toggleSystemNotifications()} className={control}>{systemBusy ? 'Checking permission…' : systemEnabled ? 'System notifications on · turn off' : 'Enable system notifications'}</button><p className="mt-2 text-xs text-slate-400">{systemNotificationsSupported() ? 'Alerts appear in your device’s notification centre while Q is open, including when it is in the background. Message text stays hidden in system alerts.' : 'System notifications are unavailable in this browser. In-app alerts still work.'}</p></div>
