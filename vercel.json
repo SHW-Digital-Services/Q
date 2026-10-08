@@ -61,6 +61,7 @@
     { "source": "/updates", "destination": "/index.html" },
     { "source": "/developer", "destination": "/index.html" },
     { "source": "/support", "destination": "/index.html" },
+    { "source": "/roadmap", "destination": "/index.html" },
     { "source": "/app/:path*", "destination": "/index.html" },
     { "source": "/crm/:path*", "destination": "/index.html" },
     { "source": "/admin/crm/:path*", "destination": "/index.html" },

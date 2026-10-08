@@ -30,6 +30,7 @@ const JournalView = lazy(() => import('./components/JournalView').then(({ Journa
 const ProfileView = lazy(() => import('./components/ProfileView').then(({ ProfileView }) => ({ default: ProfileView })));
 const HelpView = lazy(() => import('./components/HelpView').then(({ HelpView }) => ({ default: HelpView })));
 const SupportAccessPage = lazy(() => import('./components/SupportAccessPage'));
+const RoadmapPage = lazy(() => import('./components/RoadmapPage'));
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel }) => ({ default: AdminPanel })));
 const CommsPortal = lazy(() => import('./components/CommsPortal'));
 const OnlineUsersPage = lazy(() => import('./components/OnlineUsersPage'));
@@ -406,6 +407,7 @@ export default function App() {
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
   if (window.location.pathname === '/support') return <Suspense fallback={<LoadingView label="Loading support..." />}><SupportAccessPage /></Suspense>;
+  if (window.location.pathname === '/roadmap') return <Suspense fallback={<LoadingView label="Loading roadmap..." />}><RoadmapPage /></Suspense>;
   if (isNewsRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
   if (isDeveloperRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
 

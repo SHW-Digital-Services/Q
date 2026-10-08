@@ -23,6 +23,7 @@ import type { ActiveTab } from './Navbar';
 import { useLanguage } from '../contexts/LanguageContext';
 import { HelpVideos } from './HelpVideos';
 import SupportRequests from './SupportRequests';
+import FeedbackPanel from './FeedbackPanel';
 
 interface HelpArticle {
   id: string;
@@ -138,6 +139,8 @@ export const HelpView: React.FC<Props> = ({ onNavigate, onOpenCrisis, onOpenSubs
         <SupportRequests initialRequestId={new URLSearchParams(window.location.search).get('request') || ''} />
         <p className="mt-4 text-xs text-slate-500">Submitted a question while signed out? <a href="/support" className="text-violet-700 underline">Access it with an email link</a>.</p>
       </section>
+
+      <section className="pride-card pride-edge rounded-3xl p-5 sm:p-7"><FeedbackPanel /></section>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1"><h2 className="text-sm font-black text-slate-900">{visibleArticles.length} {visibleArticles.length === 1 ? t('article') : t('articles')}</h2><span className="text-[11px] text-slate-500">{t('selectArticle')}</span></div>
