@@ -22,6 +22,7 @@ import { onlinePresenceRouter } from './routes/onlinePresence.js';
 import { publicTrustRouter } from './routes/publicTrust.js';
 import { communityNewsletterRouter } from './routes/communityNewsletter.js';
 import { supportRouter } from './routes/support.js';
+import { feedbackRouter } from './routes/feedback.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -197,6 +198,7 @@ app.get('/api/health/supabase', async (_req, res) => {
 app.use(['/api/billing'], billingRouter);
 app.use('/api/comms', commsRouter);
 app.use('/api/support', supportRouter);
+app.use('/api/feedback', feedbackRouter);
 app.use('/api/presence', onlinePresenceRouter);
 app.use(['/api/q-ai', '/api/ai'], aiRouter);
 app.use(['/api/v1/admin', '/api/admin'], adminRouter);
@@ -230,7 +232,7 @@ if (process.env.VERCEL !== '1' && process.env.NODE_ENV === 'production') {
   app.use(express.static(clientDirectory));
   app.get(['/app', '/app/*'], (_req, res) => res.sendFile(path.join(clientDirectory, 'index.html')));
   app.get('*', (req, res) => {
-    if (['/', '/news', '/updates', '/developer', '/support', '/crm', '/admin/crm'].includes(req.path) || /^\/(?:crm|admin\/crm)\//.test(req.path)) return res.sendFile(path.join(clientDirectory, 'index.html'));
+    if (['/', '/news', '/updates', '/developer', '/support', '/roadmap', '/crm', '/admin/crm'].includes(req.path) || /^\/(?:crm|admin\/crm)\//.test(req.path)) return res.sendFile(path.join(clientDirectory, 'index.html'));
     res.setHeader('X-Robots-Tag', 'noindex');
     return res.status(404).type('html').send('<!doctype html><html lang="en"><head><title>Page not found — Q Intelligence</title></head><body><h1>Page not found</h1><a href="/">Return to Q</a></body></html>');
   });

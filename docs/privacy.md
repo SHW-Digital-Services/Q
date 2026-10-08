@@ -1067,3 +1067,10 @@ Q stores deliberately submitted support requests, conversation replies, staff-on
 Draft recovery uses plaintext, account- or verified-request-scoped browser session storage. Successful submission clears the draft; Q logout or closing guest access clears relevant recovery data. One-use email links expire after 24 hours and create an HttpOnly request-specific browser session. Closing guest access revokes that session.
 
 Resolved or closed support conversations become eligible for operational deletion 365 days after their last activity. This includes associated messages, activity, notification records, access grants and linked CRM copies. Open requests are retained for follow-up. Deletion depends on running the operator purge; this release does not install a schedule. Emails already held in Zoho and provider backups follow their separate retention arrangements.
+
+
+## Q improvement suggestions and roadmap
+
+Users choose titles and details for private improvement suggestions. Only the submitting account and authorised staff can access them; no journal, mailbox or other private app content is attached automatically. Staff may group suggestions and publish a separately written anonymous roadmap summary. Public responses exclude originals, submitter identifiers, source counts and internal activity. Saved edits stay private until republished.
+
+Drafts use account-scoped plaintext session storage, clear after successful submission or Q logout, and remain while a form is closed. Reviewed or archived private suggestions and linked events qualify for the operator purge after 365 days without activity. Unreviewed suggestions remain pending review. Account deletion detaches ownership without transferring access through matching email. Published roadmap summaries remain until staff remove them. Hosted backups follow separate retention arrangements.

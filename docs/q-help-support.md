@@ -44,4 +44,21 @@ Run `npm run check:support`, `npm run check:support-archive`, `npm run check:crm
 
 Before production release, verify with two real accounts and restricted staff access; confirm migration application, Zoho acceptance and receipt, and guest links over deployed HTTPS. Local fixtures do not establish these live results.
 
-Feedback roadmaps, attachments, a public incident page and automated monitoring are later releases.
+## Release 2: private suggestions and public roadmap
+
+Verified accounts can submit improvements in **Help > Suggest an improvement** and follow their own suggestions. Original titles and details stay private. Guest support access cannot read feedback. Retries reuse a submission identifier, with one new suggestion per account per five minutes.
+
+Staff use **Communications > Feedback & roadmap** to search, review, archive/restore and group up to 100 suggestions under separately written roadmap drafts. Grouping never copies or publishes original text. Existing `support.read` and `support.write` permissions apply.
+
+Staff save an anonymous title, summary and stage, review the saved preview, then publish separately. Public `/roadmap` displays only publication snapshots in **Under review**, **Planned**, **In progress** or **Available**. Saved edits remain private until republished. Unpublishing or archiving removes public items; restoring keeps them unpublished. Revision checks reject stale saves and grouping batches without partial changes. Account-scoped drafts survive refresh and clear after successful submission or Q logout.
+
+Apply `supabase/migrations/20261008120641_feedback_roadmap.sql` after the release-one migration and before deploying this code. Tables/functions remain service-role-only with RLS; public content uses a restricted API projection. Reviewed or archived suggestions qualify for the operator purge after 365 days without activity, with their audit events. Unreviewed inbox items remain pending review. Account deletion detaches ownership without transferring access. Roadmap summaries remain until staff remove them.
+
+Run `npm run check:feedback` alongside the release-one checks. It verifies ownership, permissions, retries, limits, atomic grouping, snapshots, stale revisions, archive/restore, database restrictions and retention against local migrations. Before production release, verify the hosted migration and flows with two accounts and restricted staff access. No new email provider or secrets are required.
+
+Voting, attachments, a public incident page and automated monitoring remain deferred.
+
+
+## Hosted schema verification, 8 October 2026
+
+Release-one migration `20261008001518_support_conversations.sql` is applied to Q's linked Supabase project (`brnhalxydcakutxiregp`). Its migration history matches the repository version. The ownership columns, four conversation/access/notification tables, RLS and service-only function permissions were verified. A service-role support-list query through hosted PostgREST returned 200, and unauthenticated `https://q-ai.online/api/support/requests` returned the expected 401. Authenticated browser submission, replies and Zoho delivery still require live verification. Release-two feedback migration remains pending.

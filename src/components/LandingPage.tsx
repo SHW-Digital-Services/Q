@@ -33,6 +33,7 @@ const LaunchLandingPage: React.FC = () => {
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-3 text-right">
           <a href="/news" className="text-xs font-semibold text-purple-100 hover:text-white">{t('landingNews')}</a>
+          <a href="/roadmap" className="text-xs font-semibold text-purple-100 hover:text-white">Roadmap</a>
           <span className="hidden text-xs font-semibold text-purple-200/80 sm:inline">{t('landingNowLive')}</span>
         </div>
       </nav>
@@ -140,6 +141,7 @@ export const WaitlistLandingPage: React.FC = () => {
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-3 text-right">
           <a href="/news" className="text-xs font-semibold text-purple-100 hover:text-white">{t('landingNews')}</a>
+          <a href="/roadmap" className="text-xs font-semibold text-purple-100 hover:text-white">Roadmap</a>
           <span className="hidden text-xs font-semibold text-purple-200/80 sm:inline">{t('landingSaferCompanion')}</span>
         </div>
       </nav>
