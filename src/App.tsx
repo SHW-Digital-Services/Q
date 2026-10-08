@@ -37,6 +37,7 @@ const RoadmapPage = lazy(() => import('./components/RoadmapPage'));
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel }) => ({ default: AdminPanel })));
 const CommsPortal = lazy(() => import('./components/CommsPortal'));
 const OnlineUsersPage = lazy(() => import('./components/OnlineUsersPage'));
+const StaffChat = lazy(() => import('./components/StaffChat'));
 const DeveloperPage = lazy(() => import('./components/DeveloperPage').then(({ DeveloperPage }) => ({ default: DeveloperPage })));
 const NewsUpdatesPage = lazy(() => import('./components/NewsUpdatesPage').then(({ NewsUpdatesPage }) => ({ default: NewsUpdatesPage })));
 const GuidedProgrammes = lazy(() => import('./components/GuidedProgrammes').then(({ GuidedProgrammes }) => ({ default: GuidedProgrammes })));
@@ -106,11 +107,12 @@ export default function App() {
   const previewActive = !!currentUser && previewUserId === currentUser.id;
   const isAppRoute = previewActive || (launchEnabled && isViewAppRequest());
   const isNewsRoute = typeof window !== 'undefined' && ['/news', '/updates'].includes(window.location.pathname);
-  const isCrmRoute = typeof window !== 'undefined' && ['/crm', '/admin/crm', '/crm/admin', '/admin/crm/admin', '/crm/comms', '/crm/online', '/admin/crm/online'].includes(window.location.pathname);
+  const isCrmRoute = typeof window !== 'undefined' && ['/crm', '/admin/crm', '/crm/admin', '/admin/crm/admin', '/crm/comms', '/crm/chat', '/admin/crm/chat', '/crm/online', '/admin/crm/online'].includes(window.location.pathname);
   const requestedCrmView = new URLSearchParams(window.location.search).get('view') || (window.location.pathname.endsWith('/admin')?'settings':'customers');
   const crmView = crmViews[requestedCrmView] ? requestedCrmView : 'customers';
   const isAdminFunctionsRoute = typeof window !== 'undefined' && ['/crm/admin', '/admin/crm/admin'].includes(window.location.pathname);
   const isCommsRoute = typeof window !== 'undefined' && window.location.pathname === '/crm/comms';
+  const isChatRoute = typeof window !== 'undefined' && ['/crm/chat', '/admin/crm/chat'].includes(window.location.pathname);
   const isOnlineUsersRoute = typeof window !== 'undefined' && ['/crm/online', '/admin/crm/online'].includes(window.location.pathname);
   const isDeveloperRoute = typeof window !== 'undefined' && window.location.pathname === '/developer';
 
@@ -442,7 +444,7 @@ export default function App() {
       <div className="q-scroll-page bg-slate-950 text-slate-100">
         <StatusPageButton />
         <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><CrmNotifications /><Suspense fallback={<LoadingView label="Loading CRM..." />}>
-          <CrmWorkspace view={isOnlineUsersRoute?'online':isCommsRoute?'communications':crmView} onSignOut={handleSignOut}>{isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel view={crmView} adminMode={isAdminFunctionsRoute} onClose={() => window.location.assign('/app')} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onSignOut={handleSignOut} />}</CrmWorkspace>
+          <CrmWorkspace view={isChatRoute?'chat':isOnlineUsersRoute?'online':isCommsRoute?'communications':crmView} onSignOut={handleSignOut}>{isChatRoute ? <StaffChat /> : isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel view={crmView} adminMode={isAdminFunctionsRoute} onClose={() => window.location.assign('/app')} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onSignOut={handleSignOut} />}</CrmWorkspace>
         </Suspense></CrmDraftProvider>
       </div>
     );

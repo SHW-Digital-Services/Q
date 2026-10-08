@@ -19,7 +19,7 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <GlobalTextTranslator />
         {window.location.pathname !== '/support' && <BrevoTrackerConsent />}
-        <OnlinePresenceProvider><App /><StaffChat /></OnlinePresenceProvider>
+        <OnlinePresenceProvider><App />{!['/crm/chat', '/admin/crm/chat'].includes(window.location.pathname) && <StaffChat page={false} />}</OnlinePresenceProvider>
         {window.location.pathname !== '/support' && <Analytics />}
       </ThemeProvider>
     </LanguageProvider>
