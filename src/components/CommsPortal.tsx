@@ -5,7 +5,7 @@ import { renderMailHtml } from '../services/mailHtml';
 import { getSupabaseClient } from '../services/supabase';
 import { EmailTemplatesSection } from './EmailTemplatesSection';
 import { templatePlaceholders } from '../data/emailTemplates';
-import { inboxFolder, trashFolder, type MailFolder } from '../services/mailFolders';
+import { inboxFolder, trashFolder, combinedInboxFolders, visibleMailFolders, type MailFolder } from '../services/mailFolders';
 import SupportInbox from './SupportInbox';
 import FeedbackWorkspace from './FeedbackWorkspace';
 
@@ -33,6 +33,7 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
   const [folders, setFolders] = useState<Folder[]>([]);
   const [folder, setFolder] = useState('');
   const trashFolderId = trashFolder(folders);
+  const displayedFolders = visibleMailFolders(folders);
   const totalUnread = folders.reduce((total, item) => total + (item.unreadCount || 0), 0);
   const [messages, setMessages] = useState<MailMessage[]>([]);
   const [selected, setSelected] = useState<MailMessage | null>(null);
@@ -127,7 +128,7 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
     unreadBaseline.current = null; requestVersion.current++; setFolders([]); setFolder(''); setMessages([]); setSelected(null); setDetail(null); setSearch(''); setStart(1);
     if (!account) return;
     const controller = new AbortController(); setLoading(true);
-    mailJson(`/accounts/${account}/folders`, undefined, controller.signal).then(data => { if (!controller.signal.aborted) { setFolders(data.folders); const linkedFolder = new URLSearchParams(window.location.search).get('folder'); setFolder(data.folders.some((f: Folder) => f.folderId === linkedFolder) ? linkedFolder : inboxFolder(data.folders)); } }).catch(e => { if (!controller.signal.aborted) report(e); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    mailJson(`/accounts/${account}/folders`, undefined, controller.signal).then(data => { if (!controller.signal.aborted) { setFolders(data.folders); const linkedFolder = new URLSearchParams(window.location.search).get('folder'); setFolder(combinedInboxFolders(data.folders).some((f: Folder) => f.folderId === linkedFolder) ? inboxFolder(data.folders) : data.folders.some((f: Folder) => f.folderId === linkedFolder) ? linkedFolder : inboxFolder(data.folders)); } }).catch(e => { if (!controller.signal.aborted) report(e); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [account]);
   useEffect(() => {
@@ -139,7 +140,7 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
       if (pending) return;
       pending = true;
       try {
-        const data = await mailJson(`/accounts/${account}/messages?${new URLSearchParams({ folder, start: String(start), search })}`, undefined, controller.signal);
+        const data = await mailJson(`/accounts/${account}/messages?${new URLSearchParams({ folder, start: String(start), search, ...(folder === inboxFolder(folders) ? {inbox: 'true'} : {}) })}`, undefined, controller.signal);
         if (controller.signal.aborted) return;
         // Update only the list. Keep the open message, composer and input focus.
         setMessages(data.messages); setHasMore(data.hasMore);
@@ -170,9 +171,9 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
         if (controller.signal.aborted) return;
         const next = new Map<string, number>(data.folders.map((f: Folder) => [f.folderId, f.unreadCount || 0]));
         const previous = unreadBaseline.current;
-        const increases = data.folders.filter((f: Folder) => (f.unreadCount || 0) > (previous?.get(f.folderId) || 0));
+        const increases = combinedInboxFolders(data.folders).filter((f: Folder) => (f.unreadCount || 0) > (previous?.get(f.folderId) || 0));
         if (previous && increases.length) {
-          setNotice(`New unread mail in ${increases.map((f: Folder) => f.name).join(', ')}.`);
+          setNotice('New unread mail in Inbox.');
           if (soundEnabledRef.current) ping();
         }
         unreadBaseline.current = next; setFolders(data.folders);
@@ -267,7 +268,7 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
         <div className="mt-4 flex flex-wrap items-center gap-3"><label className={button}><Paperclip className="h-4 w-4" /> Add attachments<input type="file" multiple disabled={busy} onChange={e => { void uploadFiles(e.target.files); e.target.value = ''; }} className="sr-only" /></label><button disabled={busy || !composer.to || !composer.subject || !composer.content} onClick={() => void send()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-bold disabled:opacity-40"><Send className="h-4 w-4" /> {busy ? 'Working…' : 'Send email'}</button>{!composer.replyTo && <button disabled={busy || !composer.to || !composer.subject || !composer.content} onClick={() => void send(true)} className={button}>Save new draft in Zoho</button>}</div><p className="mt-2 text-xs text-slate-500">Up to 10 attachments, 3 MB each. Email and reply text is temporarily saved in this browser tab until sent, saved in Zoho, or discarded. Closing the tab or logging out clears recovery.</p>
       </section>}
       <div className="mt-5 grid items-start gap-4 lg:grid-cols-[180px_320px_minmax(0,1fr)]">
-        <nav aria-label="Mail folders" className="flex flex-wrap gap-2 lg:flex-col">{folders.map(f => <button key={f.folderId} disabled={busy} aria-pressed={folder === f.folderId && !search} onClick={() => { setFolder(f.folderId); setSearch(''); setSearchText(''); setStart(1); }} className={`min-h-11 rounded-xl px-3 py-2 text-left text-sm ${folder === f.folderId && !search ? 'bg-purple-500/20 text-purple-100' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}><span>{f.name}</span>{Boolean(f.unreadCount) && <span aria-label={`${f.unreadCount} unread`} className={unreadBadge}>{f.unreadCount}</span>}</button>)}</nav>
+        <nav aria-label="Mail folders" className="flex flex-wrap gap-2 lg:flex-col">{displayedFolders.map(f => <button key={f.folderId} disabled={busy} aria-pressed={folder === f.folderId && !search} onClick={() => { setFolder(f.folderId); setSearch(''); setSearchText(''); setStart(1); }} className={`min-h-11 rounded-xl px-3 py-2 text-left text-sm ${folder === f.folderId && !search ? 'bg-purple-500/20 text-purple-100' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}><span>{f.name}</span>{Boolean(f.unreadCount) && <span aria-label={`${f.unreadCount} unread`} className={unreadBadge}>{f.unreadCount}</span>}</button>)}</nav>
         <section aria-label="Message list" className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-3"><form onSubmit={e => { e.preventDefault(); if (busy) return; setStart(1); setSearch(searchText.trim()); }} className="flex gap-2"><input aria-label="Search Zoho mail" disabled={busy} value={searchText} maxLength={300} onChange={e => setSearchText(e.target.value)} placeholder="Search mail" className={`${control} min-w-0 flex-1`} /><button disabled={busy} aria-label="Search" className={button}><Search className="h-4 w-4" /></button></form><p className="mt-2 text-[11px] text-slate-500">Search uses Zoho’s search syntax across your mailbox.</p>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
             <label className="flex min-h-11 cursor-pointer items-center gap-2 text-slate-200">

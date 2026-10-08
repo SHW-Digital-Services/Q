@@ -5,7 +5,7 @@ import { createCommsRouter } from '../server/routes/comms';
 import { createAdminDeleteUsersRouter } from '../server/routes/adminDeleteUsers';
 import { sealMail, openMail, validMailSession, MailSession, MailConfig, mailRecipients, ZohoMailClient, parseZohoJson, tokenRequest, allowedMailOrigin } from '../server/zohoMail';
 import { emailTemplates, fillEmailTemplate, templatePlaceholders } from '../src/data/emailTemplates';
-import { inboxFolder, trashFolder } from '../src/services/mailFolders';
+import { combinedInboxFolders, visibleMailFolders, inboxFolder, trashFolder } from '../src/services/mailFolders';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const target = '00000000-0000-4000-8000-000000000002';
@@ -21,7 +21,7 @@ const fetcher = (async (url: any, init: RequestInit = {}) => {
   if (parsed.pathname === '/oauth/v2/token/revoke') return new Response(JSON.stringify({ status: 'success' }));
   if (providerStatus !== 200) return json({ private: 'DO_NOT_LEAK_PROVIDER_BODY' }, providerStatus);
   if (parsed.pathname === '/api/accounts') return json([{ accountId: '10001', primaryEmailAddress: mailboxEmail, displayName: 'Q Office' }, { accountId: '99999', primaryEmailAddress: 'other@example.test' }]);
-  if (parsed.pathname.endsWith('/folders')) return json([{ folderId: '20001', folderName: 'Inbox', folderType: 'Inbox', unreadCount: '7' }, { folderId: '20002', folderName: 'Sent', folderType: 'Sent' }, { folderId: '20003', folderName: 'Drafts', folderType: 'Drafts' }, { folderId: '20004', folderName: 'Archive', folderType: 'Archive' }]);
+  if (parsed.pathname.endsWith('/folders')) return json([{ folderId: '20001', folderName: 'Inbox', folderType: 'Inbox', unreadCount: '7' }, { folderId: '20002', folderName: 'Sent', folderType: 'Sent' }, { folderId: '20003', folderName: 'Drafts', folderType: 'Drafts' }, { folderId: '20004', folderName: 'Archive', folderType: 'Archive' }, {folderId:'20006',folderName:'Notification',folderType:'Inbox',unreadCount:2}, {folderId:'20007',folderName:'Newsletter',folderType:'Inbox',unreadCount:3}]);
   if (parsed.pathname.endsWith('/view') && (emptyView === 'all' || emptyView === 'extended' && parsed.searchParams.has('includearchive'))) return json([]);
   if (parsed.pathname.endsWith('/search') && parsed.searchParams.get('searchKey')?.startsWith('sender:')) return json([
     { messageId: '601', folderId: '20001', fromAddress: 'Visitor <visitor@example.test>', toAddress: 'office@q-ai.online', receivedTime: Date.now(), subject: 'Inbound', summary: 'PRIVATE_BODY_NOT_HISTORY' },
@@ -30,6 +30,13 @@ const fetcher = (async (url: any, init: RequestInit = {}) => {
     { messageId: '603', folderId: '20003', fromAddress: 'office@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Unsent draft' },
     { messageId: '604', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'othervisitor@example.test', receivedTime: Date.now(), subject: 'Unrelated' },
     { messageId: '605', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'other@example.test', ccAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Cc' }
+  ]);
+  if (parsed.pathname.endsWith('/search') && parsed.searchParams.get('searchKey')?.includes('::or:in:')) return json([
+    {messageId:'701',folderId:'20007',subject:'Newsletter',receivedTime:'3000'},
+    {messageId:'702',folderId:'20006',subject:'Notification',receivedTime:'2000'},
+    {messageId:'703',folderId:'20001',subject:'Inbox',receivedTime:'1000'},
+    {messageId:'703',folderId:'20001',subject:'Duplicate'},
+    {messageId:'704',folderId:'20002',subject:'Excluded sent message'},
   ]);
   if (/\/messages\/(view|search)$/.test(parsed.pathname)) return json(malformedMessages ? {} : [{ messageId: '30001', folderId: '20001', subject: 'Help getting started', fromAddress: 'visitor@example.test', toAddress: 'office@q-ai.online', receivedTime: String(Date.now()), status: '0', hasAttachment: '1' }]);
   if (parsed.pathname.endsWith('/content')) return json({ content: '<p>Hello Q team,</p><p>Could you help me get started?</p><img src="https://tracking.example.test/pixel" onerror="alert(1)"><script>window.BAD_MAIL=true</script><form action="https://example.test"><input name="password"></form><p><strong>Thank you.</strong></p>' });
@@ -146,6 +153,12 @@ try {
   assert.equal((await request('/accounts/10001/messages?folder=20001&start=-1')).status, 400);
   assert.equal((await request('/accounts/10001/messages?search=subject%3Ahello')).status, 200);
   assert(calls.some(c => c.url.pathname.endsWith('/search') && c.url.searchParams.get('searchKey') === 'subject:hello'));
+  const merged = await (await request('/accounts/10001/messages?folder=20001&inbox=true&start=31')).json();
+  assert.equal(merged.source,'combined-inbox');assert.deepEqual(merged.messages.map((m:any)=>m.messageId),['701','702','703']);
+  assert.deepEqual(merged.messages.map((m:any)=>m.folderId),['20007','20006','20001']);
+  const mergedCall=calls.find(c=>c.url.searchParams.get('searchKey')==='in:"Inbox"::or:in:"Notification"::or:in:"Newsletter"');assert.ok(mergedCall);assert.equal(mergedCall.url.searchParams.get('start'),'31');
+  const sample=[{folderId:'1',name:'Inbox',type:'Inbox',unreadCount:1},{folderId:'2',name:'Notification',type:'Inbox',unreadCount:2},{folderId:'3',name:'Newsletter',type:'Inbox',unreadCount:3},{folderId:'4',name:'Spam',type:'Spam',unreadCount:7}];
+  assert.equal(combinedInboxFolders(sample).length,3);assert.deepEqual(visibleMailFolders(sample).map(f=>f.name),['Inbox','Spam']);assert.equal(visibleMailFolders(sample)[0].unreadCount,6);
   const detail = await (await request('/accounts/10001/folders/20001/messages/30001')).json(); assert.equal(detail.attachments[0].id, '40001');
   assert(detail.images['fixture-image'].startsWith('data:image/png;base64,'));
   assert.equal(detail.images['unsafe-image'], undefined);

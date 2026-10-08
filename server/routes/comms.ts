@@ -1,4 +1,5 @@
 import express from 'express';
+import { combinedInboxFolders } from '../../src/services/mailFolders.js';
 import { requireStaff } from './admin.js';
 import { asyncHandler } from '../middleware.js';
 import { requireExactObject } from '../security.js';
@@ -108,6 +109,20 @@ export function createCommsRouter(dependencies: Dependencies) {
     else { query.set('folderId', mailId(req.query.folder)); query.set('includesent', 'true'); query.set('includearchive', 'true'); query.set('status', 'all'); query.set('sortBy', 'date'); query.set('sortorder', 'false'); }
     const client = res.locals.mailClient as ZohoMailClient;
     const accountPath = `/accounts/${mailId(req.params.account)}`;
+    if (!search && req.query.inbox === 'true') {
+      const rawFolders = await client.json(`${accountPath}/folders`);
+      if (!Array.isArray(rawFolders)) throw new MailError(502, 'Zoho did not return a valid folder list.');
+      const combined = combinedInboxFolders(rawFolders.map(f => ({folderId: String(f.folderId), name: String(f.folderName || ''), type: String(f.folderType || ''), path: f.path})));
+      if (!combined.length) throw new MailError(404, 'Inbox is no longer available. Reload Communications.');
+      const ids = new Set(combined.map(f => f.folderId));
+      if (combined.some(f => !f.name || /["\r\n\\]/.test(f.name))) throw new MailError(502, 'Zoho returned a folder name that cannot be searched safely.');
+      const mergedQuery = new URLSearchParams({start: String(start), limit: '30', includeto: 'true', receivedTime: String(Date.now()), searchKey: combined.map(f => `in:"${f.name}"`).join('::or:')});
+      const results = await client.json(`${accountPath}/messages/search?${mergedQuery}`);
+      if (!Array.isArray(results)) throw new MailError(502, 'Zoho did not return a valid message list.');
+      const unique = new Map<string, any>();
+      for (const message of results) if (ids.has(String(message.folderId))) unique.set(String(message.messageId), message);
+      return res.json({...mailMessagePage([...unique.values()], results.length === 30), source: 'combined-inbox'});
+    }
     let messages = await client.json(`${accountPath}/messages/${search ? 'search' : 'view'}?${query}`);
     if (!Array.isArray(messages)) throw new MailError(502, 'Zoho did not return a valid message list. Try refreshing or open Zoho Mail.');
     let source = search ? 'search' : 'folder';

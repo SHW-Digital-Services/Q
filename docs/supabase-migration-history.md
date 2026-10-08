@@ -41,3 +41,10 @@ This database rollout does not deploy frontend/server code or change Realtime's
 project-wide public-access setting. See [Online Users setup](online-users.md).
 
 Reference: [Supabase migration repair](https://supabase.com/docs/reference/cli/supabase-migration-repair).
+
+
+## 8 October 2026 release migrations
+
+Applied the missing support-conversation migration (`20261008001518`) to Q, followed by community-newsletter storage (`20261005000000`) and feedback/roadmap storage (`20261008120641`) through the Supabase plugin. The plugin-generated versions for the new applications were aligned to the existing repository migration versions after success; SQL was not rerun. All local Q migration versions are now recorded remotely. The shared database also retains three Social Media Manager migration entries from its companion repository.
+
+Hosted PostgREST reads returned 200 for support and all five new newsletter/feedback tables. RLS and service-only access were verified. Publication snapshot and stale revision checks passed in a rolled-back hosted transaction. No purge was run, test data committed, newsletters sent or prizes awarded. The security advisor reported informational no-policy notices for intentionally service-only tables, plus unrelated existing auth/function warnings; those require a separate review rather than broadening this migration rollout.

@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "check:crm-notifications": "tsx scripts/check-crm-notifications.ts",
     "check:feedback": "tsx scripts/check-feedback-roadmap.ts",
     "check:support": "tsx scripts/check-support-conversations.ts",
     "check:crm-drafts": "tsx scripts/check-crm-drafts.tsx",
