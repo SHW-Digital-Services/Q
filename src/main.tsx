@@ -1,6 +1,7 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
+import StaffChat from './components/StaffChat';
 import './index.css';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -18,7 +19,7 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <GlobalTextTranslator />
         {window.location.pathname !== '/support' && <BrevoTrackerConsent />}
-        <OnlinePresenceProvider><App /></OnlinePresenceProvider>
+        <OnlinePresenceProvider><App /><StaffChat /></OnlinePresenceProvider>
         {window.location.pathname !== '/support' && <Analytics />}
       </ThemeProvider>
     </LanguageProvider>

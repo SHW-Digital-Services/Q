@@ -18,6 +18,7 @@ import { helpVideosRouter, helpVideosAdminRouter } from './routes/helpVideos.js'
 import { brevoWebhookReceiver, brevoWebhookAdminRouter } from './routes/brevoWebhooks.js';
 import { crmNotificationsRouter } from './routes/crmNotifications.js';
 import { commsRouter } from './routes/comms.js';
+import { staffChatRouter } from './routes/staffChat.js';
 import { adminDeleteUsersRouter } from './routes/adminDeleteUsers.js';
 import { onlinePresenceRouter } from './routes/onlinePresence.js';
 import { publicTrustRouter } from './routes/publicTrust.js';
@@ -199,6 +200,7 @@ app.get('/api/health/supabase', async (_req, res) => {
 
 app.use(['/api/billing'], billingRouter);
 app.use('/api/comms', commsRouter);
+app.use('/api/staff-chat', staffChatRouter);
 app.use('/api/crm/notifications', crmNotificationsRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/help-centre', helpCentreRouter);

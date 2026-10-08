@@ -1,0 +1,11 @@
+# Staff and Admin team chat
+
+The Team chat button appears across Q pages for signed-in accounts whose current profile role is `staff` or `partner_admin`. Choose **Everyone** for the shared conversation, or choose a team member for a private conversation. Offline team members can receive messages and read them on their next visit. Customers cannot access the chat API or the underlying tables. Private messages are accessible through Q only to their sender and recipient, including when another team member is an Admin. Database operators retain database access; this is not end-to-end encryption.
+
+Apply `supabase/migrations/20261008210238_staff_chat.sql` followed by `supabase/migrations/20261008211129_staff_chat_private_messages.sql` to the Q Supabase database before deploying the application changes. The migrations create message history and per-tab presence tables with RLS enabled, grant access only to the server service role, and add private recipients. No Realtime publication or extra client credentials are required.
+
+Messages and presence refresh every eight seconds while the page is connected. Accounts appear once across multiple tabs. Presence expires after 90 seconds without a heartbeat, including after closing a browser or losing a connection. Online indicates a connected session, not active attention. Only the most recent 100 messages load initially; a connected chat keeps up to 500 in memory. Messages stay saved in the database.
+
+Incoming messages show a toast and unread count when chat is closed or the page is hidden. Click **Enable sound** inside chat to unlock browser audio; sound remains enabled for the current page session. A browser may suspend background pages and delay alerts until the page resumes. Drafts are saved per account in session storage, and failed sends keep their text. Each send uses a request ID so retrying does not duplicate a saved message.
+
+Run `npm run check:staff-chat`, `npm run typecheck`, and `npm run build`. For live verification, sign in with a Staff account and an Admin account in separate browser sessions: confirm both appear, exchange messages, close one chat to verify its toast/unread badge, enable sound and verify the alert, then sign out and check presence expiry. Confirm a customer gets 403 from each chat endpoint. Local checks do not verify deployment or audible playback.
