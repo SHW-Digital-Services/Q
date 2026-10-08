@@ -39,6 +39,14 @@
           "value": "max-age=31536000; includeSubDomains"
         }
       ]
+    },
+    {
+      "source": "/support",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
     }
   ],
   "rewrites": [
@@ -52,6 +60,7 @@
     { "source": "/news", "destination": "/index.html" },
     { "source": "/updates", "destination": "/index.html" },
     { "source": "/developer", "destination": "/index.html" },
+    { "source": "/support", "destination": "/index.html" },
     { "source": "/app/:path*", "destination": "/index.html" },
     { "source": "/crm/:path*", "destination": "/index.html" },
     { "source": "/admin/crm/:path*", "destination": "/index.html" },

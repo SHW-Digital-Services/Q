@@ -1117,30 +1117,11 @@ adminRouter.patch('/contact-requests/:id/archive', asyncHandler(async (req, res)
   return res.json(data);
 }));
 
+// The legacy single-response endpoint cannot preserve conversations or prove
+// delivery. Keep an explicit error for old clients rather than logging drafts as sent.
 adminRouter.patch('/contact-requests/:id', asyncHandler(async (req, res) => {
-  if (!requireExactObject(req.body, ['status', 'responseText'])) return res.status(400).json({ error: 'Unexpected request fields.' });
-  const staffCtx = await requireStaff(req, res);
-  if (!staffCtx) return;
-  const status = ['new', 'in_progress', 'answered', 'closed'].includes(req.body?.status) ? req.body.status : null;
-  const responseText = typeof req.body?.responseText === 'string' ? req.body.responseText.trim().slice(0, 5000) : undefined;
-  if (!status && responseText === undefined) return res.status(400).json({ error: 'No valid support-request changes supplied.' });
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (status) updates.status = status;
-  if (responseText !== undefined) updates.response_text = responseText || null;
-  if (status === 'answered') {
-    updates.answered_by = staffCtx.identity.user.id;
-    updates.answered_at = new Date().toISOString();
-  }
-  const { data, error } = await staffCtx.serviceSupabase.from('contact_requests').update(updates).eq('id', req.params.id).select('*').single();
-  if (error) return res.status(500).json({ error: 'Unable to update the contact request.' });
-  if (status === 'answered' && responseText) {
-    const existing = await staffCtx.serviceSupabase.from('crm_communications').select('id').eq('contact_request_id', req.params.id).eq('direction', 'outbound').eq('body', responseText).limit(1);
-    if (!existing.error && !existing.data?.length) {
-      const logged = await recordCrmCommunication(staffCtx.serviceSupabase, { contactRequestId: req.params.id, direction: 'outbound', channel: 'email', status: 'sent', senderEmail: process.env.SUPPORT_EMAIL || null, recipientEmail: data.email, subject: `Re: ${data.subject}`, body: responseText, actorId: staffCtx.identity.user.id, metadata: { source: 'contact_request_reply' } });
-      if (logged.error) console.error('[Admin] Failed to record outbound CRM communication:', logged.error);
-    }
-  }
-  return res.json(data);
+  const staffCtx = await requireStaff(req, res); if (!staffCtx) return;
+  return res.status(409).json({ error: 'Open Communications → Support to reply or change the request. Replies are now saved as a conversation.', code: 'SUPPORT_CONVERSATION_REQUIRED' });
 }));
 
 adminRouter.post('/password-reset-requests', asyncHandler(async (req, res) => {

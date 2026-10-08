@@ -15,10 +15,10 @@ createRoot(document.getElementById('root')!).render(
     <LanguageProvider>
       <ThemeProvider>
         <GlobalTextTranslator />
-        <BrevoTrackerConsent />
+        {window.location.pathname !== '/support' && <BrevoTrackerConsent />}
         <SupportChatLauncher />
         <OnlinePresenceProvider><App /></OnlinePresenceProvider>
-        <Analytics />
+        {window.location.pathname !== '/support' && <Analytics />}
       </ThemeProvider>
     </LanguageProvider>
   </StrictMode>,
