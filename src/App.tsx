@@ -444,7 +444,7 @@ export default function App() {
       <div className="q-scroll-page bg-slate-950 text-slate-100">
         <StatusPageButton />
         <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><CrmNotifications /><Suspense fallback={<LoadingView label="Loading CRM..." />}>
-          <CrmWorkspace view={isChatRoute?'chat':isOnlineUsersRoute?'online':isCommsRoute?'communications':crmView} onSignOut={handleSignOut}>{isChatRoute ? <StaffChat /> : isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel view={crmView} adminMode={isAdminFunctionsRoute} onClose={() => window.location.assign('/app')} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onSignOut={handleSignOut} />}</CrmWorkspace>
+          <CrmWorkspace onPreview={startPreview} view={isChatRoute?'chat':isOnlineUsersRoute?'online':isCommsRoute?'communications':crmView} onSignOut={handleSignOut}>{isChatRoute ? <StaffChat /> : isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel view={crmView} adminMode={isAdminFunctionsRoute} onClose={() => window.location.assign('/app')} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onSignOut={handleSignOut} />}</CrmWorkspace>
         </Suspense></CrmDraftProvider>
       </div>
     );
@@ -501,7 +501,7 @@ export default function App() {
         {/* Main Content Viewport */}
         <main className="min-w-0 flex-1 p-3 pb-5 sm:p-5 lg:p-6">
           <Suspense fallback={<LoadingView />}>
-            {isAdminPanelOpen && canAccessCrm && <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><CrmNotifications /><CrmWorkspace onSignOut={handleSignOut} onBack={()=>setIsAdminPanelOpen(false)}><AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} /></CrmWorkspace></CrmDraftProvider>}
+            {isAdminPanelOpen && canAccessCrm && <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><CrmNotifications /><CrmWorkspace onPreview={startPreview} onSignOut={handleSignOut} onBack={()=>setIsAdminPanelOpen(false)}><AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} /></CrmWorkspace></CrmDraftProvider>}
             {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
             {!isAdminPanelOpen && activeTab === 'guides' && <><GuidedProgrammes onCourseOpenChange={handleProgrammeCourseOpenChange} />{!isProgrammeCourseOpen && <LifeGuidesView />}</>}
             {!isAdminPanelOpen && activeTab === 'stories' && <LivedExperiencesView />}
