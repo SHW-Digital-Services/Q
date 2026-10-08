@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check:staff-chat": "tsx scripts/check-staff-chat.ts",
+    "check:staff-chat-notifications": "tsx scripts/check-staff-chat-notifications.ts",
     "check:crm-notifications": "tsx scripts/check-crm-notifications.ts",
     "check:help-support-release3": "tsx scripts/check-help-support-release3.ts",
     "check:feedback": "tsx scripts/check-feedback-roadmap.ts",
