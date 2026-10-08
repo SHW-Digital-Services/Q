@@ -1,3 +1,4 @@
+import CrmWorkspace, {crmViews} from './components/CrmWorkspace';
 import { CrmDraftProvider, clearCrmDrafts } from './contexts/CrmDraftContext';
 import CrmNotifications from './components/CrmNotifications';
 import React, { Suspense, lazy, useCallback, useState, useEffect } from 'react';
@@ -106,6 +107,8 @@ export default function App() {
   const isAppRoute = previewActive || (launchEnabled && isViewAppRequest());
   const isNewsRoute = typeof window !== 'undefined' && ['/news', '/updates'].includes(window.location.pathname);
   const isCrmRoute = typeof window !== 'undefined' && ['/crm', '/admin/crm', '/crm/admin', '/admin/crm/admin', '/crm/comms', '/crm/online', '/admin/crm/online'].includes(window.location.pathname);
+  const requestedCrmView = new URLSearchParams(window.location.search).get('view') || (window.location.pathname.endsWith('/admin')?'settings':'customers');
+  const crmView = crmViews[requestedCrmView] ? requestedCrmView : 'customers';
   const isAdminFunctionsRoute = typeof window !== 'undefined' && ['/crm/admin', '/admin/crm/admin'].includes(window.location.pathname);
   const isCommsRoute = typeof window !== 'undefined' && window.location.pathname === '/crm/comms';
   const isOnlineUsersRoute = typeof window !== 'undefined' && ['/crm/online', '/admin/crm/online'].includes(window.location.pathname);
@@ -436,10 +439,10 @@ export default function App() {
       return <><StatusPageButton /><CrmAccessPage onUserSignedIn={(user) => { setStorageUser(user.id); setCurrentUser(user); }} /></>;
     }
     return (
-      <div className="q-scroll-page bg-slate-950 p-0 text-slate-100 sm:p-6">
+      <div className="q-scroll-page bg-slate-950 text-slate-100">
         <StatusPageButton />
         <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><CrmNotifications /><Suspense fallback={<LoadingView label="Loading CRM..." />}>
-          {isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel adminMode={isAdminFunctionsRoute} onClose={() => window.location.assign('/app')} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onSignOut={handleSignOut} />}
+          <CrmWorkspace view={isOnlineUsersRoute?'online':isCommsRoute?'communications':crmView} onSignOut={handleSignOut}>{isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel view={crmView} adminMode={isAdminFunctionsRoute} onClose={() => window.location.assign('/app')} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onSignOut={handleSignOut} />}</CrmWorkspace>
         </Suspense></CrmDraftProvider>
       </div>
     );
@@ -496,7 +499,7 @@ export default function App() {
         {/* Main Content Viewport */}
         <main className="min-w-0 flex-1 p-3 pb-5 sm:p-5 lg:p-6">
           <Suspense fallback={<LoadingView />}>
-            {isAdminPanelOpen && canAccessCrm && <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><CrmNotifications /><AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} /></CrmDraftProvider>}
+            {isAdminPanelOpen && canAccessCrm && <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><CrmNotifications /><CrmWorkspace onSignOut={handleSignOut} onBack={()=>setIsAdminPanelOpen(false)}><AdminPanel onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onClose={() => setIsAdminPanelOpen(false)} onSignOut={handleSignOut} /></CrmWorkspace></CrmDraftProvider>}
             {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
             {!isAdminPanelOpen && activeTab === 'guides' && <><GuidedProgrammes onCourseOpenChange={handleProgrammeCourseOpenChange} />{!isProgrammeCourseOpen && <LifeGuidesView />}</>}
             {!isAdminPanelOpen && activeTab === 'stories' && <LivedExperiencesView />}

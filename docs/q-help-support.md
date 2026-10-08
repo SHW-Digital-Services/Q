@@ -75,3 +75,8 @@ Private bucket `q-support-private` uses server request checks and restrictive cl
 Migration `20261008125504_help_centre_support_attachments.sql` was applied and verified on the linked project on 8 October 2026. Better Stack remains the status provider; no public status page was added.
 
 Validation: check:help-support-release3, check:public-trust, check:crm-drafts, lint and build. Local browser fixtures cover search/FAQ filters, publication review, draft recovery, upload failure/retry/removal, desktop/mobile layout and runtime errors. Production deployment and live authenticated uploads remain unverified.
+
+
+## CRM revamp
+
+Communications now opens Tickets, with assignment, priority, due dates and date/search filters. Customer emails from the shared office mailbox create tickets and communication history entries during automatic CRM sync. Open the original email link to reply by email, or use Q replies for a conversation inside Q. The CRM uses shared role-aware navigation and inline customer-record tabs; administrator controls appear only for administrator accounts. See `zoho-mail-comms.md` for sync scope and operational limits.

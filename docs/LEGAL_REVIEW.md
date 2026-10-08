@@ -52,3 +52,8 @@ Reference: https://developers.brevo.com/docs/getting-started-with-js-implementat
 Implementation disclosures updated across legal pages for grouped news updates, admin-managed Help Videos, Supabase media storage, externally hosted links, written steps, formatted AI replies and Staff/Admin preview reauthentication. No additional provider contract or legal approval is asserted.
 
 Existing accessibility.md and dpa.md contain subscription-terms material rather than complete accessibility/DPA documents. Feature-specific sections have been added, but those pre-existing document-content issues still require a separate substantive review. No fixed retention period or automatic file deletion is promised. Uploaded media captions are an administrator responsibility; Q does not generate them. Verify actual videos, provider settings and retention operations before relying on those disclosures.
+
+
+## 8 October 2026: CRM email tickets and chat removal
+
+Updated implementation disclosures for server-matched office email metadata in private customer records and removed the Brevo Conversations launcher/CSP hosts. The new ticket ledger stores addresses, subjects, timestamps and provider links; bodies and attachments remain in Zoho. Historical Brevo records are not erased by removing the widget. These updates describe implementation and do not record new legal approval.

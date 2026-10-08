@@ -299,15 +299,15 @@ When contacting support we may collect:
 
 This enables us to respond effectively and improve customer service.
 
-### Brevo Conversations live chat
+### Customer email records in Q CRM
 
-We use **Brevo Conversations** to provide website support chat. The widget loads only when you select Chat with support. Your browser then connects to Brevo before you send a message. Brevo receives network information such as your IP address. Depending on widget settings, it may also process a visitor identifier, browser and device details, page URL, referrer, visit times and approximate location to operate the widget and provide context for support.
+Emails sent to our office support mailbox may be matched to your verified Q account email address and logged in your customer support record. Q stores sender and recipient addresses, subject, date, provider message identifiers and ticket details for staff follow-up. Original email bodies and attachments remain in Zoho. Q does not import staff private-mailbox messages into customer records. Access to CRM records is restricted to authorised staff and administrators.
 
-If you use the chat, Q and Brevo process the messages, attachments and contact details you choose to submit, together with conversation history and delivery information. We use these records to answer enquiries, follow up and resolve support issues. We rely on contract where necessary to provide support for your service, or our legitimate interests in responding to other enquiries and maintaining secure support, subject to your rights. Any non-essential device tracking requires the consent described in the Cookie Policy.
+### Previous Brevo support chat
 
-Brevo support chat is separate from Q's AI assistant. Q's local AI processing and PII Shield do not apply to messages sent through this widget. The integration does not automatically attach your private journal, AI conversations or Q account profile to support messages. Please share only what is needed for your enquiry and avoid passwords, payment details, private journal entries or sensitive health and identity information. Voluntarily providing sensitive information does not itself supply any additional legal condition required to process it.
+The Brevo Conversations widget has been removed from Q. Q no longer loads it for new website support conversations. Use Q Help, the support page or **office@q-ai.online** for support.
 
-Using support chat or supplying an email address for a reply does not subscribe you to marketing. You can also contact office@q-ai.online. The Processor Register and Cookie Policy describe the provider and browser-storage arrangements.
+Removing the widget does not itself delete earlier Brevo support records. For access, correction or deletion requests concerning previous conversations, contact **office@q-ai.online**. The separate retention information below continues to apply to those historical records. Brevo email and optional analytics features are separate from the removed chat widget.
 
 ### Optional Brevo website analytics
 
@@ -537,7 +537,7 @@ Current providers include:
 | Groq | Optional hosted AI processing when configured |
 | OpenAI | Optional hosted AI fallback and, when configured, separate vetted-knowledge embeddings |
 | PayPal | Payment processing |
-| Brevo (formerly Sendinblue) | Website support through Brevo Conversations; optional marketing emails, newsletters and community updates; mailing-list, delivery and unsubscribe management |
+| Brevo (formerly Sendinblue) | Historical support records from the removed Brevo Conversations widget; optional marketing emails, newsletters and community updates; mailing-list, delivery and unsubscribe management |
 | Email providers | Transactional email delivery |
 | Cloud hosting providers | Infrastructure and security |
 | Analytics providers | Performance and usage monitoring |

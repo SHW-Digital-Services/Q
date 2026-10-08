@@ -1,3 +1,4 @@
+import {logCustomerOfficeEmail,syncOfficeEmailTickets} from '../crmEmailTickets.js';
 import express from 'express';
 import { combinedInboxFolders } from '../../src/services/mailFolders.js';
 import { requireStaff } from './admin.js';
@@ -65,6 +66,13 @@ export function createCommsRouter(dependencies: Dependencies) {
     const a = res.locals.officeMailbox;
     return res.json({ accounts: [{ accountId: String(a.accountId), email: mailbox, name: dependencies.privateMailbox ? 'Scott' : 'Q Office' }] });
   }));
+  router.post('/tickets/sync', asyncHandler(async(req,res)=>{
+    if(dependencies.privateMailbox)return res.status(403).json({error:'Private mailboxes are not imported into customer tickets.'});
+    const staff=res.locals.mailStaff;if(staff.role!=='partner_admin'&&staff.permissions?.length&&!staff.permissions.includes('support.write'))return res.status(403).json({error:'Support write access is required to sync email tickets.'});
+    if(!requireExactObject(req.body,['start']))return res.status(400).json({error:'Invalid sync fields.'});
+    const start=Number(req.body.start||1);if(!Number.isSafeInteger(start)||start<1||start>100000)return res.status(400).json({error:'Invalid email page.'});
+    try{return res.json(await syncOfficeEmailTickets(staff.serviceSupabase,res.locals.mailClient,String(res.locals.officeMailbox.accountId),start));}catch{return res.status(503).json({error:'Office email sync could not complete. Previously logged tickets are safe; retry to finish.'});}
+  }));
   router.get('/customers/:user/history', asyncHandler(async (req, res) => {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.user)) throw new MailError(400, 'Invalid customer.');
     const { data, error } = await res.locals.mailStaff.serviceSupabase.auth.admin.getUserById(req.params.user);
@@ -88,6 +96,7 @@ export function createCommsRouter(dependencies: Dependencies) {
       const recipients = addresses([message.toAddress, message.ccAddress, message.bccAddress].filter(Boolean).join(','));
       const inbound = from.includes(email);
       if (!inbound && !(from.includes(mailbox) && recipients.includes(email))) continue;
+      if(!dependencies.privateMailbox)await logCustomerOfficeEmail(res.locals.mailStaff.serviceSupabase,{id:data.user.id,email},account,message,inbound);
       const id = String(message.messageId);
       const date = new Date(Number(message.receivedTime || message.receivedtime || message.sentDateInGMT));
       history.set(id, { id: `zoho-${id}`, messageId: id, folderId: String(message.folderId), accountId: account, direction: inbound ? 'inbound' : 'outbound', channel: 'email', status: inbound ? 'received' : 'sent', sender_email: message.fromAddress || '', recipient_email: inbound ? mailbox : email, subject: message.subject || '(No subject)', body: 'Email held in Zoho. Open Communications to read it.', created_at: Number.isNaN(date.getTime()) ? '' : date.toISOString() });

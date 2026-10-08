@@ -99,3 +99,22 @@ Staff/admin CRM pages share in-app toast notifications across sections. The auth
 Local checks: `npm run check:comms`, `npm run check:crm-notifications`, `npm run check:crm-drafts`, `npm run lint`, `npm run build`. Browser fixtures verified merged messages/counts, original-folder opening, toast delivery while viewing Tasks, opt-in native alerts through a stub, no initial/duplicate alerts and mobile layout. Real Zoho search responses and OS notification delivery need deployed verification.
 
 Provider reference: [Zoho search syntax](https://www.zoho.com/mail/help/search-syntax.html).
+
+
+## CRM ticket workspace (8 October 2026)
+
+Communications opens Tickets by default. Office customer emails are matched server-side against verified Supabase Auth email addresses and logged as metadata in the customer 360 record. Each inbound office email creates one ticket; a unique provider account/message key prevents duplicate tickets and ledger entries on retry. Outbound office emails are logged without creating another inbound ticket. Original message bodies and attachments stay in Zoho. Private Scott mailbox, drafts, outbox, templates, trash and spam/junk are excluded from automatic ticket sync. Unknown or unverified sender accounts are not assigned to a customer.
+
+The shared CRM shell calls authenticated `POST /api/comms/tickets/sync` every minute while visible, and on returning to the page. Newest messages are checked each pass; older pages are gradually indexed with an account-scoped browser-session cursor. The Tickets section includes manual retry and reports outages. No unattended sync runs after all CRM pages are closed. For always-on delivery, a server-side scheduled job or provider webhook still needs deployment and configuration.
+
+Tickets support assignment, status, priority, due date, overdue/today/unscheduled filters, customer links and original-email links. Scheduling requires `support.write` (or administrator access). Changes record support activity. A ticket's Q reply is saved in Q with a generic notification; use its linked original office email for an actual email reply.
+
+Shared navigation: Customers, Communications, Online users, Content review, Life Guides and Account support. Administrators also see Publishing, Products, Team access, Integrations and Site settings. Admin-only APIs retain their server checks. Customer records open inline with Overview, Communications, Tasks, Billing and administrator Activity tabs. Notes and other drafts retain the existing account/customer-scoped recovery.
+
+Migration `20261008131436_crm_ticket_workspace.sql` is applied to the linked Supabase project. Live transactional checks verified duplicate prevention and priority/due-date updates, then rolled back all fixture records. Provider email sync and authenticated production UI still require deployment verification.
+
+Validation: `check:crm-workspace`, `check:comms`, `check:crm-drafts`, `check:crm-notifications`, `check:brevo-tracking`, `check:public-trust`, TypeScript and production build. Local browser fixtures cover role-aware navigation, customer tabs and recovered notes, ticket assignment/priority/due dates/search, email/customer links and mobile layout.
+
+The Brevo Conversations launcher and its CSP hosts were removed. Brevo email/webhook and optional analytics features remain; removal does not delete historical provider chat records.
+
+Provider message-list reference: https://www.zoho.com/mail/help/api/get-emails-list.html

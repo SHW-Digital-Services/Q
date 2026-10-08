@@ -7,7 +7,6 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { GlobalTextTranslator } from './components/GlobalTextTranslator';
 import { OnlinePresenceProvider } from './contexts/OnlinePresenceContext';
 import { BrevoTrackerConsent } from './components/BrevoTrackerConsent';
-import { SupportChatLauncher } from './components/SupportChatLauncher';
 import { Analytics } from '@vercel/analytics/react';
 
 createRoot(document.getElementById('root')!).render(
@@ -16,7 +15,6 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <GlobalTextTranslator />
         {window.location.pathname !== '/support' && <BrevoTrackerConsent />}
-        <SupportChatLauncher />
         <OnlinePresenceProvider><App /></OnlinePresenceProvider>
         {window.location.pathname !== '/support' && <Analytics />}
       </ThemeProvider>

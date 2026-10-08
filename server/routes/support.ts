@@ -191,9 +191,15 @@ export function createSupportRouter(deps: Dependencies) {
   }));
   router.patch('/staff/requests/:id', asyncHandler(async (req, res) => {
     const found = await ticket(req,res,true); if (!found) return;
-    if (!requireExactObject(req.body,['action','status','assignedTo']) || !['status','assignment','archive','restore'].includes(req.body.action) ||
+    if (!requireExactObject(req.body,['action','status','assignedTo','dueAt','priority']) || !['status','assignment','archive','restore','due','priority'].includes(req.body.action) ||
       (req.body.action === 'status' && !supportStatuses.includes(req.body.status)) ||
       (req.body.action === 'assignment' && req.body.assignedTo !== null && !isUuid(req.body.assignedTo))) return res.status(400).json({ error: 'Choose a valid support action.' });
+    if (req.body.action === 'due' || req.body.action === 'priority') {
+      const date=req.body.dueAt;
+      if ((req.body.action==='due' && date!==null && (typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}T/.test(date)||!Number.isFinite(Date.parse(date)))) || (req.body.action==='priority'&&!['low','normal','high','urgent'].includes(req.body.priority))) return res.status(400).json({error:'Choose a valid due date or priority.'});
+      const {error}=await res.locals.db.rpc('schedule_support_ticket',{p_request:found.request.id,p_actor:res.locals.staff.identity.user.id,p_action:req.body.action,p_due:date?new Date(date).toISOString():null,p_priority:req.body.priority||null});
+      if(error)return failure(res,error);return res.json({success:true});
+    }
     if (req.body.action === 'assignment' && req.body.assignedTo) {
       const assignee = await res.locals.db.from('profiles').select('role,staff_permissions').eq('id',req.body.assignedTo).maybeSingle();
       if (assignee.error) return failure(res,assignee.error);

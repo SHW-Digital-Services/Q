@@ -23,13 +23,13 @@ This register supports transparency under applicable data protection legislation
 
 | Provider | Purpose | Data Processed |
 |----------|---------|----------------|
-| Zoho Mail | Staff/Admin mailbox hosting and OAuth-authorised mail operations through Q's CRM portal | Mailbox content, recipients, send/reply/draft actions, folders, attachments and authentication metadata; Q relays content temporarily without copying mailbox content into Supabase |
+| Zoho Mail | Staff/Admin mailbox hosting and OAuth-authorised mail operations through Q's CRM portal | Mailbox content, recipients, send/reply/draft actions, folders, attachments and authentication metadata; Q relays bodies/attachments temporarily; matching office email metadata (sender/recipient, subject, date and provider identifiers) is logged in Supabase customer records |
 | Supabase | Authentication, PostgreSQL database, object storage, user sessions | Account information, authentication data, uploaded files, application data |
 | Groq | Optional hosted AI model processing explicitly selected by the user when `GROQ_API_KEY` is configured | PII-masked prompts, recent chat context, selected profile context, relevant opted-in memory, AI responses, and technical usage metadata |
 | OpenAI | Optional hosted AI fallback when Groq is not configured; may also create optional vetted-knowledge embeddings when its key is configured | PII-masked prompts and embedding inputs, recent chat context, selected profile context, relevant opted-in memory, AI responses, embeddings, and technical usage metadata |
 | PayPal | Subscription billing and payment processing | Billing information, payment identifiers, transaction records |
 | Brevo (formerly Sendinblue) | Optional marketing emails, newsletters and community updates; mailing-list and unsubscribe management | Email address, name if supplied, communication choices, consent/source records, email content, delivery/bounce/complaint records, suppression status; open/click and associated technical data where tracking is enabled and lawfully permitted |
-| Brevo Conversations | Website support chat and conversation continuity | Submitted messages, attachments and contact details; conversation history; IP address, visitor identifier and browser information; page/referrer, visit timing and approximate location depending on enabled features |
+| Brevo Conversations (historical records) | Records from the removed website support chat | Submitted messages, attachments and contact details; conversation history; IP address, visitor identifier and browser information; page/referrer, visit timing and approximate location depending on enabled features |
 | Brevo website tracker | Optional analytics, loaded only after the visitor allows analytics | Page paths, browser identifier/cookies, IP address and technical visit information |
 
 WebLLM performs inference on the user's device and is not used by Q as a processor of prompts on Q's behalf. A user's browser contacts model-distribution infrastructure to download the WebLLM runtime and model assets; those services may process ordinary network metadata under their own policies.
@@ -53,7 +53,7 @@ Current governing and transparency documents:
 
 ## 2.1 Brevo Email Communications
 
-Optional incoming Brevo webhooks store provider payloads, supplied email addresses, event type and receipt/review metadata in Supabase for Admin review. Known credential fields are redacted. This is separate from Zoho mailbox access, which does not import mail into Supabase. Verify the Zoho contracting entity, hosting configuration, retention and applicable processing agreement against the operator's account. This entry does not assert execution of an agreement or exclusive processing in a particular country.
+Optional incoming Brevo webhooks store provider payloads, supplied email addresses, event type and receipt/review metadata in Supabase for Admin review. Known credential fields are redacted. This is separate from Zoho message bodies and attachments, which stay in Zoho; matched office email metadata is logged in private Supabase CRM records. Verify the Zoho contracting entity, hosting configuration, retention and applicable processing agreement against the operator's account. This entry does not assert execution of an agreement or exclusive processing in a particular country.
 
 Q acts as controller for its marketing and community mailing lists. Brevo processes mailing data on Q's instructions under the applicable Brevo data-processing agreement. Its exact contracting entity and applicable terms depend on Q's Brevo account agreement; the brand name alone does not determine the contracting entity.
 
@@ -73,7 +73,7 @@ Provider references:
 
 ## 2.2 Brevo Conversations Support Chat
 
-Brevo Conversations also processes support records on Q's behalf under the applicable provider agreement. Its widget connects to Brevo only when a visitor selects Chat with support. The integration does not automatically supply Q account profiles, private journals or AI conversation history. Chat contact details must not be repurposed for marketing without the separately required permission.
+The Brevo Conversations widget has been removed from Q. Historical support records may remain with Brevo under the applicable provider agreement. Removing the widget does not delete those earlier records. No new website chat is initiated through this integration.
 
 Requests concerning Brevo chat records are handled through office@q-ai.online. Q account export and deletion do not automatically export or erase these separate records. Support retention, international transfers and provider access remain subject to the applicable agreement and configured service; no fixed chat-retention period or exclusively UK hosting is asserted here.
 

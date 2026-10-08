@@ -19,12 +19,11 @@ export function OnlineUsersView({ presence, onSignOut }: { presence: PresenceSta
   const visible = users.filter(user => (role === 'admin' || user.role === 'customer') &&
     (role !== 'admin' || filter === 'all' || user.role === filter) && user.display_name.toLowerCase().includes(query.trim().toLowerCase()));
 
-  return <main className="mx-auto w-full max-w-6xl p-4 text-slate-100 sm:p-6">
+  return <main className="w-full min-w-0 text-slate-100">
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="text-sm font-semibold text-purple-300">Q Customer Operations</p><h1 className="mt-2 flex items-center gap-3 text-2xl font-bold"><Users className="h-7 w-7 text-emerald-300" />Online Users</h1>
         <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">{role === 'admin' ? 'See customers, Staff and Admins currently connected to Q.' : 'See customers currently connected to Q.'}</p></div>
-      <nav aria-label="CRM pages" className="flex flex-wrap gap-2"><a href="/crm" className={control}><ArrowLeft className="h-4 w-4" />Back to CRM</a><a href="/crm/comms" className={control}><Mail className="h-4 w-4" />Communications</a>
-        <button type="button" className={control} onClick={() => void onSignOut().catch(() => setSignOutError('Could not sign out. Please try again.'))}><LogOut className="h-4 w-4" />Log out</button></nav>
+
     </header>
     {signOutError && <p role="alert" className="mt-4 text-sm text-rose-300">{signOutError}</p>}
     <section aria-labelledby="online-heading" className="mt-8 rounded-3xl border border-white/10 bg-slate-900/70 p-5 sm:p-7">

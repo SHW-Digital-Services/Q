@@ -11,6 +11,7 @@ import { AdminDeleteUser } from './AdminDeleteUser';
 
 interface AdminPanelProps {
   adminMode?: boolean;
+  view?: string;
   enabled: boolean;
   onToggle: (value: boolean) => void;
   onClose: () => void;
@@ -65,7 +66,9 @@ function hasContentDraft(form: ContentFormState) {
   return Object.entries(form).some(([key, value]) => key !== 'contentType' && value.trim().length > 0) || form.contentType !== emptyContentForm.contentType;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose, onPreview, onSignOut, adminMode = false }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClose, onPreview, onSignOut, adminMode = false, view = 'customers' }) => {
+  const [roleFilter,setRoleFilter]=useState('all'),[subscriptionFilter,setSubscriptionFilter]=useState('all');
+  const [customerTab,setCustomerTab] = useState('communications');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [requests, setRequests] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
@@ -81,7 +84,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [productSaving, setProductSaving] = useState(false);
   const [newProduct, setNewProduct] = useCrmDraftState('newProduct', { name: '', price: '', currency: 'GBP', billingInterval: 'month', paypalPlanId: '', description: '' });
   const [customer, setCustomer] = useState<any | null>(null);
-  const [customerId, setCustomerId] = useCrmDraftState('customerId', '');
+  const [customerId, setCustomerId] = useCrmDraftState('customerId', new URLSearchParams(window.location.search).get('customer')||'');
   const [customerLoading, setCustomerLoading] = useState(false);
   const [customerMessage, setCustomerMessage] = useState<string | null>(null);
   const [noteBody, setNoteBody] = useCrmDraftState(`customer:${customerId}:noteBody`, '');
@@ -92,7 +95,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [entitlementProduct, setEntitlementProduct] = useCrmDraftState(`customer:${customerId}:entitlementProduct`, '');
   const [payment, setPayment] = useCrmDraftState(`customer:${customerId}:payment`, { amount: '', currency: 'GBP', transactionId: '', description: '' });
   const [staffRole, setStaffRole] = useState<'staff' | 'partner_admin' | null>(null);
-  const showAdminFunctions = adminMode && staffRole === 'partner_admin';
+  const showAdminFunctions = staffRole === 'partner_admin';
   const [staffAccounts, setStaffAccounts] = useState<any[]>([]);
   const [staffMessage, setStaffMessage] = useState<string | null>(null);
   const [paypalApprovalUrl, setPaypalApprovalUrl] = useState<string | null>(null);
@@ -307,7 +310,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     finally { setCustomerLoading(false); }
   };
 
-  useEffect(() => { if (customerId) void openCustomer(customerId); }, []);
+  useEffect(() => { const requested=new URLSearchParams(window.location.search).get('customer')||customerId;if(requested)void openCustomer(requested); }, []);
 
   const customerAction = async (path: string, body: any, success: string) => {
     if (!customer?.identity?.id) return;
@@ -654,17 +657,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
 
   useEffect(() => { if (staffRole === 'partner_admin') void loadStaff(); }, [staffRole]);
   useEffect(() => {
-    if (showAdminFunctions) {
+    if (showAdminFunctions && view === 'publishing') {
       void loadContentPosts();
       void loadApiClients();
     }
-  }, [showAdminFunctions]);
+  }, [showAdminFunctions, view]);
 
   const displayedContentPosts = (showArchivedContent ? archivedContentPosts : contentPosts)
     .filter((post) => showArchivedContent ? post.status === 'archived' : post.status === 'draft' || post.status === 'published');
   const visibleCrmUsers = crmUsers.filter((user) => {
     const query = crmSearch.trim().toLowerCase();
-    return !query || user.email.toLowerCase().includes(query) || user.name.toLowerCase().includes(query);
+    return (!query || user.email.toLowerCase().includes(query) || user.name.toLowerCase().includes(query)) && (roleFilter==='all'||user.role===roleFilter) && (subscriptionFilter==='all'||(subscriptionFilter==='active'?user.subscription?.status==='ACTIVE':user.subscription?.status!=='ACTIVE'));
   });
 
   const updateLaunch = async (value: boolean) => {
@@ -678,32 +681,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   if (adminMode && staffRole !== 'partner_admin') return <main className="mx-auto max-w-2xl p-6 text-slate-100"><h1 className="text-xl font-bold">Admin Only</h1><p className="mt-3 text-sm text-slate-300">{staffRole ? 'An Admin account is required to open this page.' : crmMessage || 'Checking Admin access…'}</p><a href="/crm" className="mt-4 inline-block text-purple-200 underline">Back to CRM</a></main>;
 
   return (
-    <div className="mx-auto w-full max-w-6xl rounded-none border border-white/15 bg-slate-950 p-3 text-slate-100 shadow-2xl sm:rounded-3xl sm:p-6">
+    <div className="crm-panel w-full min-w-0 text-slate-100">
       <div>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-purple-200">
-              <ShieldCheck className="h-4 w-4" />
-              {adminMode ? 'Admin Only' : 'Staff CRM'}
-            </div>
-            <h2 className="mt-2 text-xl font-bold text-white">Q Customer Operations</h2>
-            <p className="mt-1 text-sm text-slate-300">Manage customers, subscriptions, payments, tasks, and support activity.</p>
-          </div>
-          <div className="flex shrink-0 flex-wrap justify-end gap-2">
-            {staffRole && <a href="/crm/comms" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-purple-200 hover:bg-white/10"><Mail className="h-3.5 w-3.5" /> Communications</a>}
-            {staffRole && <a href="/crm/online" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-white/10"><Users className="h-3.5 w-3.5" /> Online Users</a>}
-            {staffRole === 'partner_admin' && !adminMode && <a href="/crm/admin" className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white hover:bg-purple-500">Admin Only</a>}
-            {adminMode && <a href="/crm" className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10">Back to CRM</a>}
-            <button type="button" onClick={() => void onSignOut()} className="inline-flex items-center gap-2 rounded-xl border border-rose-300/20 px-3 py-2 text-xs font-bold text-rose-100 transition hover:bg-rose-500/10 hover:text-white">
-              <LogOut className="h-3.5 w-3.5" /> Log out
-            </button>
-            <button type="button" onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white">
-              Back to app
-            </button>
-          </div>
-        </div>
 
-        {staffRole && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+
+        {view === "settings" && <>{staffRole && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           {showAdminFunctions && <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-white">Live site</p>
@@ -727,15 +709,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             finally { setPreviewLoading(false); }
           }} className="mt-4 rounded-xl bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-500 disabled:opacity-50">{previewLoading ? 'Opening preview...' : 'Preview Site'}</button>
           <p className="mt-2 text-xs text-slate-400">Sign in again with your CRM account to preview in this tab. Refreshing or signing out ends the preview.</p>
-        </div>}
+        </div>}</>}
 
-        {showAdminFunctions && <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+        {view === "settings" && <>{showAdminFunctions && <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
           Current status: {enabled ? 'Live site enabled' : 'Waitlist enabled'}
-        </div>}
+        </div>}</>}
 
-        {showAdminFunctions && <HelpVideoAdmin />}
-        {showAdminFunctions && <BrevoWebhookAdmin />}
-        {showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {view === "publishing" && <>{showAdminFunctions && <HelpVideoAdmin />}</>}
+        {view === "integrations" && <>{showAdminFunctions && <BrevoWebhookAdmin />}</>}
+        {view === "publishing" && <>{showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2 text-white"><Newspaper className="h-4 w-4 text-fuchsia-300" /><p className="text-sm font-semibold">News &amp; Updates</p></div>
@@ -835,9 +817,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             ))}
           </div>
           {(showArchivedContent ? archivedContentHasMore : contentHasMore) && <button type="button" disabled={contentLoading} onClick={() => void loadContentPosts(showArchivedContent, true)} className="mt-4 rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">{contentLoading ? 'Loading...' : 'Load more news & updates'}</button>}
-        </section>}
+        </section>}</>}
 
-        <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {view === "review" && <><section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><Users className="h-4 w-4 text-emerald-300" /><p className="text-sm font-semibold">Peer Knowledge moderation</p></div><p className="mt-1 text-sm text-slate-400">Staff and Admins review user contributions before they appear in Peer Knowledge. Approved posts are public; rejected or archived posts remain out of the app.</p></div><button type="button" onClick={() => void loadPeerSubmissions()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh Peer Knowledge moderation"><RefreshCw className="h-4 w-4" /></button></div>
           {peerMessage && <p className="mt-3 rounded-xl bg-emerald-500/10 p-3 text-xs text-emerald-100">{peerMessage}</p>}
           <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -849,9 +831,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => void moderatePeerSubmission(submission, 'approved')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Approve</button><button type="button" onClick={() => void moderatePeerSubmission(submission, 'rejected')} className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white">Reject</button><button type="button" onClick={() => void moderatePeerSubmission(submission, 'archived')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Archive</button></div>
             </article>)}
           </div>
-        </section>
+        </section></>}
 
-        <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {view === "guides" && <><section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><BookOpen className="h-4 w-4 text-orange-300" /><p className="text-sm font-semibold">Life Guides catalogue</p></div><p className="mt-1 text-sm text-slate-400">Admin-only catalogue controls for creating, publishing, unpublishing and archiving Life Guides. Published guides appear in the Life Guides section.</p></div><button type="button" onClick={() => void loadLifeGuides()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh Life Guides"><RefreshCw className="h-4 w-4" /></button></div>
           {lifeGuideMessage && <p className="mt-3 rounded-xl bg-orange-500/10 p-3 text-xs text-orange-100">{lifeGuideMessage}</p>}
           {showAdminFunctions && <form onSubmit={saveCrmLifeGuide} className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 md:grid-cols-6">
@@ -870,29 +852,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               {showAdminFunctions ? <div className="mt-3 flex flex-wrap gap-2">{guide.status === 'published' ? <button type="button" onClick={() => void lifeGuideAction(guide, 'draft')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Unpublish</button> : <button type="button" onClick={() => void lifeGuideAction(guide, 'published')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Publish</button>}<button type="button" onClick={() => void lifeGuideAction(guide, 'archived')} className="rounded-xl bg-rose-600/80 px-3 py-2 text-xs font-bold text-white">Archive</button></div> : <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Admin-only controls</p>}
             </article>)}
           </div>
-        </section>
+        </section></>}
 
-        <a href="/crm/comms?section=support" className="mt-6 inline-flex rounded-xl border border-white/10 px-4 py-3 text-sm text-sky-200 hover:bg-white/10">Open Support inbox in Communications</a>
 
-        {showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+
+        {view === "team" && <>{showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><UserCog className="h-4 w-4 text-purple-300"/><p className="text-sm font-semibold">Staff management</p></div><p className="mt-1 text-sm text-slate-400">Promote, demote, and review authorised CRM accounts.</p></div><button onClick={() => void loadStaff()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10"><RefreshCw className="h-4 w-4"/></button></div>
           {staffMessage && <p className="mt-3 rounded-xl bg-purple-500/10 p-3 text-xs text-purple-100">{staffMessage}</p>}
           <div className="mt-4 grid gap-3 md:grid-cols-2">{staffAccounts.map((account) => <div key={account.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/70 p-3"><div className="min-w-0"><p className="truncate text-sm font-semibold text-white">{account.preferred_name || account.email}</p><p className="truncate text-xs text-slate-500">{account.email}</p></div><select value={account.role} onChange={(event) => void changeRole(account.id, event.target.value as any)} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="staff">Staff</option><option value="partner_admin">Admin</option><option value="user">User</option></select></div>)}</div>
           <p className="mt-3 text-[11px] text-slate-500">To promote a regular customer, open their customer record and change their account role.</p>
-        </section>}
+        </section>}</>}
 
-        <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {view === "customers" && <><section className="crm-directory space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-white">Q Customer CRM</p>
-              <p className="mt-1 text-sm text-slate-400">Users, signups, logins, and PayPal subscription records in one place.</p>
+
+
             </div>
             <button type="button" onClick={() => void loadCrm()} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10">
               <RefreshCw className={`h-3.5 w-3.5 ${crmLoading ? 'animate-spin' : ''}`} /> Refresh
             </button>
           </div>
 
-          <form onSubmit={addUser} className="mt-4 grid gap-2 rounded-2xl border border-white/10 bg-slate-900/60 p-4 md:grid-cols-5">
+          <details id="crm-add-customer" className="crm-add-customer my-4"><summary className="cursor-pointer text-sm font-semibold text-violet-300">Invite a customer</summary>          <form onSubmit={addUser} className="mt-4 grid gap-2 rounded-2xl border border-white/10 bg-slate-900/60 p-4 md:grid-cols-5">
             <div className="flex items-center gap-2 text-xs font-bold text-white md:col-span-5"><UserPlus className="h-4 w-4 text-purple-300"/>Add user</div>
             <input value={newUser.name} onChange={(event) => setNewUser({ ...newUser, name: event.target.value })} placeholder="Name" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2"/>
             <input required type="email" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} placeholder="Email address" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2"/>
@@ -901,54 +883,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
             <button disabled={addingUser} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50 md:col-start-5">{addingUser ? 'Sending…' : 'Send invitation'}</button>
           </form>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {[
-              { label: 'Users', value: crmMetrics.users, icon: Users },
-              { label: 'Verified', value: crmMetrics.confirmed, icon: UserCheck },
-              { label: 'Signed in', value: crmMetrics.signedIn, icon: LogIn },
-              { label: 'Active plans', value: crmMetrics.activeSubscriptions, icon: CreditCard }
-            ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-2xl border border-white/10 bg-slate-900/70 p-3">
-                <Icon className="h-4 w-4 text-purple-300" />
-                <p className="mt-2 text-2xl font-black text-white">{value}</p>
-                <p className="text-[11px] uppercase tracking-wider text-slate-400">{label}</p>
-              </div>
-            ))}
-          </div>
-
+</details>
           <div className="relative mt-4">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-            <input value={crmSearch} onChange={(event) => setCrmSearch(event.target.value)} placeholder="Search by name or email" className="w-full rounded-2xl border border-white/10 bg-slate-900/80 py-2 pl-10 pr-3 text-xs text-white placeholder-slate-500 focus:border-purple-400 focus:outline-none" />
+            <input value={crmSearch} onChange={(event) => setCrmSearch(event.target.value)} aria-label="Search customers by name or email" placeholder="Search customers by name or email" className="w-full rounded-2xl border border-white/10 bg-slate-900/80 py-2 pl-10 pr-3 text-xs text-white placeholder-slate-500 focus:border-purple-400 focus:outline-none" />
           </div>
 
+          <div className="mt-3 flex flex-wrap gap-3"><label className="text-xs text-slate-400">Role<select aria-label="Filter customer role" value={roleFilter} onChange={e=>setRoleFilter(e.target.value)} className="ml-2 rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-white"><option value="all">All roles</option><option value="user">Customer</option><option value="staff">Staff</option><option value="partner_admin">Admin</option></select></label><label className="text-xs text-slate-400">Subscription<select aria-label="Filter customer subscription" value={subscriptionFilter} onChange={e=>setSubscriptionFilter(e.target.value)} className="ml-2 rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-white"><option value="all">All subscriptions</option><option value="active">Active</option><option value="inactive">Inactive / none</option></select></label></div>
           {crmMessage && <div className="mt-3 rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-xs text-rose-200">{crmMessage}</div>}
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[760px] text-left text-xs lg:min-w-[900px]">
-              <thead className="bg-white/5 text-[10px] uppercase tracking-wider text-slate-400">
-                <tr><th className="p-3">Customer</th><th className="p-3">Signup</th><th className="p-3">Last login</th><th className="p-3">Account</th><th className="p-3">Subscription</th><th className="p-3">Renews / ends</th><th className="p-3 text-right">Record</th></tr>
+          <div className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-slate-700">
+            <table className="w-full min-w-[650px] text-left text-sm">
+              <thead className="bg-slate-900 text-xs text-slate-400">
+                <tr><th className="p-3">Customer</th><th className="p-3">Last login</th><th className="p-3">Account</th><th className="p-3">Subscription</th><th className="p-3 text-right">Record</th></tr>
               </thead>
               <tbody className="divide-y divide-white/10">
                 {crmLoading && crmUsers.length === 0 ? (
-                  <tr><td colSpan={7} className="p-5 text-center text-slate-400">Loading customers…</td></tr>
+                  <tr><td colSpan={5} className="p-5 text-center text-slate-400">Loading customers…</td></tr>
                 ) : visibleCrmUsers.length === 0 ? (
-                  <tr><td colSpan={7} className="p-5 text-center text-slate-400">No matching customers.</td></tr>
+                  <tr><td colSpan={5} className="p-5 text-center text-slate-400">No matching customers.</td></tr>
                 ) : visibleCrmUsers.map((user) => (
                   <tr key={user.id} onClick={() => void openCustomer(user.id)} className="cursor-pointer bg-slate-950/30 text-slate-300 transition hover:bg-purple-500/10">
                     <td className="p-3"><p className="font-semibold text-white">{user.name}</p><p className="mt-0.5 text-slate-500">{user.email}</p></td>
-                    <td className="p-3">{new Date(user.signupAt).toLocaleDateString()}</td>
+
                     <td className="p-3">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'}</td>
                     <td className="p-3"><span className="rounded-full bg-purple-500/10 px-2 py-1 text-purple-200">{user.role}</span><p className="mt-2 text-[10px] text-slate-500">{user.emailConfirmedAt ? 'Email verified' : 'Awaiting verification'}</p></td>
                     <td className="p-3"><span className={`rounded-full px-2 py-1 ${user.subscription?.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-200' : 'bg-slate-700/60 text-slate-300'}`}>{user.subscription?.status ?? 'Not subscribed'}</span></td>
-                    <td className="p-3">{user.subscription?.currentPeriodEnd ? new Date(user.subscription.currentPeriodEnd).toLocaleDateString() : '—'}</td>
+
                     <td className="p-3 text-right"><button type="button" onClick={(event) => { event.stopPropagation(); void openCustomer(user.id); }} className="rounded-xl bg-purple-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-purple-500">Open 360</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </section>
+        </section></>}
 
-        {showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {view === "products" && <>{showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center gap-2 text-white"><Package className="h-4 w-4 text-purple-300" /><p className="text-sm font-semibold">Product management</p></div>
           <p className="mt-1 text-sm text-slate-400">Manage Q products and connect recurring products to their PayPal plan IDs.</p>
 
@@ -971,9 +940,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               </div>
             ))}
           </div>
-        </section>}
+        </section>}</>}
 
-        {staffRole && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {view === "access" && <>{staffRole && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-white">Issue temporary password</p>
@@ -1010,9 +979,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               <p>Copy it now and ask the customer to change it after signing in. This password is not stored in Q.</p>
             </div>
           )}
-        </div>}
+        </div>}</>}
 
-        {staffRole && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+        {view === "access" && <>{staffRole && <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-white">Password reset requests</p>
@@ -1062,63 +1031,65 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
               ))}
             </div>
           )}
-        </div>}
+        </div>}</>}
 
-        {(customer || customerLoading) && (
-          <div className="fixed inset-0 z-[80] overflow-y-auto bg-slate-950/90 p-4 backdrop-blur-sm">
-            <div className="mx-auto my-0 max-w-6xl rounded-none border border-white/15 bg-slate-950 p-4 shadow-2xl sm:my-4 sm:rounded-3xl sm:p-6">
+        {view === "customers" && <>{(customer || customerLoading) && (
+          <div className="mt-6">
+            <div className="crm-customer-record rounded-xl border border-slate-700 bg-slate-900/40 p-4 sm:p-6">
               {customerLoading && !customer ? <p className="text-slate-300">Loading customer record…</p> : customer && <>
                 <div className="flex items-start justify-between gap-4">
                   <div><p className="text-xs font-bold uppercase tracking-widest text-purple-300">360° customer record</p><h2 className="mt-2 text-2xl font-black text-white">{customer.profile?.preferred_name || customer.identity.email}</h2><p className="text-sm text-slate-400">{customer.identity.email} · {customer.identity.id}</p></div>
-                  <button onClick={() => { setCustomer(null); setCustomerId(''); }} className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-5 w-5" /></button>
+                  <button aria-label="Close customer record" onClick={() => { setCustomer(null); setCustomerId(''); }} className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-5 w-5" /></button>
                 </div>
                 {customerMessage && <div className="mt-4 rounded-xl border border-purple-400/20 bg-purple-500/10 p-3 text-xs text-purple-100">{customerMessage}</div>}
-                <button type="button" onClick={() => setTaskModalOpen(true)} className="mt-4 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add task</button>
-                {showAdminFunctions && <AdminDeleteUser key={customer.identity.id} id={customer.identity.id} email={customer.identity.email} role={customer.profile?.role || 'user'} onDeleted={() => { setCustomer(null); setCustomerId(''); setCrmMessage('User deleted from Q.'); void loadCrm(); void loadStaff(); }} />}
-                <section className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+<nav aria-label="Customer record sections" className="mt-5 flex flex-wrap gap-1 border-b border-slate-700">{['overview','communications','tasks','billing',...(showAdminFunctions?['activity']:[])].map(tab=><button key={tab} type="button" aria-pressed={customerTab===tab} onClick={()=>setCustomerTab(tab)} className={`min-h-11 border-b-2 px-4 py-3 text-sm capitalize ${customerTab===tab?'border-violet-500 text-violet-300':'border-transparent text-slate-400 hover:text-white'}`}>{tab}</button>)}</nav>
+                {customerTab === 'tasks' && <><button type="button" onClick={() => setTaskModalOpen(true)} className="mt-4 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add task</button></>}
+                {customerTab === 'overview' && <>{showAdminFunctions && <AdminDeleteUser key={customer.identity.id} id={customer.identity.id} email={customer.identity.email} role={customer.profile?.role || 'user'} onDeleted={() => { setCustomer(null); setCustomerId(''); setCrmMessage('User deleted from Q.'); void loadCrm(); void loadStaff(); }} />}</>}
+                {customerTab === 'overview' && <><section className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><h3 className="font-bold text-white">Temporary password</h3><p className="mt-1 text-xs text-emerald-100/80">Issue a temporary Supabase Auth password for this customer. Q shows it once and logs the CRM action without storing the password.</p></div>
                     <button type="button" onClick={() => void issueCustomerTemporaryPassword()} disabled={issuingCustomerPassword} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-60"><KeyRound className="h-3.5 w-3.5" />{issuingCustomerPassword ? 'Issuing...' : 'Issue temp password'}</button>
                   </div>
                   {customerTempPassword && <div className="mt-3 rounded-xl bg-slate-950/70 p-3 text-xs text-emerald-100"><p className="font-semibold">Temporary password for {customerTempPassword.email}</p><div className="mt-2 flex items-center gap-2"><code className="min-w-0 flex-1 select-all break-all text-sm font-bold text-white">{customerTempPassword.temporaryPassword}</code><button type="button" onClick={() => navigator.clipboard.writeText(customerTempPassword.temporaryPassword)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2 py-1 font-bold"><Copy className="h-3 w-3" /> Copy</button></div><p className="mt-2 text-emerald-100/80">Ask the customer to change this after signing in.</p></div>}
-                </section>
+                </section></>}
 
-                <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                {customerTab === 'overview' && <><div className="mt-5 grid gap-4 lg:grid-cols-3">
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Personal details</h3><dl className="mt-3 space-y-2 text-xs text-slate-300">
                     <div><dt className="text-slate-500">Email</dt><dd>{customer.identity.email}</dd></div><div><dt className="text-slate-500">Phone</dt><dd>{customer.profile?.phone || customer.identity.phone || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Pronouns</dt><dd>{customer.profile?.pronouns || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Region</dt><dd>{customer.profile?.location_region || 'Not supplied'}</dd></div><div><dt className="text-slate-500">Company</dt><dd>{customer.profile?.company || 'Not supplied'}</dd></div><div><dt className="text-slate-500">CRM status</dt><dd>{customer.profile?.crm_status || 'customer'}</dd></div>
                   </dl></section>
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Account</h3><dl className="mt-3 space-y-2 text-xs text-slate-300"><div><dt className="text-slate-500">Created</dt><dd>{new Date(customer.identity.signupAt).toLocaleString()}</dd></div><div><dt className="text-slate-500">Last login</dt><dd>{customer.identity.lastLoginAt ? new Date(customer.identity.lastLoginAt).toLocaleString() : 'Never'}</dd></div><div><dt className="text-slate-500">Email</dt><dd>{customer.identity.emailConfirmedAt ? 'Verified' : 'Unverified'}</dd></div><div><dt className="text-slate-500">Role</dt><dd>{customer.profile?.role}</dd></div></dl>{showAdminFunctions && <div className="mt-4"><label className="text-[10px] uppercase tracking-wider text-slate-500">Change access role</label><select value={customer.profile?.role || 'user'} onChange={(event) => void changeRole(customer.identity.id, event.target.value as any)} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white"><option value="user">User</option><option value="staff">Staff</option><option value="partner_admin">Admin</option></select></div>}</section>
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">PayPal subscription</h3>{customer.subscription ? <dl className="mt-3 space-y-2 text-xs text-slate-300"><div><dt className="text-slate-500">Status</dt><dd>{customer.subscription.status}</dd></div><div><dt className="text-slate-500">Plan</dt><dd>{customer.subscription.paypal_plan_id}</dd></div><div><dt className="text-slate-500">Subscription ID</dt><dd>{customer.subscription.paypal_subscription_id}</dd></div><div><dt className="text-slate-500">Next billing</dt><dd>{customer.subscription.current_period_end ? new Date(customer.subscription.current_period_end).toLocaleDateString() : 'Unknown'}</dd></div></dl> : <p className="mt-3 text-xs text-slate-400">No PayPal subscription.</p>}</section>
-                </div>
+                </div></>}
 
-                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                {customerTab === 'billing' && <><div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Assign access or subscription</h3><select value={entitlementProduct} onChange={(e) => { setEntitlementProduct(e.target.value); setPaypalApprovalUrl(null); }} className="mt-3 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white"><option value="">Choose product</option>{products.filter(p=>p.active).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>{showAdminFunctions && <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-500/10 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-amber-200">Optional admin discount</p><div className="mt-2 grid grid-cols-2 gap-2"><input type="number" min="1" max="100" value={manualDiscount.percent} onChange={e=>setManualDiscount({...manualDiscount,percent:e.target.value})} placeholder="Discount %" className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-white"/><input type="number" min="1" max="999" value={manualDiscount.cycles} onChange={e=>setManualDiscount({...manualDiscount,cycles:e.target.value})} placeholder="Billing cycles" className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-white"/></div><p className="mt-2 text-[10px] text-slate-400">Leave both blank for standard pricing. The customer must approve the schedule in PayPal.</p></div>}<div className="mt-2 flex gap-2"><button onClick={() => void customerAction('entitlements',{productId: entitlementProduct},'Access assigned.')} disabled={!entitlementProduct} className="flex-1 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Assign manual access</button><button onClick={() => void createPayPalSubscription()} disabled={!entitlementProduct} className="flex-1 rounded-xl bg-[#0070ba] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Create PayPal subscription</button></div>{paypalApprovalUrl && <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-xs text-emerald-100"><p className="font-bold">Customer approval required</p><div className="mt-2 flex gap-2"><input readOnly value={paypalApprovalUrl} className="min-w-0 flex-1 rounded-lg bg-slate-950 px-2 py-1 text-[10px]"/><button onClick={() => navigator.clipboard.writeText(paypalApprovalUrl)} className="font-bold">Copy</button></div></div>}<div className="mt-3 space-y-2">{customer.entitlements.map((item:any)=><div key={item.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><b className="text-white">{item.crm_products?.name}</b> · {item.status} · {item.source}{item.ends_at ? ` · ends ${new Date(item.ends_at).toLocaleDateString()}` : ''}</div>)}</div></section>
                   <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center justify-between"><h3 className="font-bold text-white">Take a card payment</h3><a href="https://www.paypal.com/mep/dashboard" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl bg-[#0070ba] px-3 py-2 text-xs font-bold text-white">Open PayPal Virtual Terminal <ExternalLink className="h-3 w-3" /></a></div><p className="mt-2 text-xs text-slate-400">Enter card details only in PayPal. After approval, record the PayPal transaction below.</p><div className="mt-3 grid grid-cols-2 gap-2"><input value={payment.amount} onChange={e=>setPayment({...payment,amount:e.target.value})} type="number" step="0.01" placeholder="Amount" className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><select value={payment.currency} onChange={e=>setPayment({...payment,currency:e.target.value})} className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"><option>GBP</option><option>USD</option><option>EUR</option></select><input value={payment.transactionId} onChange={e=>setPayment({...payment,transactionId:e.target.value})} placeholder="PayPal transaction ID" className="col-span-2 rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><input value={payment.description} onChange={e=>setPayment({...payment,description:e.target.value})} placeholder="Description" className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><button onClick={() => void customerAction('payments',{amountMinor:Math.round(Number(payment.amount)*100),currency:payment.currency,providerTransactionId:payment.transactionId,description:payment.description},'Payment recorded.')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Record payment</button></div></section>
-                </div>
+                </div></>}
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Notes</h3><textarea value={noteBody} onChange={e=>setNoteBody(e.target.value)} placeholder="Add a non-sensitive CRM note" className="mt-3 w-full rounded-xl bg-slate-900 p-3 text-xs text-white"/><button onClick={() => { void customerAction('notes',{body:noteBody},'Note added.'); }} className="mt-2 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add note</button><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.notes.map((n:any)=><div key={n.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300">{n.body}<p className="mt-1 text-[10px] text-slate-500">{new Date(n.created_at).toLocaleString()}</p></div>)}</div></section>
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Tasks</h3><div className="mt-3 flex gap-2"><input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="Follow-up task" className="min-w-0 flex-1 rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><button onClick={() => { void customerAction('tasks',{title:taskTitle},'Task created.'); setTaskTitle(''); }} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add</button></div><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.tasks.map((t:any)=><div key={t.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><ClipboardList className="mr-1 inline h-3 w-3"/>{t.title} · {t.status}</div>)}</div></section>
-                  {showAdminFunctions && <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Audit and activity timeline</h3><div className="mt-3 max-h-72 space-y-3 overflow-y-auto">{customer.activities.map((a:any)=><div key={a.id} className="border-l border-purple-500/40 pl-3 text-xs text-slate-300"><b className="text-white">{a.summary}</b><p className="text-[10px] text-slate-500">{new Date(a.created_at).toLocaleString()}</p></div>)}</div></section>}
+                  {customerTab === 'overview' && <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Notes</h3><textarea value={noteBody} onChange={e=>setNoteBody(e.target.value)} placeholder="Add a non-sensitive CRM note" className="mt-3 w-full rounded-xl bg-slate-900 p-3 text-xs text-white"/><button onClick={() => { void customerAction('notes',{body:noteBody},'Note added.'); }} className="mt-2 rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add note</button><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.notes.map((n:any)=><div key={n.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300">{n.body}<p className="mt-1 text-[10px] text-slate-500">{new Date(n.created_at).toLocaleString()}</p></div>)}</div></section>}
+                  {customerTab === 'tasks' && <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Tasks</h3><div className="mt-3 flex gap-2"><input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="Follow-up task" className="min-w-0 flex-1 rounded-xl bg-slate-900 px-3 py-2 text-xs text-white"/><button onClick={() => { void customerAction('tasks',{title:taskTitle},'Task created.'); setTaskTitle(''); }} className="rounded-xl bg-purple-600 px-3 py-2 text-xs font-bold text-white">Add</button></div><div className="mt-3 max-h-56 space-y-2 overflow-y-auto">{customer.tasks.map((t:any)=><div key={t.id} className="rounded-xl bg-slate-900 p-3 text-xs text-slate-300"><ClipboardList className="mr-1 inline h-3 w-3"/>{t.title} · {t.status}</div>)}</div></section>}
+                  {customerTab === 'activity' && showAdminFunctions && <section className="rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Audit and activity timeline</h3><div className="mt-3 max-h-72 space-y-3 overflow-y-auto">{customer.activities.map((a:any)=><div key={a.id} className="border-l border-purple-500/40 pl-3 text-xs text-slate-300"><b className="text-white">{a.summary}</b><p className="text-[10px] text-slate-500">{new Date(a.created_at).toLocaleString()}</p></div>)}</div></section>}
                 </div>
 
-                <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Referral credit ledger</h3><div className="mt-3 overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-slate-500"><tr><th className="p-2">Date</th><th>Type</th><th>Status</th><th>Note</th><th className="text-right">Amount</th></tr></thead><tbody>{customer.referralCredits?.map((c:any)=><tr key={c.id} className="border-t border-white/10 text-slate-300"><td className="p-2">{new Date(c.created_at).toLocaleDateString()}</td><td>{c.kind}</td><td>{c.status}</td><td>{c.note || '—'}</td><td className="text-right">{new Intl.NumberFormat('en-GB',{style:'currency',currency:c.currency}).format(c.amount_minor/100)}</td></tr>)}</tbody></table></div></section>
+                {customerTab === 'billing' && <><section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Referral credit ledger</h3><div className="mt-3 overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-slate-500"><tr><th className="p-2">Date</th><th>Type</th><th>Status</th><th>Note</th><th className="text-right">Amount</th></tr></thead><tbody>{customer.referralCredits?.map((c:any)=><tr key={c.id} className="border-t border-white/10 text-slate-300"><td className="p-2">{new Date(c.created_at).toLocaleDateString()}</td><td>{c.kind}</td><td>{c.status}</td><td>{c.note || '—'}</td><td className="text-right">{new Intl.NumberFormat('en-GB',{style:'currency',currency:c.currency}).format(c.amount_minor/100)}</td></tr>)}</tbody></table></div></section></>}
 
-                <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Payment history</h3><div className="mt-3 overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-slate-500"><tr><th className="p-2">Date</th><th>Reference</th><th>Description</th><th>Status</th><th className="text-right">Amount</th></tr></thead><tbody>{customer.payments.map((p:any)=><tr key={p.id} className="border-t border-white/10 text-slate-300"><td className="p-2">{new Date(p.occurred_at).toLocaleDateString()}</td><td>{p.provider_transaction_id}</td><td>{p.description || p.payment_type}</td><td>{p.status}</td><td className="text-right">{new Intl.NumberFormat('en-GB',{style:'currency',currency:p.currency}).format(p.amount_minor/100)}</td></tr>)}</tbody></table></div></section>
-                <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                {customerTab === 'billing' && <><section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Payment history</h3><div className="mt-3 overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-slate-500"><tr><th className="p-2">Date</th><th>Reference</th><th>Description</th><th>Status</th><th className="text-right">Amount</th></tr></thead><tbody>{customer.payments.map((p:any)=><tr key={p.id} className="border-t border-white/10 text-slate-300"><td className="p-2">{new Date(p.occurred_at).toLocaleDateString()}</td><td>{p.provider_transaction_id}</td><td>{p.description || p.payment_type}</td><td>{p.status}</td><td className="text-right">{new Intl.NumberFormat('en-GB',{style:'currency',currency:p.currency}).format(p.amount_minor/100)}</td></tr>)}</tbody></table></div></section></>}
+                {customerTab === 'communications' && <><section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
                   <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><Mail className="h-4 w-4 text-emerald-300" /><h3 className="font-bold">Communication history</h3></div><p className="mt-1 text-xs text-slate-400">Inbound and outbound messages for this account. Logging a message does not send it.</p></div><button type="button" onClick={() => void openCustomer(customer.identity.id)} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh communication history"><RefreshCw className="h-4 w-4" /></button></div>
                   {communicationMessage && <p className="mt-3 rounded-xl bg-emerald-500/10 p-3 text-xs text-emerald-100">{communicationMessage}</p>}
-                  <form onSubmit={logOutboundCommunication} className="mt-4 grid gap-2 rounded-xl border border-white/10 bg-slate-900/60 p-3 md:grid-cols-4"><p className="text-xs font-bold text-white md:col-span-4">Log an outbound message</p><input type="email" value={newCommunication.recipientEmail} onChange={event => setNewCommunication({ ...newCommunication, recipientEmail: event.target.value })} placeholder={customer.identity.email} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white" /><input value={newCommunication.subject} onChange={event => setNewCommunication({ ...newCommunication, subject: event.target.value })} placeholder="Subject" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2" /><select value={newCommunication.channel} onChange={event => setNewCommunication({ ...newCommunication, channel: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="email">Email</option><option value="phone">Phone</option><option value="chat">Chat</option><option value="other">Other</option></select><textarea required maxLength={5000} value={newCommunication.body} onChange={event => setNewCommunication({ ...newCommunication, body: event.target.value })} placeholder="What was sent or discussed?" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white md:col-span-3" /><button type="submit" className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Log outbound</button></form>
                   <CustomerCommunicationHistory key={customer.identity.id} userId={customer.identity.id} existing={customer.communications ?? []} />
-                </section>
+                  <details className="mt-4 border-t border-slate-700 pt-3"><summary className="cursor-pointer text-sm text-violet-300">Log another conversation</summary>                  <form onSubmit={logOutboundCommunication} className="mt-4 grid gap-2 rounded-xl border border-white/10 bg-slate-900/60 p-3 md:grid-cols-4"><p className="text-xs font-bold text-white md:col-span-4">Log an outbound message</p><input type="email" value={newCommunication.recipientEmail} onChange={event => setNewCommunication({ ...newCommunication, recipientEmail: event.target.value })} placeholder={customer.identity.email} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white" /><input value={newCommunication.subject} onChange={event => setNewCommunication({ ...newCommunication, subject: event.target.value })} placeholder="Subject" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white md:col-span-2" /><select value={newCommunication.channel} onChange={event => setNewCommunication({ ...newCommunication, channel: event.target.value })} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="email">Email</option><option value="phone">Phone</option><option value="chat">Chat</option><option value="other">Other</option></select><textarea required maxLength={5000} value={newCommunication.body} onChange={event => setNewCommunication({ ...newCommunication, body: event.target.value })} placeholder="What was sent or discussed?" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white md:col-span-3" /><button type="submit" className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Log outbound</button></form></details>
+
+                </section></>}
                 {taskModalOpen && <div className="q-modal-backdrop fixed inset-0 z-[100] flex justify-center bg-slate-950/80 p-4"><form onSubmit={createTask} className="w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-white/15 bg-slate-900 p-5 shadow-2xl"><div className="flex items-center justify-between"><h3 className="text-lg font-bold text-white">Create task</h3><button type="button" onClick={() => setTaskModalOpen(false)} className="rounded-full p-2 text-slate-400 hover:bg-white/10"><X className="h-4 w-4" /></button></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><input required value={taskForm.title} onChange={event => setTaskForm({ ...taskForm, title: event.target.value })} placeholder="Task title" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white sm:col-span-2" /><textarea value={taskForm.description} onChange={event => setTaskForm({ ...taskForm, description: event.target.value })} placeholder="Description" className="min-h-20 rounded-xl border border-white/10 bg-slate-950 p-3 text-xs text-white sm:col-span-2" /><label className="text-xs text-slate-400">Status<select value={taskForm.status} onChange={event => setTaskForm({ ...taskForm, status: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="open">Open</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label><label className="text-xs text-slate-400">Priority<select value={taskForm.priority} onChange={event => setTaskForm({ ...taskForm, priority: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></label><label className="text-xs text-slate-400">Start date<input type="datetime-local" value={taskForm.startAt} onChange={event => setTaskForm({ ...taskForm, startAt: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white" /></label><label className="text-xs text-slate-400">Due date<input type="datetime-local" value={taskForm.dueAt} onChange={event => setTaskForm({ ...taskForm, dueAt: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white" /></label><label className="text-xs text-slate-400 sm:col-span-2">Assigned to<select value={taskForm.assignedTo} onChange={event => setTaskForm({ ...taskForm, assignedTo: event.target.value })} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white"><option value="">Me</option>{staffAccounts.map(account => <option key={account.id} value={account.id}>{account.preferred_name || account.email} ({account.role})</option>)}</select></label></div><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={() => setTaskModalOpen(false)} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200">Cancel</button><button type="submit" className="rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white">Create task</button></div></form></div>}
-                <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center gap-2 text-white"><Users className="h-4 w-4 text-emerald-300" /><h3 className="font-bold">Peer Knowledge contributions</h3></div><p className="mt-1 text-xs text-slate-400">Customer-submitted Peer Knowledge entries and moderation status.</p><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{(customer.peerKnowledgeContributions ?? []).length === 0 ? <p className="text-xs text-slate-400">No Peer Knowledge contributions for this account.</p> : customer.peerKnowledgeContributions.map((item:any)=><article key={item.id} className="rounded-xl border border-white/10 bg-slate-900/70 p-3"><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${item.status === 'approved' ? 'bg-emerald-500/15 text-emerald-200' : item.status === 'rejected' ? 'bg-rose-500/15 text-rose-200' : 'bg-amber-500/15 text-amber-200'}`}>{item.status}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{item.category}</span><span className="ml-auto text-[10px] text-slate-500">{new Date(item.created_at).toLocaleString()}</span></div><p className="mt-2 text-xs font-bold text-white">{item.title}</p><p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-slate-400">{item.content}</p></article>)}</div></section>
-                <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Task table</h3><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-xs"><thead className="border-b border-white/10 text-[10px] uppercase tracking-wider text-slate-500"><tr><th className="p-2">Task</th><th className="p-2">Status</th><th className="p-2">Priority</th><th className="p-2">Start</th><th className="p-2">Due</th><th className="p-2">Assigned to</th></tr></thead><tbody>{customer.tasks.length === 0 ? <tr><td colSpan={6} className="p-4 text-center text-slate-400">No tasks for this account.</td></tr> : customer.tasks.map((task: any) => <tr key={task.id} className="border-b border-white/10 text-slate-300"><td className="p-2"><p className="font-semibold text-white">{task.title}</p>{task.description && <p className="mt-1 max-w-xs truncate text-[10px] text-slate-500">{task.description}</p>}</td><td className="p-2"><span className="rounded-full bg-purple-500/15 px-2 py-1 text-[10px] font-bold text-purple-200">{String(task.status || 'open').replace('_', ' ')}</span></td><td className="p-2">{task.priority || 'normal'}</td><td className="p-2">{task.starts_at ? new Date(task.starts_at).toLocaleString() : '—'}</td><td className="p-2">{task.due_at ? new Date(task.due_at).toLocaleString() : '—'}</td><td className="p-2">{task.assigned_to || 'Unassigned'}</td></tr>)}</tbody></table></div></section>
-                <section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Edit task</h3><p className="mt-1 text-xs text-slate-400">Select a task to open its edit form.</p><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[680px] text-left text-xs"><thead className="text-[10px] uppercase tracking-wider text-slate-500"><tr><th className="p-2">Task</th><th className="p-2">Status</th><th className="p-2">Priority</th><th className="p-2">Start</th><th className="p-2">Due</th><th className="p-2">Assignee</th></tr></thead><tbody>{customer.tasks.map((task: any) => <tr key={`edit-${task.id}`} onClick={() => { setSelectedTask(task); setTaskForm({ title: task.title || '', description: task.description || '', status: task.status || 'open', priority: task.priority || 'normal', startAt: task.starts_at ? new Date(task.starts_at).toISOString().slice(0, 16) : '', dueAt: task.due_at ? new Date(task.due_at).toISOString().slice(0, 16) : '', assignedTo: task.assigned_to || '' }); setTaskModalOpen(true); }} className="cursor-pointer border-t border-white/10 text-slate-300 hover:bg-purple-500/10"><td className="p-2 font-semibold text-white">{task.title}</td><td className="p-2">{String(task.status || 'open').replace('_', ' ')}</td><td className="p-2">{task.priority || 'normal'}</td><td className="p-2">{task.starts_at ? new Date(task.starts_at).toLocaleDateString() : '—'}</td><td className="p-2">{task.due_at ? new Date(task.due_at).toLocaleDateString() : '—'}</td><td className="p-2">{task.assigned_to || 'Unassigned'}</td></tr>)}</tbody></table></div></section>
+                {customerTab === 'overview' && <><section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center gap-2 text-white"><Users className="h-4 w-4 text-emerald-300" /><h3 className="font-bold">Peer Knowledge contributions</h3></div><p className="mt-1 text-xs text-slate-400">Customer-submitted Peer Knowledge entries and moderation status.</p><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{(customer.peerKnowledgeContributions ?? []).length === 0 ? <p className="text-xs text-slate-400">No Peer Knowledge contributions for this account.</p> : customer.peerKnowledgeContributions.map((item:any)=><article key={item.id} className="rounded-xl border border-white/10 bg-slate-900/70 p-3"><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${item.status === 'approved' ? 'bg-emerald-500/15 text-emerald-200' : item.status === 'rejected' ? 'bg-rose-500/15 text-rose-200' : 'bg-amber-500/15 text-amber-200'}`}>{item.status}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{item.category}</span><span className="ml-auto text-[10px] text-slate-500">{new Date(item.created_at).toLocaleString()}</span></div><p className="mt-2 text-xs font-bold text-white">{item.title}</p><p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed text-slate-400">{item.content}</p></article>)}</div></section></>}
+
+                {customerTab === 'tasks' && <><section className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4"><h3 className="font-bold text-white">Edit task</h3><p className="mt-1 text-xs text-slate-400">Select a task to open its edit form.</p><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[680px] text-left text-xs"><thead className="text-[10px] uppercase tracking-wider text-slate-500"><tr><th className="p-2">Task</th><th className="p-2">Status</th><th className="p-2">Priority</th><th className="p-2">Start</th><th className="p-2">Due</th><th className="p-2">Assignee</th></tr></thead><tbody>{customer.tasks.map((task: any) => <tr key={`edit-${task.id}`} onClick={() => { setSelectedTask(task); setTaskForm({ title: task.title || '', description: task.description || '', status: task.status || 'open', priority: task.priority || 'normal', startAt: task.starts_at ? new Date(task.starts_at).toISOString().slice(0, 16) : '', dueAt: task.due_at ? new Date(task.due_at).toISOString().slice(0, 16) : '', assignedTo: task.assigned_to || '' }); setTaskModalOpen(true); }} className="cursor-pointer border-t border-white/10 text-slate-300 hover:bg-purple-500/10"><td className="p-2 font-semibold text-white">{task.title}</td><td className="p-2">{String(task.status || 'open').replace('_', ' ')}</td><td className="p-2">{task.priority || 'normal'}</td><td className="p-2">{task.starts_at ? new Date(task.starts_at).toLocaleDateString() : '—'}</td><td className="p-2">{task.due_at ? new Date(task.due_at).toLocaleDateString() : '—'}</td><td className="p-2">{task.assigned_to || 'Unassigned'}</td></tr>)}</tbody></table></div></section></>}
               </>}
             </div>
           </div>
-        )}
+        )}</>}
       </div>
     </div>
   );

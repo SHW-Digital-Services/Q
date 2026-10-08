@@ -49,7 +49,7 @@ const fetcher = (async (url: any, init: RequestInit = {}) => {
 const authoriseStaff = (async (req: any, res: any) => {
   if (!req.headers.authorization) { res.status(401).json({ error: 'Authentication required.' }); return null; }
   if (!['Bearer fixture-staff', 'Bearer fixture-admin', 'Bearer fixture-other'].includes(req.headers.authorization)) { res.status(403).json({ error: 'Staff access required.' }); return null; }
-  return { identity: { user: { id: req.headers.authorization === 'Bearer fixture-other' ? target : owner } }, role: 'staff', serviceSupabase: { auth: { admin: { getUserById: async (id: string) => ({ data: { user: id === target ? { email: 'visitor@example.test' } : null } }) } } } };
+  return { identity: { user: { id: req.headers.authorization === 'Bearer fixture-other' ? target : owner } }, role: 'staff', permissions: req.headers.authorization==='Bearer fixture-other'?['support.read']:[], serviceSupabase: { rpc: async()=>({error:null}), auth: { admin: { listUsers:async()=>({data:{users:[{id:target,email:'visitor@example.test',email_confirmed_at:'2026-01-01'}]}}),getUserById: async (id: string) => ({ data: { user: id === target ? { id: target, email: 'visitor@example.test' } : null } }) } } } };
 }) as any;
 let configured = true;
 const app = express(); app.use(express.json({ limit: '256kb' }));
@@ -78,6 +78,11 @@ const payload = { to: 'visitor@example.test', cc: '', bcc: '', subject: 'Welcome
 const post = (value: unknown) => ({ method: 'POST', body: JSON.stringify(value) });
 
 try {
+  assert.equal((await request('/tickets/sync',post({start:1}),'fixture-user')).status,403);
+  assert.equal((await request('/tickets/sync',post({start:1}),'fixture-other')).status,403);
+  assert.equal((await request('/tickets/sync',post({start:-1}))).status,400);
+  assert.equal((await request('/tickets/sync',post({start:1,mailbox:'scott@q-ai.online'}))).status,400);
+  assert.equal((await request('/tickets/sync',post({start:1}))).status,200);
   assert(allowedMailOrigin('https://www.q-ai.online', 'https://q-ai.online'));
   assert(allowedMailOrigin('https://q-ai.online', 'https://www.q-ai.online'));
   for (const candidate of ['https://q-ai.online.attacker.test', 'https://evil.example.test', 'http://www.q-ai.online', 'https://www.q-ai.online:444', 'https://user@www.q-ai.online', 'null']) assert.equal(allowedMailOrigin(candidate, 'https://q-ai.online'), false);

@@ -27,7 +27,8 @@
     "check:local-ai": "tsx scripts/check-local-ai.ts",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:crm-workspace": "tsx scripts/check-crm-workspace.ts"
   },
   "dependencies": {
     "@ffmpeg/core": "0.12.10",

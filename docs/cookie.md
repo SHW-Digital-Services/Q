@@ -137,7 +137,7 @@ Examples include:
 
 - **Supabase** (authentication and session management);
 - **PayPal** (payment processing);
-- **Brevo Conversations** (support-chat visitor identifiers and conversation continuity);
+- **Historical Brevo Conversations storage** (the widget has been removed; earlier browser storage may remain);
 - approved analytics providers (where enabled).
 
 Q's optional Brevo website tracker is loaded only after you allow analytics in the cookie prompt, and only on supported public website pages. It does not load on Q's private app or CRM pages. It records page visits and may use a browser identifier or cookies to associate activity with a visitor. Rejecting analytics leaves the tracker unloaded. You can change your choice at any time using **Cookie preferences** in the site footer. Q disables automatic page tracking and supplies a page URL without query strings or fragments, a generic title, and only the referrer's origin. Q does not send journal, chat, mood, account-profile or CRM content to this website tracker. This scope is separate from the Conversations widget described below.
@@ -152,17 +152,12 @@ Q uses **Brevo (formerly Sendinblue)** for marketing and community-update emails
 
 Consent to receive emails is separate from any consent required for non-essential tracking. Where applicable law requires it, tracking must not occur before the relevant consent has been obtained. You may withdraw tracking consent through the email's available controls or contact **office@q-ai.online**. You can separately stop marketing and community-update emails using their unsubscribe link. Blocking remote images in your email application may limit pixel loading but does not necessarily prevent tracked-link measurement.
 
-Email delivery, bounce and unsubscribe records are distinct from optional engagement tracking. Q also embeds the Brevo Conversations support widget described below; this is separate from email tracking. If you follow a link to a Brevo-hosted subscription or preference page, the information and controls presented on that page also apply.
+Email delivery, bounce and unsubscribe records are distinct from optional engagement tracking. The Brevo Conversations support widget has been removed; historical storage is described below. If you follow a link to a Brevo-hosted subscription or preference page, the information and controls presented on that page also apply.
 
-## 5.2 Brevo Conversations Support Widget
+## 5.2 Previous Brevo Conversations storage
 
-The widget loads from conversations-widget.brevo.com only when you select Chat with support. Merely opening an application page does not load the chat widget. Selecting chat connects your browser to Brevo before you send a message. It may use cookies or local storage to recognise a returning browser, maintain conversation continuity and remember the widget's state. Associated visitor information may include pages visited, referrer, visit times, browser details and approximate location, depending on the enabled features.
+The Brevo Conversations widget has been removed from Q and is no longer loaded for new support chats. Removing the widget does not automatically clear storage left by previous visits. You can clear any historical Brevo cookies or site storage through your browser. Clearing browser storage does not delete earlier server-side conversation records; contact **office@q-ai.online** for requests about those records.
 
-Storage strictly necessary to provide a chat you request must be distinguished from optional visitor tracking or analytics. Optional storage or tracking must not be treated as essential merely because it belongs to a support widget; where consent is required, it must be obtained before that activity. Reading this policy, visiting Q or agreeing to the Terms does not itself provide that consent.
-
-You can inspect, block or clear cookies and site storage through your browser, including third-party storage associated with Brevo. Doing so may interrupt chat or prevent recognition of a previous conversation. Closing the widget does not itself delete its storage or server-side messages, and clearing browser storage does not delete Brevo's conversation records. Storage lifetimes depend on the widget and browser settings; server-side retention is described in the Privacy Policy. Contact **office@q-ai.online** for help with chat-data requests or **office@q-ai.online** to request support by email.
-
-Provider information: https://www.brevo.com/legal/privacypolicy/
 
 ---
 

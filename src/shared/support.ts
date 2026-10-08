@@ -5,6 +5,7 @@ export const supportStatusLabels: Record<SupportStatus, string> = { new: 'New', 
 export interface SupportRequest {
   id: string; name: string | null; email?: string; category: string; subject: string; message: string;
   status: SupportStatus; user_id?: string | null; assigned_to?: string | null;
+  due_at?:string|null; priority?:string; email_account_id?:string;email_folder_id?:string;email_message_id?:string;
   created_at: string; updated_at: string; archived_at?: string | null;
 }
 export interface SupportMessage {

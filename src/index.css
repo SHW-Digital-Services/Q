@@ -350,3 +350,22 @@ main article.rounded-3xl {
   position: relative;
   z-index: 1;
 }
+
+/* Shared CRM surfaces follow one restrained workspace system. */
+.crm-panel > div > section, .crm-panel > div > div > section { border-radius: 0.75rem; }
+.crm-panel section { min-width: 0; }
+.crm-panel > div > section { margin-top: 0; }
+.crm-panel > div > section > div:first-child { padding-bottom: 0.75rem; }
+.crm-workspace input, .crm-workspace textarea, .crm-workspace select { max-width: 100%; }
+.crm-workspace button, .crm-workspace a { touch-action: manipulation; }
+.crm-workspace :focus-visible { outline: 2px solid #a78bfa; outline-offset: 3px; }
+
+.crm-workspace { font-family: ui-sans-serif, system-ui, sans-serif; }
+.crm-workspace main section::after, .crm-workspace main article::after,
+.crm-workspace main > div > div::after { content: none !important; }
+.crm-workspace .crm-add-customer:not([open]) { display: none; }
+.crm-workspace .crm-directory { border: none; background: transparent; padding: 0; }
+.crm-workspace .crm-customer-record > section { border: none; background: transparent; padding: 0; }
+.crm-workspace .crm-directory > div:first-child { justify-content: flex-end; }
+
+.crm-workspace nav button[aria-pressed="true"] { border-color: #8b5cf6 !important; color: #ddd6fe !important; background: rgb(139 92 246 / 12%) !important; }

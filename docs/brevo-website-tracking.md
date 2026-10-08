@@ -9,7 +9,7 @@ landing and news pages can request consent. The SDK loads only after a saved
 **Allow analytics** choice, on `/`, `/news`, `/updates` and `/developer`.
 It does not load on the private app, CRM, Communications, account-recovery routes
 or the legacy `?view=app`/`?open=q` app routes. Conversations is a separate
-integration: its widget loads only when the visitor clicks **Chat with support**.
+integration: the chat widget has been removed and no longer loads for new support conversations.
 
 The loader queues `init` with `do_not_track_page: true` to disable its automatic
 full-URL event, followed by an explicit sanitised `page` event. It supplies all

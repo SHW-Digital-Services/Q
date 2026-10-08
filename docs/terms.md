@@ -431,14 +431,14 @@ The Service integrates with third-party providers including, but not limited to:
 - WebLLM and model-distribution services;
 - PayPal;
 - Zoho Bigin;
-- Brevo (formerly Sendinblue), for website support chat through Brevo Conversations and optional marketing and community-update emails;
+- Brevo (formerly Sendinblue), for historical records from the removed Brevo Conversations widget and optional marketing and community-update emails;
 - email delivery providers;
 - cloud hosting providers;
 - analytics providers.
 
 Those services are governed by their own terms and privacy policies.
 
-Brevo Conversations provides website support. Availability and response times may vary; the widget is not an emergency or crisis service. It is separate from Q's AI assistant, and Q's local AI mode and PII Shield do not apply to support-chat messages. Share only information necessary for your enquiry. The Privacy Policy and Cookie Policy explain chat processing, browser storage and your choices. Using chat does not enrol you in marketing or provide consent to non-essential tracking.
+The Brevo Conversations widget has been removed. For product support, use Q Help, the support page or office@q-ai.online. Historical support-chat records remain subject to the Privacy Policy and provider arrangements.
 
 SHW Digital Services is not responsible for the acts or omissions of independent third-party providers beyond our legal responsibilities.
 
