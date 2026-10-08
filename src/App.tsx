@@ -29,6 +29,7 @@ const LivedExperiencesView = lazy(() => import('./components/LivedExperiencesVie
 const JournalView = lazy(() => import('./components/JournalView').then(({ JournalView }) => ({ default: JournalView })));
 const ProfileView = lazy(() => import('./components/ProfileView').then(({ ProfileView }) => ({ default: ProfileView })));
 const HelpView = lazy(() => import('./components/HelpView').then(({ HelpView }) => ({ default: HelpView })));
+const SupportAccessPage = lazy(() => import('./components/SupportAccessPage'));
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel }) => ({ default: AdminPanel })));
 const CommsPortal = lazy(() => import('./components/CommsPortal'));
 const OnlineUsersPage = lazy(() => import('./components/OnlineUsersPage'));
@@ -73,7 +74,7 @@ function StatusPageButton({ placement = 'left' }: { placement?: 'left' | 'right'
 
 export default function App() {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('chat');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => new URLSearchParams(window.location.search).get('tab') === 'help' ? 'help' : 'chat');
   const [syncStatus, setSyncStatus] = useState<SyncStatusState>(getSyncStatus());
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings>(getSecuritySettings());
   const [isLocked, setIsLocked] = useState<boolean>(() => {
@@ -404,6 +405,7 @@ export default function App() {
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
+  if (window.location.pathname === '/support') return <Suspense fallback={<LoadingView label="Loading support..." />}><SupportAccessPage /></Suspense>;
   if (isNewsRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
   if (isDeveloperRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading developer docs..." />}><DeveloperPage /></Suspense></>;
 
@@ -517,11 +519,11 @@ export default function App() {
               />
             )}
             {!isAdminPanelOpen && activeTab === 'help' && (
-              <HelpView
+              <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><HelpView
                 onNavigate={setActiveTab}
                 onOpenCrisis={() => setIsCrisisOpen(true)}
                 onOpenSubscription={() => setIsSubscriptionOpen(true)}
-              />
+              /></CrmDraftProvider>
             )}
           </Suspense>
         </main>

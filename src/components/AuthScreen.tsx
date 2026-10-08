@@ -64,7 +64,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       const response = await fetch('/api/v1/admin/contact-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(contact) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to send your message.');
-      setContactFeedback('Your message has been sent to the Q support team.');
+      setContactFeedback(data.request?.id ? `Your message has been saved. Keep this request reference: ${data.request.id}. Open Q support access below to request an email link and follow the conversation.` : 'Your message has been sent to the Q support team.');
       setContact(current => ({ ...current, subject: '', message: '', website: '' }));
     } catch (error: any) {
       setContactFeedback(error.message || 'Unable to send your message.');
@@ -528,6 +528,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 {forgotLoading ? 'Sending request…' : 'Send request to admin'}
               </button>
             </form>
+            <a href="/support" className="mt-4 block text-sm font-bold text-violet-700 underline">Follow a request with an email access link</a>
           </div>
         </div>
       )}
@@ -556,6 +557,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               <label className="absolute -left-[10000px]" aria-hidden="true">Website<input tabIndex={-1} autoComplete="off" value={contact.website} onChange={event => setContact({ ...contact, website: event.target.value })} /></label>
               <button disabled={contactLoading} className="w-full rounded-2xl bg-purple-600 px-4 py-3 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-60">{contactLoading ? 'Sending…' : 'Send to Q support'}</button>
             </form>
+            <a href="/support" className="mt-4 block text-sm font-bold text-violet-700 underline">Follow a request with an email access link</a>
           </div>
         </div>
       )}

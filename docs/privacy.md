@@ -1058,3 +1058,12 @@ Published news, linked updates, Help Video titles and written steps are publicly
 Q stores publishing records, news relationships, tutorial steps, video links and administrator account identifiers in Supabase. Uploaded Help Video files are stored in a private Supabase Storage bucket; Q issues time-limited playback links for published videos. Removing a video from publication stops new public playback links, but an already issued link can remain usable until it expires (up to one hour). Archiving does not automatically delete the underlying file or publishing record.
 
 Q does not automatically load an external video player for hosted links. Opening a hosted video takes you to another website; that host may receive network and browser information and applies its own privacy and cookie settings. The provider is identified by the destination link. Site-use video requests do not send private journal or AI conversation content.
+
+
+### Q Help & Support conversations
+
+Q stores deliberately submitted support requests, conversation replies, staff-only internal notes, assignment and activity records in its protected support database. Signed-in requests belong to the verified account; signed-out requests require a request-specific email access link. Email notifications use the existing office Zoho mailbox and contain only a generic notice and link, without the request subject, conversation text or notes. No journal, AI chat, mood or identity context is automatically attached.
+
+Draft recovery uses plaintext, account- or verified-request-scoped browser session storage. Successful submission clears the draft; Q logout or closing guest access clears relevant recovery data. One-use email links expire after 24 hours and create an HttpOnly request-specific browser session. Closing guest access revokes that session.
+
+Resolved or closed support conversations become eligible for operational deletion 365 days after their last activity. This includes associated messages, activity, notification records, access grants and linked CRM copies. Open requests are retained for follow-up. Deletion depends on running the operator purge; this release does not install a schedule. Emails already held in Zoho and provider backups follow their separate retention arrangements.

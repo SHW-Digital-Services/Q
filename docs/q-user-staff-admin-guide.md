@@ -1,5 +1,7 @@
 # Q Intelligence User, Staff, and Admin Guide
 
+For complete conversations, guest access and release requirements, see [Q Help & Support](q-help-support.md).
+
 This guide explains how Q Intelligence is operated by three audiences:
 
 - site users: people using Q for chat, guides, journaling, profile, security, backup, and subscription features
