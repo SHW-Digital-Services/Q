@@ -2,6 +2,7 @@ import express from 'express';
 import { asyncHandler, getAuthenticatedUser } from '../middleware.js';
 import { getServiceSupabase } from './admin.js';
 import { hasPremium, programmes, journalInsights, validSnapshot } from '../premium-domain.js';
+import { premiumTools } from '../premium-tools.js';
 
 export function createPremiumRouter(dependencies = {getAuthenticatedUser,getServiceSupabase}) {
 const premiumRouter = express.Router();
@@ -34,6 +35,7 @@ premiumRouter.delete('/continuity', asyncHandler(async (_req,res) => {
 }));
 premiumRouter.use((_req,res,next) => res.locals.premium ? next() : res.status(403).json({error:'This feature requires Q Premium.'}));
 premiumRouter.get('/programmes', (_req,res) => res.json(programmes));
+premiumRouter.get('/tools', (_req,res) => res.json(premiumTools));
 premiumRouter.post('/insights', (req,res) => {
   const {records,days} = req.body || {};
   if (![30,90,365].includes(days) || !Array.isArray(records) || records.length > 10000 || records.some(r => !r || !/^\d{4}-\d{2}-\d{2}$/.test(r.date) || !Number.isFinite(Date.parse(r.date)) || !Number.isInteger(r.rating) || r.rating < 1 || r.rating > 5 || !Array.isArray(r.tags) || r.tags.length > 30 || r.tags.some((t:unknown) => typeof t !== 'string' || t.length > 80))) return res.status(400).json({error:'Invalid insight data.'});

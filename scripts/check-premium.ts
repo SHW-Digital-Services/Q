@@ -6,6 +6,8 @@ import { hasPremium, journalInsights, validSnapshot } from '../server/premium-do
 import { syncDecision, readSnapshot } from '../src/services/continuity.js';
 import { setStorageUser, saveChatMessage, getChatHistory } from '../src/services/storage.js';
 import { createPremiumRouter } from '../server/routes/premium.js';
+import { emptyWorkspace, localDate, readWorkspace, validWorkspace, weekDates, writeWorkspace } from '../src/services/premiumWorkspace.js';
+import { exportAppDataJSON, importAppDataJSON } from '../src/services/storage.js';
 
 const now = Date.parse('2026-09-16T12:00:00Z');
 assert.equal(hasPremium(null),false);
@@ -44,6 +46,27 @@ setStorageUser('account-b');saveChatMessage({id:'a2',sender:'q_ai',text:'Late A 
 assert.equal(getChatHistory('account-b').length,0);assert.equal(getChatHistory('account-a').length,2);
 assert.equal(readSnapshot('account-b',['chat']).chat?.length,0);
 assert.equal(readSnapshot('account-a',['chat']).chat?.length,2);
+const workspace = emptyWorkspace();
+workspace.goals.push({id:'goal-a',title:'Walk',reason:'Fresh air',days:[1,3],checks:['2026-10-05'],archived:false});
+workspace.rehearsals.push({id:'boundary',first:'I cannot today.',second:'I need to keep that limit.',takeaway:'I cannot today.'});
+workspace.reviews.push({id:'2026-10-05',answers:{worked:'I made time for a walk.',next:'Try again next week.'}});
+writeWorkspace('account-a',workspace);
+assert.deepEqual(readWorkspace('account-a'),workspace);
+assert.deepEqual(readWorkspace('account-b'),emptyWorkspace());
+assert.equal(validWorkspace({...workspace,goals:[{...workspace.goals[0],checks:['2026-02-30']}]}),false);
+assert.equal(validWorkspace({...workspace,draft:{title:'test',reason:'',days:[7]}}),false);
+assert.equal(validWorkspace({...workspace,rehearsals:[{...workspace.rehearsals[0],first:42}]}),false);
+assert.deepEqual(weekDates(new Date(2026,9,11,12)),['2026-10-05','2026-10-06','2026-10-07','2026-10-08','2026-10-09','2026-10-10','2026-10-11']);
+assert.equal(localDate(new Date(2026,0,1,0,5)),'2026-01-01');
+const backup = exportAppDataJSON('account-a');
+assert.deepEqual(JSON.parse(backup).premiumWorkspace,workspace);
+assert.equal(importAppDataJSON(backup,'account-b'),false);
+assert.equal(importAppDataJSON(JSON.stringify({...JSON.parse(backup),premiumWorkspace:{goals:'bad'}}),'account-a'),false);
+assert.deepEqual(readWorkspace('account-a'),workspace);
+writeWorkspace('account-a',emptyWorkspace());
+assert.equal(importAppDataJSON(backup,'account-a'),true);
+assert.deepEqual(readWorkspace('account-a'),workspace);
+console.log('PASS workspace account isolation, date boundaries, validation and backup round-trip');
 console.log('PASS separate account storage and late responses after switching accounts');
 delete (globalThis as any).window;
 delete (globalThis as any).localStorage;
@@ -82,9 +105,13 @@ const request=(path:string,method='GET',body?:unknown,auth=true)=>fetch(`http://
 try{
   assert.equal((await request('programmes','GET',undefined,false)).status,401);
   assert.equal((await request('programmes')).status,403);
+  assert.equal((await request('tools','GET',undefined,false)).status,401);
+  assert.equal((await request('tools')).status,403);
   assert.equal((await request('insights','POST',{records:[],days:30})).status,403);
   assert.equal((await request('continuity','PUT',{payload:{},revision:0})).status,403);
   paid=true;
+  const tools = await request('tools');assert.equal(tools.status,200);assert.equal(tools.headers.get('cache-control'),'no-store');
+  const toolCatalog = await tools.json();assert.equal(toolCatalog.scenarios.length,4);assert.equal(toolCatalog.reviewPrompts.length,5);
   const catalog=await request('programmes');assert.equal(catalog.status,200);assert.equal((await catalog.json()).length,30);assert.equal(catalog.headers.get('cache-control'),'no-store');
   assert.equal((await request('insights','POST',{records:[{rating:99}],days:30})).status,400);
   assert.equal((await request('insights','POST',{records:[],days:30})).status,200);
@@ -92,6 +119,7 @@ try{
   assert.equal(owner,'account-a');
   assert.equal((await request('continuity','PUT',{payload:{chat:[]},revision:0})).status,409);
   paid=false;
+  assert.equal((await request('tools')).status,403);
   assert.equal((await request('continuity')).status,200);
   assert.equal((await request('continuity','DELETE')).status,200);assert.equal(cloud,null);
   console.log('PASS API authentication, premium gates, account ownership, conflict response and post-expiry export/delete');

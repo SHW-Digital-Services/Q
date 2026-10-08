@@ -163,7 +163,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
         </div>
 
-        <div className="rounded-xl bg-violet-50 p-4 text-sm"><h3 className="font-bold">Included with Premium</h3><ul className="mt-2 list-disc space-y-1 pl-5"><li>Hosted AI conversations and knowledge search, with usage limits</li><li>Guided programmes with saved progress and reflections</li><li>Advanced journal insights over 30 days, 90 days or a year</li><li>Opt-in cross-device continuity for selected content</li></ul><p className="mt-3 text-xs text-slate-600">Basic journaling, local AI, Life Guides, privacy controls and crisis resources remain free.</p></div>
+        <div className="rounded-xl bg-violet-50 p-4 text-sm"><h3 className="font-bold">Included with Premium</h3><ul className="mt-2 list-disc space-y-1 pl-5"><li>Hosted AI conversations and knowledge search, with usage limits</li><li>Guided programmes with saved progress and reflections</li><li>Advanced journal insights over 30 days, 90 days or a year</li><li>Opt-in cross-device continuity for selected content</li><li>Goal and habit planner with weekly check-ins</li><li>Conversation rehearsal with saved private drafts</li><li>Weekly reflections and next-week planning</li></ul><p className="mt-3 text-xs text-slate-600">Basic journaling, local AI, Life Guides, privacy controls and crisis resources remain free.</p></div>
         {!includedAccess && <div className="grid gap-3 sm:grid-cols-2">
           {[
             {

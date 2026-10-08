@@ -41,6 +41,7 @@ const StaffChat = lazy(() => import('./components/StaffChat'));
 const DeveloperPage = lazy(() => import('./components/DeveloperPage').then(({ DeveloperPage }) => ({ default: DeveloperPage })));
 const NewsUpdatesPage = lazy(() => import('./components/NewsUpdatesPage').then(({ NewsUpdatesPage }) => ({ default: NewsUpdatesPage })));
 const GuidedProgrammes = lazy(() => import('./components/GuidedProgrammes').then(({ GuidedProgrammes }) => ({ default: GuidedProgrammes })));
+const PremiumWorkspace = lazy(() => import('./components/PremiumWorkspace'));
 
 function isViewAppRequest() {
   if (typeof window === 'undefined') return false;
@@ -325,7 +326,7 @@ export default function App() {
     setIsAdminPanelOpen(false);
     setIsProgrammeCourseOpen(false);
     if (
-      newTab === 'journal' &&
+      (newTab === 'journal' || newTab === 'premium') &&
       securitySettings.enabled &&
       securitySettings.lockScope === 'journal_only'
     ) {
@@ -409,7 +410,7 @@ export default function App() {
   const isLockActive =
     isLocked &&
     securitySettings.enabled &&
-    (securitySettings.lockScope === 'entire_app' || activeTab === 'journal');
+    (securitySettings.lockScope === 'entire_app' || activeTab === 'journal' || activeTab === 'premium');
 
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
@@ -505,6 +506,7 @@ export default function App() {
             {!isAdminPanelOpen && activeTab === 'chat' && <QAssistantView userId={currentUser.id} onOpenReflection={() => setActiveTab('journal')} onOpenCrisis={(country) => { setCrisisCountry(country); setIsCrisisOpen(true); }} onOpenSubscription={() => setIsSubscriptionOpen(true)} />}
             {!isAdminPanelOpen && activeTab === 'guides' && <><GuidedProgrammes onCourseOpenChange={handleProgrammeCourseOpenChange} />{!isProgrammeCourseOpen && <LifeGuidesView />}</>}
             {!isAdminPanelOpen && activeTab === 'stories' && <LivedExperiencesView />}
+            {!isAdminPanelOpen && activeTab === 'premium' && <PremiumWorkspace key={currentUser.id} />}
             {!isAdminPanelOpen && activeTab === 'journal' && (
               <JournalView
                 userId={currentUser.id}
@@ -548,7 +550,7 @@ export default function App() {
           onResetSecurity={handleResetSecurity}
           scopeLabel={
             securitySettings.lockScope === 'journal_only'
-              ? 'Private Journal Locked'
+              ? (activeTab === 'premium' ? 'Premium Workspace Locked' : 'Private Journal Locked')
               : 'Q Privacy Lock'
           }
         />

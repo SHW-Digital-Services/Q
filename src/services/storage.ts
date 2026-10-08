@@ -14,6 +14,7 @@ import {
   INITIAL_LIVED_EXPERIENCES,
   INITIAL_JOURNAL_ENTRIES
 } from '../data/initialData';
+import { validWorkspace, workspaceKey } from './premiumWorkspace';
 
 const KEYS = {
   PROFILE: 'q_user_profile_v1',
@@ -289,7 +290,7 @@ export function clearChatHistory(userId?: string): void {
 /** Removes locally stored personal content while preserving device security settings. */
 export function clearSensitiveLocalData(): void {
   window.dispatchEvent(new Event('q-local-cleared'));
-  const sensitivePrefixes = [KEYS.PROFILE, KEYS.JOURNAL, KEYS.CHAT, KEYS.MOOD_LOGS, KEYS.GUIDES, 'q_memory_', 'q_programmes_v1', 'q_continuity_v1', 'q_continuity_recovery'];
+  const sensitivePrefixes = [KEYS.PROFILE, KEYS.JOURNAL, KEYS.CHAT, KEYS.MOOD_LOGS, KEYS.GUIDES, 'q_memory_', 'q_programmes_v1', 'q_premium_workspace_v1', 'q_continuity_v1', 'q_continuity_recovery'];
   for (let index = localStorage.length - 1; index >= 0; index--) {
     const key = localStorage.key(index);
     if (key && sensitivePrefixes.some(prefix => key === prefix || key.startsWith(`${prefix}:`))) localStorage.removeItem(key);
@@ -360,7 +361,8 @@ export function exportAppDataJSON(userId?: string): string {
     journal: getJournalEntries(userId),
     moodLogs: getDailyMoodLogs(userId),
     chat: getChatHistory(),
-    programmes: getItem<unknown[]>(`q_programmes_v1:${userId}`, [])
+    programmes: getItem<unknown[]>(`q_programmes_v1:${userId}`, []),
+    ...(userId ? {premiumWorkspace: getItem<unknown>(workspaceKey(userId), null)} : {})
   };
   return JSON.stringify(dump, null, 2);
 }
@@ -370,9 +372,10 @@ export function importAppDataJSON(jsonData: string, userId?: string): boolean {
     if (new Blob([jsonData]).size > 2 * 1024 * 1024) return false;
     const parsed = JSON.parse(jsonData);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
-    const allowed = new Set(['version', 'exportedAt', 'accountScope', 'profile', 'guides', 'experiences', 'journal', 'moodLogs', 'chat', 'programmes']);
+    const allowed = new Set(['version', 'exportedAt', 'accountScope', 'profile', 'guides', 'experiences', 'journal', 'moodLogs', 'chat', 'programmes', 'premiumWorkspace']);
     if (Object.keys(parsed).some((key) => !allowed.has(key)) || !['1.0.0', '2.0.0'].includes(parsed.version)) return false;
     if (parsed.version === '2.0.0' && parsed.accountScope && parsed.accountScope !== userId) return false;
+    if (parsed.premiumWorkspace != null && (!userId || !validWorkspace(parsed.premiumWorkspace))) return false;
     const arrays = ['guides', 'experiences', 'journal', 'moodLogs', 'chat', 'programmes'] as const;
     if (arrays.some((key) => parsed[key] !== undefined && (!Array.isArray(parsed[key]) || parsed[key].length > 10000))) return false;
     if (parsed.profile !== undefined && (!parsed.profile || typeof parsed.profile !== 'object' || Array.isArray(parsed.profile))) return false;
@@ -383,7 +386,9 @@ export function importAppDataJSON(jsonData: string, userId?: string): boolean {
     if (parsed.moodLogs) setItem(userScopedKey(KEYS.MOOD_LOGS, userId), parsed.moodLogs);
     if (parsed.chat) setItem(KEYS.CHAT, parsed.chat);
     if (parsed.programmes && userId) setItem(`q_programmes_v1:${userId}`, parsed.programmes);
+    if (parsed.premiumWorkspace && userId) setItem(workspaceKey(userId), parsed.premiumWorkspace);
     markSynced();
+    window.dispatchEvent(new Event('q-backup-imported'));
     return true;
   } catch (err) {
     console.error('[Q Storage] Import error:', err);

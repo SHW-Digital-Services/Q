@@ -1,11 +1,11 @@
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sun, Moon, MessageCircle, BookOpen, Users, Notebook, CreditCard, LogOut, UserCircle, CircleHelp } from 'lucide-react';
+import { Sun, Moon, MessageCircle, BookOpen, Users, Notebook, CreditCard, LogOut, UserCircle, CircleHelp, Target } from 'lucide-react';
 import { QLogo } from './QLogo';
 import { LanguageSelector } from './LanguageSelector';
 import { useLanguage } from '../contexts/LanguageContext';
 
-export type ActiveTab = 'chat' | 'guides' | 'stories' | 'journal' | 'profile' | 'help';
+export type ActiveTab = 'chat' | 'guides' | 'stories' | 'journal' | 'profile' | 'help' | 'premium';
 
 interface Props {
   activeTab: ActiveTab;
@@ -42,6 +42,7 @@ export const Navbar: React.FC<Props> = ({
     { id: 'guides' as const, label: t('lifeGuides'), shortLabel: t('lifeGuides'), icon: BookOpen, activeClass: 'bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-orange-500/25' },
     { id: 'stories' as const, label: t('peerKnowledge'), shortLabel: t('peerKnowledge'), icon: Users, activeClass: 'bg-gradient-to-br from-emerald-500 to-sky-600 text-white shadow-sky-500/25' },
     { id: 'journal' as const, label: t('privateJournal'), shortLabel: t('privateJournal'), icon: Notebook, activeClass: 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-indigo-500/25' },
+    { id: 'premium' as const, label: 'Premium tools', shortLabel: 'Tools', icon: Target, activeClass: 'bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-violet-500/25' },
     { id: 'profile' as const, label: t('profile'), shortLabel: t('profile'), icon: UserCircle, activeClass: 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-pink-500/25' },
     { id: 'help' as const, label: t('help'), shortLabel: t('help'), icon: CircleHelp, activeClass: 'bg-gradient-to-br from-sky-500 to-violet-600 text-white shadow-sky-500/25' }
   ];
@@ -151,7 +152,7 @@ export const Navbar: React.FC<Props> = ({
 
       <nav className="mobile-safe-bottom sticky bottom-0 z-40 border-t border-purple-100/80 bg-white/95 shadow-[0_-10px_30px_rgba(88,28,135,0.08)] backdrop-blur-xl sm:hidden">
         <div className="mx-auto max-w-md px-2 pt-2">
-          <div className="grid grid-cols-6 gap-1">
+          <div className="grid grid-cols-7 gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = activeTab === item.id;

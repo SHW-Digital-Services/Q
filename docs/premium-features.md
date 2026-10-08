@@ -18,6 +18,16 @@ Cloud copies use account-authorised APIs and are inaccessible through direct bro
 
 Older unscoped guides/chat are never automatically attributed to a new account. Profile offers an explicit import of those older device records, preserving current account records. The original device records remain intact.
 
+## Premium everyday tools
+
+The Premium tools tab adds three features: a goal and habit planner with chosen practice days and weekly check-ins; scripted conversation rehearsal for boundaries, privacy, support and misunderstandings; and saved weekly reflections with a next-week priority. The rehearsal is a writing exercise with fixed practice prompts, not AI roleplay or a prediction of real responses. Weekly activity counts use device-local calendar weeks starting Monday and do not interpret moods or journal prose.
+
+The server authorises the tools catalogue with the existing Premium entitlement. Editing is available only after that check succeeds. Goals, drafts and reflections are saved per account in this browser, with explicit storage errors; they are included in account backup export/import and local-data clearing. They do not use AI providers or cloud continuity. Reading and exporting existing work remain available after expiry. Goal archiving preserves check-in history. No database migration or new provider configuration is required for these tools.
+
+Verify add/check/archive/restore, refresh persistence, changing rehearsal scenarios, selecting earlier reflection weeks, free/expired access, backup restoration, account switching and mobile navigation. `npm run check:premium` covers the catalogue access checks, workspace validation, local calendar boundaries, account separation and backup round-trip.
+
+The journal privacy lock also protects the Premium workspace.
+
 ## Deployment and verification
 
 Apply the generated `20260916160930_premium_continuity.sql` migration before enabling this release. It adds a service-only table and an invoker RPC with atomic optimistic concurrency. The migration can be tested without touching production by running `npm run check:premium`, which uses an isolated PGlite database and HTTP route tests. Also run `npm run lint` and `npm run build`.
