@@ -8,6 +8,9 @@ import { GlobalTextTranslator } from './components/GlobalTextTranslator';
 import { OnlinePresenceProvider } from './contexts/OnlinePresenceContext';
 import { BrevoTrackerConsent } from './components/BrevoTrackerConsent';
 import { Analytics } from '@vercel/analytics/react';
+import { installChunkLoadRecovery } from './services/chunkLoadRecovery';
+
+installChunkLoadRecovery(window);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
