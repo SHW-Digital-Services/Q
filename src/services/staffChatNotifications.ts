@@ -7,7 +7,14 @@ export function systemNotificationsEnabled(userId: string) {
 
 export async function enableSystemNotifications(userId: string) {
   if (!systemNotificationsSupported()) throw Error('System notifications need a supported browser and HTTPS.');
-  const permission = await Notification.requestPermission();
+  if (Notification.permission === 'denied') throw Error('Notifications are blocked. Allow notifications for Q in your browser site settings, then try again.');
+  let timer: number | undefined;
+  const permission = Notification.permission === 'granted' ? 'granted' : await Promise.race([
+    Notification.requestPermission(),
+    new Promise<never>((_resolve, reject) => {
+      timer = window.setTimeout(() => reject(Error('The browser permission prompt did not respond. Check whether it is waiting in your address bar or browser settings, then try again.')), 20000);
+    }),
+  ]).finally(() => { if (timer !== undefined) window.clearTimeout(timer); });
   if (permission !== 'granted') throw Error(permission === 'denied' ? 'Notifications are blocked. Allow notifications for Q in your browser site settings, then try again.' : 'Notification permission was not granted. You can try again when ready.');
   localStorage.setItem(preferenceKey(userId), 'on');
 }
