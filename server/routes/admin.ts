@@ -68,6 +68,72 @@ function sendContentSchemaMissing(res: express.Response) {
 
 adminRouter.use(createAdminSecurityMiddleware(getServiceSupabase));
 
+const vercelLogLimits = new Set([10, 30, 50, 100]);
+
+function parseVercelRuntimeLogs(raw: string): any[] {
+  if (!raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed?.logs)) return parsed.logs;
+    if (Array.isArray(parsed?.data)) return parsed.data;
+    if (parsed && typeof parsed === 'object' && parsed.rowId) return [parsed];
+  } catch { /* Runtime logs may be returned as newline-delimited JSON. */ }
+  return raw.split(/\r?\n/).filter(Boolean).flatMap(line => {
+    try { const parsed = JSON.parse(line); return Array.isArray(parsed) ? parsed : [parsed]; }
+    catch { return []; }
+  });
+}
+
+adminRouter.get('/vercel-logs', asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, private');
+  const identity = await getAuthenticatedUser(req);
+  if (!identity) return res.status(401).json({ error: 'Authentication required.' });
+  const db = getServiceSupabase();
+  if (!db) return res.status(503).json({ error: 'Administrative access is temporarily unavailable.' });
+  const { data: profile, error: profileError } = await db.from('profiles').select('role').eq('id', identity.user.id).maybeSingle();
+  if (profileError || profile?.role !== 'partner_admin') return res.status(403).json({ error: 'An Admin account is required to view Vercel logs.' });
+
+  const limit = Number(req.query.limit ?? 10);
+  if (!vercelLogLimits.has(limit)) return res.status(400).json({ error: 'Choose 10, 30, 50 or 100 logs.' });
+  const token = process.env.Q_VERCEL_API_TOKEN;
+  const projectId = process.env.Q_VERCEL_PROJECT_ID;
+  const teamId = process.env.Q_VERCEL_TEAM_ID;
+  if (!token || !projectId) return res.status(503).json({ error: 'Vercel log access is not configured. Set Q_VERCEL_API_TOKEN and Q_VERCEL_PROJECT_ID in the server environment.' });
+
+  const teamQuery = teamId ? `&teamId=${encodeURIComponent(teamId)}` : '';
+  const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
+  const deploymentsResponse = await fetch(`https://api.vercel.com/v7/deployments?projectId=${encodeURIComponent(projectId)}&target=production&state=READY&limit=10${teamQuery}`, { headers, cache: 'no-store', signal: AbortSignal.timeout(12000) });
+  if (!deploymentsResponse.ok) throw new Error(`Vercel could not list deployments (${deploymentsResponse.status}).`);
+  const deploymentsPayload = await deploymentsResponse.json() as { deployments?: Array<{ uid?: string; id?: string; url?: string }> };
+  const deployments = (deploymentsPayload.deployments ?? []).filter(deployment => deployment.uid || deployment.id).slice(0, 10);
+  const rows: Array<Record<string, any>> = [];
+
+  for (const deployment of deployments) {
+    if (rows.length >= limit) break;
+    const deploymentId = deployment.uid || deployment.id!;
+    const query = teamQuery ? `?teamId=${encodeURIComponent(teamId!)}` : '';
+    const response = await fetch(`https://api.vercel.com/v1/projects/${encodeURIComponent(projectId)}/deployments/${encodeURIComponent(deploymentId)}/runtime-logs${query}`, { headers, cache: 'no-store', signal: AbortSignal.timeout(12000) });
+    if (!response.ok) throw new Error(`Vercel could not read runtime logs (${response.status}).`);
+    const rawLogs = parseVercelRuntimeLogs(await response.text());
+    rows.push(...rawLogs.map(log => ({
+      id: `${deploymentId}:${String(log.rowId ?? `${log.timestampInMs}-${log.message}`)}`,
+      timestamp: Number(log.timestampInMs) || 0,
+      level: typeof log.level === 'string' ? log.level : 'info',
+      message: typeof log.message === 'string' ? log.message.slice(0, 4000) : '',
+      domain: typeof log.domain === 'string' ? log.domain.slice(0, 255) : '',
+      requestMethod: typeof log.requestMethod === 'string' ? log.requestMethod.slice(0, 16) : '',
+      requestPath: typeof log.requestPath === 'string' ? log.requestPath.slice(0, 1000) : '',
+      responseStatusCode: log.responseStatusCode != null && Number.isFinite(Number(log.responseStatusCode)) ? Number(log.responseStatusCode) : null,
+      source: typeof log.source === 'string' ? log.source.slice(0, 64) : '',
+      deploymentUrl: typeof deployment.url === 'string' ? deployment.url.slice(0, 255) : ''
+    })));
+  }
+
+  rows.sort((a, b) => b.timestamp - a.timestamp);
+  return res.json({ logs: rows.slice(0, limit), checkedAt: Date.now() });
+}));
+
 async function paypalRequest(path: string, init: RequestInit = {}) {
   const token = await getPayPalAccessToken();
   const response = await fetch(`${getPaypalBaseUrl()}${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(15000) });
