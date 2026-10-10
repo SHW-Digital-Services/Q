@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 
@@ -23,8 +23,11 @@ export default function VercelLogsPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const requestInFlight = useRef(false);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
+    if (requestInFlight.current) return;
+    requestInFlight.current = true;
     try {
       const session = (await getSupabaseClient()?.auth.getSession())?.data.session;
       if (!session) throw new Error('Sign in again to view Vercel logs.');
@@ -42,6 +45,7 @@ export default function VercelLogsPanel() {
       if (signal?.aborted) return;
       setError(cause instanceof Error ? cause.message : 'Unable to load Vercel logs.');
     } finally {
+      requestInFlight.current = false;
       if (!signal?.aborted) setLoading(false);
     }
   }, [limit]);
