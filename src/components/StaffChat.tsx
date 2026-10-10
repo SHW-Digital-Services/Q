@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, Volume2, VolumeX } from 'lucide-react';
+import { Send, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 import { staffChatName } from '../shared/staffChatName';
 import { systemNotificationsSupported, systemNotificationsEnabled, enableSystemNotifications, disableSystemNotifications, notifyStaffChat } from '../services/staffChatNotifications';
@@ -11,6 +11,7 @@ const control = 'min-h-11 rounded-lg border border-white/10 px-3 py-2 text-sm ho
 export default function StaffChat({ page = true }: { page?: boolean }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [allowed, setAllowed] = useState(false);
+  const [canPurge, setCanPurge] = useState(false);
   const open = page;
   const [messages, setMessages] = useState<Message[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -117,7 +118,7 @@ export default function StaffChat({ page = true }: { page?: boolean }) {
   }, []);
   useEffect(() => {
     const linkedRecipient = page ? new URLSearchParams(window.location.search).get('recipient') || '' : '';
-    setAllowed(false); setMessages([]); setMembers([]); setTeam([]); setRecipient(linkedRecipient); setUnread({}); setToast(''); setError(''); setConnected(false); cursor.current = undefined;
+    setAllowed(false); setCanPurge(false); setMessages([]); setMembers([]); setTeam([]); setRecipient(linkedRecipient); setUnread({}); setToast(''); setError(''); setConnected(false); cursor.current = undefined;
     if (!userId) return;
     const controller = new AbortController(); let timer: number; let toastTimer: number; let running = false; let authorised = false; let denied = false;
     const key = `q-team-chat-draft:${userId}${linkedRecipient ? ':' + linkedRecipient : ''}`;
@@ -130,17 +131,22 @@ export default function StaffChat({ page = true }: { page?: boolean }) {
           const me = await request('/api/v1/admin/me', undefined, controller.signal);
           authorised = ['staff', 'partner_admin'].includes(me.role);
           if (!authorised) return;
+          setCanPurge(me.role === 'partner_admin');
           setAllowed(true);
         }
         const data = await request('/api/staff-chat/sync', { session: session.current, cursor: cursor.current }, controller.signal);
         if (controller.signal.aborted) return;
         if (data.userId !== userId) throw Error('Your signed-in account changed. Refresh Team chat to reconnect with the current account.');
         const incoming: Message[] = data.messages;
+        const publicMessages: Message[] = data.publicMessages || [];
         const fresh = cursor.current !== undefined ? incoming.filter(message => message.user_id !== userId) : [];
         if (incoming.length) {
           cursor.current = String(incoming[incoming.length - 1].id);
-          setMessages(previous => [...new Map([...previous, ...incoming].map(message => [message.id, message])).values()].sort((a, b) => a.id - b.id).slice(-500));
-        } else if (cursor.current === undefined) cursor.current = '0';
+          setMessages(previous => [...new Map([...previous.filter(message => message.recipient_id !== null), ...publicMessages, ...incoming].map(message => [message.id, message])).values()].sort((a, b) => a.id - b.id).slice(-500));
+        } else {
+          setMessages(previous => [...new Map([...previous.filter(message => message.recipient_id !== null), ...publicMessages].map(message => [message.id, message])).values()].sort((a, b) => a.id - b.id).slice(-500));
+          if (cursor.current === undefined) cursor.current = '0';
+        }
         setMembers(data.users); setTeam(data.team); setError(''); setConnected(true);
         if (fresh.length) {
           const unseen = fresh.filter(message => !openRef.current || document.hidden || conversationKey(message) !== recipientRef.current);
@@ -192,12 +198,23 @@ export default function StaffChat({ page = true }: { page?: boolean }) {
       await refresh.current();
     } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
+  async function purgePublicChat() {
+    if (!canPurge || busy || !window.confirm('Permanently delete every message in the public Everyone chat? Private messages will be kept.')) return;
+    setBusy(true);
+    try {
+      await request('/api/staff-chat/purge-public', {});
+      setMessages(previous => previous.filter(message => message.recipient_id !== null));
+      setUnread(previous => ({ ...previous, '': 0 }));
+      setError('');
+      await refresh.current();
+    } catch (e: any) { setError(e.message); } finally { setBusy(false); }
+  }
   if (!allowed) return page ? <p role="status" className="text-slate-400">{error || 'Checking team chat access…'}</p> : null;
   if (!page) return toast ? <button onClick={() => chooseConversation(toastRecipient.current)} role="status" className="fixed bottom-5 right-5 z-[120] w-80 max-w-[calc(100vw-40px)] rounded-xl border border-violet-400/40 bg-slate-900 p-4 text-left text-sm text-slate-100 shadow-xl"><strong className="block text-violet-300">New message</strong>{toast}</button> : null;
   return <div className="w-full min-w-0 text-slate-100">
     {toast && <button onClick={() => chooseConversation(toastRecipient.current)} role="status" className="fixed bottom-5 right-5 z-[120] w-80 max-w-[calc(100vw-40px)] rounded-xl border border-violet-400/40 bg-slate-900 p-4 text-left text-sm shadow-xl"><strong className="block text-violet-300">New message</strong>{toast}</button>}
     <section aria-label="Staff and Admin team chat" className="flex h-[max(680px,calc(100dvh-64px))] w-full flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-950">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-4 py-3 sm:px-6"><div><h1 className="text-xl font-bold">Team chat</h1><p className="mt-1 text-xs text-slate-400">{recipient ? `Private · ${recipientName}` : 'Everyone'} · {connected ? 'Connected' : 'Reconnecting…'}</p></div><div className="flex items-center gap-2">{unreadCount > 0 && <span className="rounded-full bg-rose-600 px-3 py-1 text-sm">{unreadCount} unread</span>}<button type="button" aria-expanded={showChatOptions} aria-controls="team-chat-options" onClick={() => setShowChatOptions(value => !value)} className={`${control} lg:hidden`}>Conversations & options</button></div></header>
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-4 py-3 sm:px-6"><div><h1 className="text-xl font-bold">Team chat</h1><p className="mt-1 text-xs text-slate-400">{recipient ? `Private · ${recipientName}` : 'Everyone'} · {connected ? 'Connected' : 'Reconnecting…'}</p></div><div className="flex items-center gap-2">{unreadCount > 0 && <span className="rounded-full bg-rose-600 px-3 py-1 text-sm">{unreadCount} unread</span>}{canPurge && <button type="button" disabled={busy} onClick={() => void purgePublicChat()} className={`${control} border-rose-400/40 text-rose-200`}><Trash2 size={16} /> Purge public chat</button>}<button type="button" aria-expanded={showChatOptions} aria-controls="team-chat-options" onClick={() => setShowChatOptions(value => !value)} className={`${control} lg:hidden`}>Conversations & options</button></div></header>
       <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside id="team-chat-options" aria-label="Chat options and team members" className={`${showChatOptions ? 'block' : 'hidden'} max-h-[40dvh] shrink-0 overflow-y-auto border-b border-slate-800 bg-slate-900/40 lg:block lg:max-h-none lg:border-b-0 lg:border-r`}>
       <div className="border-b border-slate-800 px-4 py-3"><button type="button" disabled={systemBusy || !systemNotificationsSupported()} aria-pressed={systemEnabled} onClick={() => void toggleSystemNotifications()} className={control}>{systemBusy ? 'Checking permission…' : systemEnabled ? 'System notifications on · turn off' : 'Enable system notifications'}</button><p className="mt-2 text-xs text-slate-400">{systemNotificationsSupported() ? 'Alerts appear in your device’s notification centre while Q is open, including when it is in the background. Message text stays hidden in system alerts.' : 'System notifications are unavailable in this browser. In-app alerts still work.'}</p></div>

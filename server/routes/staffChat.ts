@@ -29,12 +29,21 @@ export function createStaffChatRouter(authorise = requireStaff) {
       db.from('profiles').select('id,preferred_name,role').in('role', ['staff', 'partner_admin']).order('preferred_name'),
     ]);
     if (messages.error || presence.error || team.error) { res.status(503).json({ error: 'Unable to load team chat.' }); return; }
+    const publicHistory = await db.from('staff_chat_messages').select(fields).is('recipient_id', null).order('id', { ascending: false }).limit(100);
+    if (publicHistory.error) { res.status(503).json({ error: 'Unable to load team chat.' }); return; }
     const users = new Map<string, { id: string; name: string; role: string }>();
     for (const row of presence.data || []) {
       const profile = row.profiles as any;
       users.set(row.user_id, { id: row.user_id, name: staffChatName(profile.preferred_name, profile.role), role: profile.role });
     }
-    res.json({ messages: cursor === undefined ? (messages.data || []).reverse() : messages.data || [], users: [...users.values()], team: (team.data || []).map(profile => ({ id: profile.id, name: staffChatName(profile.preferred_name, profile.role), role: profile.role })), userId: staff.identity.user.id });
+    res.json({ messages: cursor === undefined ? (messages.data || []).reverse() : messages.data || [], publicMessages: (publicHistory.data || []).reverse(), users: [...users.values()], team: (team.data || []).map(profile => ({ id: profile.id, name: staffChatName(profile.preferred_name, profile.role), role: profile.role })), userId: staff.identity.user.id });
+  }));
+  router.post('/purge-public', asyncHandler(async (req, res) => {
+    const staff = await authorise(req, res); if (!staff) return;
+    if (staff.role !== 'partner_admin') { res.status(403).json({ error: 'Admin access required to purge public chat.' }); return; }
+    const result = await staff.serviceSupabase.from('staff_chat_messages').delete().is('recipient_id', null).select('id');
+    if (result.error) { res.status(503).json({ error: 'Public chat could not be purged.' }); return; }
+    res.json({ success: true, deleted: result.data?.length || 0 });
   }));
   router.post('/history', asyncHandler(async (req, res) => {
     const staff = await authorise(req, res); if (!staff) return;
