@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BookOpen, CheckCircle2, Circle, ClipboardList, Compass, FileText, Flag, ListChecks, Map, Menu, PenLine, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle2, Circle, ClipboardList, Compass, Download, FileText, Flag, ListChecks, Map, Menu, PenLine, ShieldCheck } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { PremiumGate, usePremium } from '../contexts/PremiumContext';
 import { premiumRequest } from '../services/premium';
 import { ProgrammeActivity, ProgrammeActivityConfig } from './ProgrammeActivity';
@@ -92,6 +93,53 @@ export function GuidedProgrammes({ onCourseOpenChange }: { onCourseOpenChange?: 
   const progressPct = programme?.sessions.length ? Math.round((progressCount / programme.sessions.length) * 100) : 0;
   const currentSession = programme?.sessions[step];
 
+  const exportAnswers = () => {
+    if (!programme) return;
+
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 18;
+    const contentWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    const ensureRoom = (height: number) => {
+      if (y + height > pageHeight - margin) {
+        pdf.addPage();
+        y = margin;
+      }
+    };
+    const writeBlock = (text: string, options: { size?: number; bold?: boolean; gap?: number } = {}) => {
+      const { size = 10, bold = false, gap = 4 } = options;
+      pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+      pdf.setFontSize(size);
+      const lines = pdf.splitTextToSize(text || ' ', contentWidth) as string[];
+      const lineHeight = size * 0.48;
+      ensureRoom(lines.length * lineHeight + gap);
+      pdf.text(lines, margin, y);
+      y += lines.length * lineHeight + gap;
+    };
+
+    pdf.setProperties({ title: `${programme.title} — Guided programme answers`, subject: 'Guided programme activity answers' });
+    writeBlock(programme.title, { size: 20, bold: true, gap: 3 });
+    writeBlock('Guided programme answers', { size: 12, bold: true, gap: 2 });
+    writeBlock(`Exported ${new Date().toLocaleDateString('en-GB')} · ${completedSessions.size} of ${programme.sessions.length} steps complete`, { size: 9, gap: 7 });
+    writeBlock(programme.summary, { size: 10, gap: 8 });
+
+    programme.sessions.forEach((session, index) => {
+      if (index > 0) y += 3;
+      ensureRoom(18);
+      writeBlock(`Step ${index + 1}${completedSessions.has(index) ? ' · Complete' : ''}: ${session.title}`, { size: 13, bold: true, gap: 3 });
+      writeBlock('Activity prompt', { size: 9, bold: true, gap: 1 });
+      writeBlock(session.prompt, { size: 10, gap: 3 });
+      writeBlock('Your answer', { size: 9, bold: true, gap: 1 });
+      writeBlock(saved.notes[index]?.trim() || 'No answer saved.', { size: 10, gap: 3 });
+    });
+
+    const safeTitle = programme.title.normalize('NFKD').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'guided-programme';
+    pdf.save(`${safeTitle}-answers.pdf`);
+  };
+
   return (
     <PremiumGate title="Guided programmes" description="Course-style guided programmes with structured steps, varied activities and practical completion actions. Pause or revisit whenever you need.">
       {error ? <p role="alert" className="text-rose-700 dark:text-rose-200">{error}</p> : null}
@@ -138,11 +186,14 @@ export function GuidedProgrammes({ onCourseOpenChange }: { onCourseOpenChange?: 
                   <h3 className="mt-3 text-2xl font-black text-slate-950 dark:text-white">{programme.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">{programme.summary}</p>
                 </div>
-                <div className="min-w-44 rounded-xl border border-white bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-950">
-                  <p className="text-[10px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Course progress</p>
-                  <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">{progressPct}%</p>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${progressPct}%` }} /></div>
-                  <p className="mt-2 text-xs font-semibold text-slate-600 dark:text-slate-300">{progressCount} of {programme.sessions.length} steps complete</p>
+                <div className="flex min-w-44 flex-col gap-3">
+                  <div className="rounded-xl border border-white bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-950">
+                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">Course progress</p>
+                    <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">{progressPct}%</p>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${progressPct}%` }} /></div>
+                    <p className="mt-2 text-xs font-semibold text-slate-600 dark:text-slate-300">{progressCount} of {programme.sessions.length} steps complete</p>
+                  </div>
+                  <button type="button" onClick={exportAnswers} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-bold text-white hover:bg-violet-600"><Download className="h-4 w-4" /> Export answers (PDF)</button>
                 </div>
               </div>
             </div>

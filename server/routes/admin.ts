@@ -112,38 +112,35 @@ adminRouter.get('/vercel-logs', asyncHandler(async (req, res) => {
   const teamQuery = teamId ? `&teamId=${encodeURIComponent(teamId)}` : '';
   const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
   let rows: Array<Record<string, any>>;
+  // Keep the provider work bounded so the function can return before Vercel's
+  // gateway deadline. The auth and role checks above happen before this timer.
+  const vercelSignal = AbortSignal.timeout(7000);
   try {
-    const deploymentsResponse = await fetch(`https://api.vercel.com/v7/deployments?projectId=${encodeURIComponent(projectId)}&target=production&state=READY&limit=10${teamQuery}`, { headers, cache: 'no-store', signal: AbortSignal.timeout(12000) });
+    const deploymentsResponse = await fetch(`https://api.vercel.com/v7/deployments?projectId=${encodeURIComponent(projectId)}&target=production&state=READY&limit=10${teamQuery}`, { headers, cache: 'no-store', signal: vercelSignal });
     if (!deploymentsResponse.ok) return res.status(502).json({ error: `Vercel could not list deployments (${deploymentsResponse.status}).` });
     const deploymentsPayload = await deploymentsResponse.json() as { deployments?: Array<{ uid?: string; id?: string; url?: string }> };
     const deployments = (deploymentsPayload.deployments ?? []).filter(deployment => deployment.uid || deployment.id).slice(0, 10);
-    rows = [];
-
-    // Read small batches concurrently so a slow deployment cannot make the route
-    // spend up to 12 seconds on each of the ten candidates in sequence.
-    for (let index = 0; index < deployments.length && rows.length < limit; index += 3) {
-      const batch = deployments.slice(index, index + 3);
-      const batchRows = await Promise.all(batch.map(async deployment => {
-        const deploymentId = deployment.uid || deployment.id!;
-        const query = teamQuery ? `?teamId=${encodeURIComponent(teamId!)}` : '';
-        const response = await fetch(`https://api.vercel.com/v1/projects/${encodeURIComponent(projectId)}/deployments/${encodeURIComponent(deploymentId)}/runtime-logs${query}`, { headers, cache: 'no-store', signal: AbortSignal.timeout(12000) });
-        if (!response.ok) throw new Error(`Vercel could not read runtime logs (${response.status}).`);
-        const rawLogs = parseVercelRuntimeLogs(await response.text());
-        return rawLogs.map(log => ({
-          id: `${deploymentId}:${String(log.rowId ?? `${log.timestampInMs}-${log.message}`)}`,
-          timestamp: Number(log.timestampInMs) || 0,
-          level: typeof log.level === 'string' ? log.level : 'info',
-          message: typeof log.message === 'string' ? log.message.slice(0, 4000) : '',
-          domain: typeof log.domain === 'string' ? log.domain.slice(0, 255) : '',
-          requestMethod: typeof log.requestMethod === 'string' ? log.requestMethod.slice(0, 16) : '',
-          requestPath: typeof log.requestPath === 'string' ? log.requestPath.slice(0, 1000) : '',
-          responseStatusCode: log.responseStatusCode != null && Number.isFinite(Number(log.responseStatusCode)) ? Number(log.responseStatusCode) : null,
-          source: typeof log.source === 'string' ? log.source.slice(0, 64) : '',
-          deploymentUrl: typeof deployment.url === 'string' ? deployment.url.slice(0, 255) : ''
-        }));
+    const results = await Promise.allSettled(deployments.map(async deployment => {
+      const deploymentId = deployment.uid || deployment.id!;
+      const query = teamQuery ? `?teamId=${encodeURIComponent(teamId!)}` : '';
+      const response = await fetch(`https://api.vercel.com/v1/projects/${encodeURIComponent(projectId)}/deployments/${encodeURIComponent(deploymentId)}/runtime-logs${query}`, { headers, cache: 'no-store', signal: vercelSignal });
+      if (!response.ok) return [];
+      const rawLogs = parseVercelRuntimeLogs(await response.text());
+      return rawLogs.map(log => ({
+        id: `${deploymentId}:${String(log.rowId ?? `${log.timestampInMs}-${log.message}`)}`,
+        timestamp: Number(log.timestampInMs) || 0,
+        level: typeof log.level === 'string' ? log.level : 'info',
+        message: typeof log.message === 'string' ? log.message.slice(0, 4000) : '',
+        domain: typeof log.domain === 'string' ? log.domain.slice(0, 255) : '',
+        requestMethod: typeof log.requestMethod === 'string' ? log.requestMethod.slice(0, 16) : '',
+        requestPath: typeof log.requestPath === 'string' ? log.requestPath.slice(0, 1000) : '',
+        responseStatusCode: log.responseStatusCode != null && Number.isFinite(Number(log.responseStatusCode)) ? Number(log.responseStatusCode) : null,
+        source: typeof log.source === 'string' ? log.source.slice(0, 64) : '',
+        deploymentUrl: typeof deployment.url === 'string' ? deployment.url.slice(0, 255) : ''
       }));
-      rows.push(...batchRows.flat());
-    }
+    }));
+    rows = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
+    if (!rows.length && vercelSignal.aborted) throw new Error('Vercel request timed out.');
   } catch (error) {
     if (isVercelTimeout(error)) return res.status(504).json({ error: 'Vercel logs took too long to load. Try again shortly.' });
     return res.status(502).json({ error: 'Vercel logs are temporarily unavailable. Try again shortly.' });
