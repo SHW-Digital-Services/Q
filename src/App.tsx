@@ -37,6 +37,8 @@ const RoadmapPage = lazy(() => import('./components/RoadmapPage'));
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(({ AdminPanel }) => ({ default: AdminPanel })));
 const CommsPortal = lazy(() => import('./components/CommsPortal'));
 const OnlineUsersPage = lazy(() => import('./components/OnlineUsersPage'));
+const CustomerArchivePage = lazy(() => import('./components/CustomerArchivePage'));
+const AdminAuditLogPage = lazy(() => import('./components/AdminAuditLogPage'));
 const StaffChat = lazy(() => import('./components/StaffChat'));
 const DeveloperPage = lazy(() => import('./components/DeveloperPage').then(({ DeveloperPage }) => ({ default: DeveloperPage })));
 const NewsUpdatesPage = lazy(() => import('./components/NewsUpdatesPage').then(({ NewsUpdatesPage }) => ({ default: NewsUpdatesPage })));
@@ -455,7 +457,7 @@ export default function App() {
       <div className="q-scroll-page bg-slate-950 text-slate-100">
         <StatusPageButton />
         <CrmDraftProvider key={currentUser.id} userId={currentUser.id}><CrmNotifications /><Suspense fallback={<LoadingView label="Loading CRM..." />}>
-          <CrmWorkspace onPreview={startPreview} view={isChatRoute?'chat':isOnlineUsersRoute?'online':isCommsRoute?'communications':crmView} onSignOut={handleSignOut}>{isChatRoute ? <StaffChat /> : isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : <AdminPanel view={crmView} adminMode={isAdminFunctionsRoute} onClose={() => window.location.assign('/app')} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onSignOut={handleSignOut} />}</CrmWorkspace>
+          <CrmWorkspace onPreview={startPreview} view={isChatRoute?'chat':isOnlineUsersRoute?'online':isCommsRoute?'communications':crmView} onSignOut={handleSignOut}>{isChatRoute ? <StaffChat /> : isOnlineUsersRoute ? <OnlineUsersPage onSignOut={handleSignOut} /> : isCommsRoute ? <CommsPortal onSignOut={handleSignOut} /> : crmView === 'customer-archive' ? <CustomerArchivePage /> : crmView === 'audit-log' ? <AdminAuditLogPage /> : <AdminPanel view={crmView} adminMode={isAdminFunctionsRoute} onClose={() => window.location.assign('/app')} onPreview={startPreview} enabled={launchEnabled} onToggle={setLaunchEnabled} onSignOut={handleSignOut} />}</CrmWorkspace>
         </Suspense></CrmDraftProvider>
       </div>
     );

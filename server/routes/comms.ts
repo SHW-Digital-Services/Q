@@ -6,6 +6,7 @@ import { asyncHandler } from '../middleware.js';
 import { requireExactObject } from '../security.js';
 import { MailError, mailConfig, sealMail, openMail, mailId, mailRecipients, Microsoft365MailClient, boundedResponse, allowedMailOrigin } from '../microsoft365Mail.js';
 import type { MailConfig, MailSession } from '../microsoft365Mail.js';
+import { normalizeCrmEmailSignature, renderCrmEmailHtml } from '../../src/services/crmEmailSignature.js';
 
 type Dependencies = { authoriseStaff: typeof requireStaff; config: () => MailConfig | null; fetcher: typeof fetch; mailbox?: string; privateMailbox?: boolean };
 type AttachmentProof = { owner: string; account: string; expires: number; attachment: { storeName: string; attachmentName: string; attachmentPath: string } };
@@ -207,7 +208,9 @@ export function createCommsRouter(dependencies: Dependencies) {
     if (!draft && /\{\{[^{}]+\}\}/.test(`${subject}\n${content}`)) throw new MailError(400, 'Complete all template placeholders before sending.');
     if (draft && replyTo) throw new MailError(400, 'Reply drafts are kept open in Q. Save a new message as a Microsoft 365 draft instead.');
     const client = res.locals.mailClient as Microsoft365MailClient;
-    const payload: any = { fromAddress: mailbox, toAddress: mailRecipients(req.body.to, true), ccAddress: mailRecipients(req.body.cc || ''), bccAddress: mailRecipients(req.body.bcc || ''), subject: subject.trim(), content, mailFormat: 'plaintext', encoding: 'UTF-8' };
+    const signature = normalizeCrmEmailSignature(res.locals.mailStaff.identity.user.user_metadata?.crm_email_signature);
+    if (!signature) throw new MailError(409, 'Set up your CRM email signature before sending email.');
+    const payload: any = { fromAddress: mailbox, toAddress: mailRecipients(req.body.to, true), ccAddress: mailRecipients(req.body.cc || ''), bccAddress: mailRecipients(req.body.bcc || ''), subject: subject.trim(), content: renderCrmEmailHtml(content, signature), mailFormat: 'html', encoding: 'UTF-8' };
     payload.attachments = attachments.map(proof => {
       if (typeof proof !== 'string') throw new MailError(400, 'Invalid attachment.');
       const data = openMail<AttachmentProof>(proof, res.locals.mailConfig.key, 'attachment');

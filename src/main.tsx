@@ -10,6 +10,7 @@ import { OnlinePresenceProvider } from './contexts/OnlinePresenceContext';
 import { BrevoTrackerConsent } from './components/BrevoTrackerConsent';
 import { Analytics } from '@vercel/analytics/react';
 import { installChunkLoadRecovery } from './services/chunkLoadRecovery';
+import UserActivityTracker from './components/UserActivityTracker';
 
 installChunkLoadRecovery(window);
 
@@ -19,7 +20,7 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <GlobalTextTranslator />
         {window.location.pathname !== '/support' && <BrevoTrackerConsent />}
-        <OnlinePresenceProvider><App />{!['/crm/chat', '/admin/crm/chat'].includes(window.location.pathname) && <StaffChat page={false} />}</OnlinePresenceProvider>
+        <OnlinePresenceProvider><UserActivityTracker /><App />{!['/crm/chat', '/admin/crm/chat'].includes(window.location.pathname) && <StaffChat page={false} />}</OnlinePresenceProvider>
         {window.location.pathname !== '/support' && <Analytics />}
       </ThemeProvider>
     </LanguageProvider>

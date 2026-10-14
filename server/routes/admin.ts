@@ -8,6 +8,7 @@ import { createAdminSecurityMiddleware, isUuid, requireExactObject, writeSecurit
 import { listAdminContent } from '../adminContentList.js';
 import { syncPayPalProductStatus } from '../paypalProductStatus.js';
 import { sendEmailChangeConfirmations } from '../supportMail.js';
+import { normalizeCrmEmailSignature } from '../../src/services/crmEmailSignature.js';
 
 export const adminRouter = express.Router();
 
@@ -546,15 +547,26 @@ export async function requireStaff(req: express.Request, res: express.Response) 
 adminRouter.get('/me', asyncHandler(async (req, res) => {
   const adminCtx = await requireStaff(req, res);
   if (!adminCtx) return;
+  res.setHeader('Cache-Control', 'no-store, private');
 
+  const user = adminCtx.identity.user;
+  const microsoftIdentity = user.identities?.find(identity => String(identity.provider || '').toLowerCase().startsWith('sso:'));
+  const microsoftClaims = { ...(user.user_metadata || {}), ...(microsoftIdentity?.identity_data || {}) } as Record<string, unknown>;
+  const signatureDefaultName = [
+    microsoftClaims.full_name, microsoftClaims.name, microsoftClaims.display_name, microsoftClaims.displayName,
+    [microsoftClaims.given_name || microsoftClaims.givenName, microsoftClaims.family_name || microsoftClaims.surname].filter(Boolean).join(' ')
+  ].find(value => typeof value === 'string' && value.trim()) as string | undefined;
+  const emailSignature = normalizeCrmEmailSignature(user.user_metadata?.crm_email_signature);
   return res.json({
     success: true,
     user: {
-      id: adminCtx.identity.user.id,
-      email: adminCtx.identity.user.email
+      id: user.id,
+      email: user.email
     },
     role: adminCtx.role,
-    permissions: adminCtx.permissions
+    permissions: adminCtx.permissions,
+    emailSignature,
+    signatureDefaultName: signatureDefaultName?.trim() || ''
   });
 }));
 
