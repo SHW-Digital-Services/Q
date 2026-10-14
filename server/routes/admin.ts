@@ -4,9 +4,10 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser, asyncHandler, getCanonicalAppUrl, sendOpaqueError } from '../middleware.js';
 import { buildAnalyticsExport } from '../analyticsEngine.js';
 import { getPayPalAccessToken, getPaypalBaseUrl } from './billing.js';
-import { createAdminSecurityMiddleware, requireExactObject, writeSecurityEvent } from '../security.js';
+import { createAdminSecurityMiddleware, isUuid, requireExactObject, writeSecurityEvent } from '../security.js';
 import { listAdminContent } from '../adminContentList.js';
 import { syncPayPalProductStatus } from '../paypalProductStatus.js';
+import { sendEmailChangeConfirmations } from '../supportMail.js';
 
 export const adminRouter = express.Router();
 
@@ -906,6 +907,47 @@ adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
     entitlements: entitlementsResult.data ?? [], activities: activitiesResult.data ?? [], communications: communicationsResult.data ?? [], referralCredits: referralCreditsResult.data ?? [],
     peerKnowledgeContributions: peerKnowledgeResult.error ? [] : peerKnowledgeResult.data ?? []
   });
+}));
+
+adminRouter.post('/crm/users/:id/email-change', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  if (!isUuid(req.params.id)) return res.status(400).json({ error: 'Invalid customer account.' });
+  if (!requireExactObject(req.body, ['newEmail'])) return res.status(400).json({ error: 'Unexpected request fields.' });
+  const newEmail = typeof req.body?.newEmail === 'string' ? req.body.newEmail.trim().toLowerCase() : '';
+  if (newEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) return res.status(400).json({ error: 'Enter a valid new email address.' });
+
+  const { serviceSupabase } = adminCtx;
+  const [{ data: authData, error: authError }, { data: profile, error: profileError }] = await Promise.all([
+    serviceSupabase.auth.admin.getUserById(req.params.id),
+    serviceSupabase.from('profiles').select('role').eq('id', req.params.id).maybeSingle()
+  ]);
+  if (authError || !authData?.user) return res.status(404).json({ error: 'Customer account not found.' });
+  if (profileError) return res.status(500).json({ error: 'Unable to check the customer account role.' });
+  if (!['user', 'beta_tester'].includes(profile?.role)) return res.status(403).json({ error: 'Customer email changes are not available for Staff or Admin accounts.' });
+
+  const currentEmail = String(authData.user.email || '').trim().toLowerCase();
+  if (!currentEmail) return res.status(409).json({ error: 'This account does not have a current email address to verify.' });
+  if (newEmail === currentEmail) return res.status(400).json({ error: 'Enter an email address different from the current one.' });
+
+  const redirectTo = `${getCanonicalAppUrl().replace(/\/$/, '')}/crm`;
+  const [currentConfirmation, newConfirmation] = await Promise.all([
+    serviceSupabase.auth.admin.generateLink({ type: 'email_change_current', email: currentEmail, newEmail, options: { redirectTo } }),
+    serviceSupabase.auth.admin.generateLink({ type: 'email_change_new', email: currentEmail, newEmail, options: { redirectTo } })
+  ]);
+  const currentLink = currentConfirmation.data?.properties?.action_link;
+  const newLink = newConfirmation.data?.properties?.action_link;
+  if (currentConfirmation.error || newConfirmation.error || !currentLink || !newLink) {
+    return res.status(503).json({ error: 'Email change verification is unavailable. Check that Secure email change is enabled in Supabase Auth settings.' });
+  }
+
+  try {
+    await sendEmailChangeConfirmations(currentEmail, currentLink, newEmail, newLink);
+  } catch {
+    return res.status(503).json({ error: 'We could not deliver both verification emails. If you received only one, do not use it; ask an Admin to restart the request.' });
+  }
+
+  await recordCrmActivity(serviceSupabase, req.params.id, adminCtx.identity.user.id, 'customer_email_change_requested', 'Customer account email change requested', { verificationRequired: true });
+  return res.json({ success: true, message: 'Verification links were sent to the current and new email addresses. The sign-in email changes only after both addresses are confirmed.' });
 }));
 
 adminRouter.post('/crm/users/:id/referral-credits', asyncHandler(async (req, res) => {

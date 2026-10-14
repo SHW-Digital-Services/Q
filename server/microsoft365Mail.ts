@@ -10,7 +10,7 @@ export function mailConfig(prefix = 'M365_MAIL'): MailConfig | null {
   const key = (process.env[`${prefix}_COOKIE_KEY`] || process.env[`${shared}COOKIE_KEY`])?.trim(), refreshToken = process.env[`${prefix}_REFRESH_TOKEN`]?.trim();
   if (!clientId || !refreshToken || !key || !/^[a-f0-9]{64}$/i.test(key)) return null;
   const appOrigin = getCanonicalAppUrl();
-  const mailboxId = (process.env[`${prefix}_MAILBOX_ID`] || (prefix === 'M365_SCOTT_MAIL' ? 'scott@q-ai.online' : 'office@q-ai.online')).trim().toLowerCase();
+  const mailboxId = (process.env[`${prefix}_MAILBOX_ID`] || (prefix === 'M365_SCOTT_MAIL' ? 'scott@q-ai.online' : 'cs@q-ai.online')).trim().toLowerCase();
   if (!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(mailboxId)) return null;
   return { clientId, tenantId, mailboxId, refreshToken, key: Buffer.from(key, 'hex'), accountsOrigin: `https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/oauth2/v2.0`, mailOrigin: 'https://graph.microsoft.com/v1.0', redirectUri: `${appOrigin}/api/comms/oauth/callback`, appOrigin, secure: new URL(appOrigin).protocol === 'https:' };
 }
@@ -71,7 +71,7 @@ export class Microsoft365MailClient {
   private async post(path:string,body:any){const r=await this.request(this.url(path),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(r.status===204||r.status===202)return{};return r.json();}
   private async patch(path:string,body:any){const r=await this.request(this.url(path),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return r.status===204?{}:r.json();}
   private compose(body:any){const recipients=(key:string)=>String(body[key]||'').split(',').map((address:string)=>address.trim()).filter(Boolean).map((address:string)=>({emailAddress:{address}}));const attachments=(body.attachments||[]).map((a:any)=>{const item=this.uploads.get(String(a.storeName));if(!item||item.expires<Date.now())throw new MailError(400,'An uploaded attachment expired. Upload it again.');this.uploads.delete(String(a.storeName));return{'@odata.type':'#microsoft.graph.fileAttachment',name:item.name,contentType:'application/octet-stream',contentBytes:item.bytes.toString('base64')};});return{subject:body.subject,body:{contentType:'Text',content:body.content},toRecipients:recipients('toAddress'),ccRecipients:recipients('ccAddress'),bccRecipients:recipients('bccAddress'),attachments};}
-  async sendNotification(email:string,content:string){await this.json('/accounts/1/messages',{method:'POST',body:JSON.stringify({fromAddress:this.mailboxEmail,toAddress:email,subject:'Your Q support request',content,mailFormat:'plaintext',encoding:'UTF-8'})});}
+  async sendNotification(email:string,content:string,subject='Your Q support request'){await this.json('/accounts/1/messages',{method:'POST',body:JSON.stringify({fromAddress:this.mailboxEmail,toAddress:email,subject,content,mailFormat:'plaintext',encoding:'UTF-8'})});}
   async refresh(){if(this.refreshing)return this.refreshing;this.refreshing=(async()=>{const d=await tokenRequest(this.config,this.fetcher);this.session.access=d.access_token;this.session.tokenExpires=Date.now()+Math.min(Number(d.expires_in)||3600,3600)*1000;if(d.refresh_token)this.session.refresh=d.refresh_token;this.onRefresh();})();try{await this.refreshing;}finally{this.refreshing=null;}}
 }
 export { Microsoft365MailClient as ZohoMailClient };

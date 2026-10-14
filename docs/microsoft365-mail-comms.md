@@ -1,6 +1,6 @@
 # Microsoft 365 Communications
 
-Q's CRM Communications portal uses Microsoft Graph for the shared `office@q-ai.online` mailbox and Scott's private `scott@q-ai.online` mailbox. Q operators sign into Q; the mailbox authorizations are held by the server. Every request still checks the current Q Staff/Admin role, and only `scott@q-ai.online` can use the private mailbox. The office mailbox is the only mailbox used for support-ticket sync and generic support email notifications.
+Q's CRM Communications portal uses Microsoft Graph for the shared `cs@q-ai.online` mailbox and Scott's private `scott@q-ai.online` mailbox. Q operators sign into Q; the mailbox authorizations are held by the server. Every request still checks the current Q Staff/Admin role, and only `scott@q-ai.online` can use the private mailbox. The shared mailbox is the only mailbox used for support-ticket sync and generic support email notifications.
 
 The provider switch changes how Q accesses mail; it does not move old messages or change Microsoft 365 mail routing, domains, MX records, or mailbox configuration. Complete any historical mailbox migration and delivery/DNS work separately in Microsoft 365. Q's portal reads the mailbox currently selected in the Entra environment configuration.
 
@@ -14,17 +14,17 @@ The live customer history and ticket sync resolve customer addresses from verifi
 
 ## One-time Microsoft Entra setup
 
-1. Finish creating or migrating `office@q-ai.online` and `scott@q-ai.online` in the Microsoft 365 tenant. Confirm each mailbox receives and sends mail in Outlook. This setup does not change DNS or import Zoho history.
+1. Finish creating or migrating `cs@q-ai.online` and `scott@q-ai.online` in the Microsoft 365 tenant. Confirm each mailbox receives and sends mail in Outlook. This setup does not change DNS or import Zoho history.
 2. In the Microsoft Entra admin center, register a single-tenant application for the Q tenant. Under **Authentication**, enable **Allow public client flows** so the local device-code helper can authorize each mailbox. Do not create a client secret for this device-code setup.
 3. Under **API permissions > Microsoft Graph > Delegated permissions**, add `Mail.ReadWrite`, `Mail.Send`, `Mail.ReadWrite.Shared`, and `Mail.Send.Shared`. The first two cover the signed-in user's mailbox; the `.Shared` scopes permit access to a shared/delegated mailbox only where that user already has Exchange mailbox rights. Grant tenant consent if your organization requires admin approval.
-4. If `office@q-ai.online` is a shared mailbox, assign the operator used in the next step **Full Access** and **Send As** rights in Exchange admin center, then allow time for the assignment to take effect. If it is a normal licensed mailbox, authorize while signed into that mailbox. Do not use an unrelated account without mailbox access.
+4. If `cs@q-ai.online` is a shared mailbox, assign the operator used in the next step **Full Access** and **Send As** rights in Exchange admin center, then allow time for the assignment to take effect. If it is a normal licensed mailbox, authorize while signed into that mailbox. Do not use an unrelated account without mailbox access.
 5. From the Q repository, authorize the shared mailbox:
 
    ```powershell
-   powershell -NoProfile -File .\scripts\setup-microsoft365-mail.ps1 -Mailbox office@q-ai.online -TenantId '<TENANT-GUID>'
+   powershell -NoProfile -File .\scripts\setup-microsoft365-mail.ps1 -Mailbox cs@q-ai.online -TenantId '<TENANT-GUID>'
    ```
 
-   Follow the Microsoft device-code prompt using an account that can access and send as the office mailbox. The helper copies the resulting refresh token to the clipboard; it does not print the token or write a token file.
+   Follow the Microsoft device-code prompt using an account that can access and send as the shared mailbox. The helper copies the resulting refresh token to the clipboard; it does not print the token or write a token file.
 6. Run the same helper for Scott's mailbox, signing in as Scott (or using a delegate with access):
 
    ```powershell
@@ -37,17 +37,17 @@ The live customer history and ticket sync resolve customer addresses from verifi
    ```text
    M365_MAIL_CLIENT_ID=<Entra application client ID>
    M365_MAIL_TENANT_ID=<tenant GUID>
-   M365_MAIL_MAILBOX_ID=office@q-ai.online
-   M365_MAIL_REFRESH_TOKEN=<office authorization refresh token>
+   M365_MAIL_MAILBOX_ID=cs@q-ai.online
+   M365_MAIL_REFRESH_TOKEN=<shared mailbox authorization refresh token>
    M365_MAIL_COOKIE_KEY=<64 hexadecimal characters>
    M365_SCOTT_MAIL_REFRESH_TOKEN=<Scott authorization refresh token>
    M365_SCOTT_MAIL_MAILBOX_ID=scott@q-ai.online
    APP_URL=<canonical HTTPS Q origin>
    ```
 
-   The Scott mailbox ID, client ID, tenant ID, and cookie key fall back to the shared settings where omitted. Generate the cookie key with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. Use the same cookie key on every app instance. Never paste refresh tokens into chat or commit them.
+   The Scott mailbox ID, client ID, tenant ID, and cookie key fall back to the shared settings where omitted. Update any existing `M365_MAIL_MAILBOX_ID` value from `office@q-ai.online` to `cs@q-ai.online`; the existing refresh token must belong to an operator with access to and Send As rights for the CS mailbox. Generate the cookie key with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. Use the same cookie key on every app instance. Never paste refresh tokens into chat or commit them.
 8. Apply the pending database migration `20261014152029_migrate_office_email_to_microsoft365.sql` to the linked Supabase project through the normal reviewed migration workflow. It permits Microsoft Graph opaque IDs in the existing private CRM email metadata function and labels new records as `microsoft365_office`; it does not migrate or rewrite mailbox content.
-9. Deploy Q with the new server settings and database migration. Open **CRM > Communications** as Staff/Admin. Confirm the office mailbox is returned as `office@q-ai.online`; read a message, search, open an attachment, save a draft, and send a test message to an address you control. Confirm the private mailbox selector appears only for Scott and returns `scott@q-ai.online`.
+9. Deploy Q with the new server settings and database migration. Open **CRM > Communications** as Staff/Admin. Confirm the shared mailbox is returned as `cs@q-ai.online`; read a message, search, open an attachment, save a draft, and send a test message to an address you control. Confirm the private mailbox selector appears only for Scott and returns `scott@q-ai.online`.
 10. Verify support notifications, customer history, and ticket sync against the deployed tenant. Check Outlook Sent Items after any timeout before retrying a send. Then remove obsolete `ZOHO_MAIL_*` and `ZOHO_SCOTT_MAIL_*` settings from Q hosting and revoke Q's old Zoho Mail authorization. Keep Zoho Bigin's separate `ZOHO_*` integration settings if that integration is still in use.
 
 ## Microsoft Graph details

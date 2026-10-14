@@ -16,7 +16,7 @@ const mailMessagePage = (messages: any[], hasMore: boolean) => ({ messages: mess
 
 export function createCommsRouter(dependencies: Dependencies) {
   const router = express.Router();
-  const mailbox = dependencies.mailbox || 'office@q-ai.online';
+  const mailbox = dependencies.mailbox || dependencies.config()?.mailboxId || 'cs@q-ai.online';
   const isScott = (context: any) => context.identity.user.email?.toLowerCase() === 'scott@q-ai.online';
   if (!dependencies.privateMailbox) router.use('/personal', createCommsRouter({
     ...dependencies, mailbox: 'scott@q-ai.online', privateMailbox: true, config: () => mailConfig('M365_SCOTT_MAIL'),
@@ -64,14 +64,14 @@ export function createCommsRouter(dependencies: Dependencies) {
   }));
   router.get('/accounts', asyncHandler(async (_req, res) => {
     const a = res.locals.officeMailbox;
-    return res.json({ accounts: [{ accountId: String(a.accountId), email: mailbox, name: dependencies.privateMailbox ? 'Scott' : 'Q Office' }] });
+    return res.json({ accounts: [{ accountId: String(a.accountId), email: mailbox, name: dependencies.privateMailbox ? 'Scott' : 'Q Customer Service' }] });
   }));
   router.post('/tickets/sync', asyncHandler(async(req,res)=>{
     if(dependencies.privateMailbox)return res.status(403).json({error:'Private mailboxes are not imported into customer tickets.'});
     const staff=res.locals.mailStaff;if(staff.role!=='partner_admin'&&staff.permissions?.length&&!staff.permissions.includes('support.write'))return res.status(403).json({error:'Support write access is required to sync email tickets.'});
     if(!requireExactObject(req.body,['start']))return res.status(400).json({error:'Invalid sync fields.'});
     const start=Number(req.body.start||1);if(!Number.isSafeInteger(start)||start<1||start>100000)return res.status(400).json({error:'Invalid email page.'});
-    try{return res.json(await syncOfficeEmailTickets(staff.serviceSupabase,res.locals.mailClient,String(res.locals.officeMailbox.accountId),start));}catch{return res.status(503).json({error:'Office email sync could not complete. Previously logged tickets are safe; retry to finish.'});}
+    try{return res.json(await syncOfficeEmailTickets(staff.serviceSupabase,res.locals.mailClient,String(res.locals.officeMailbox.accountId),start,mailbox));}catch{return res.status(503).json({error:'Shared mailbox email sync could not complete. Previously logged tickets are safe; retry to finish.'});}
   }));
   router.get('/customers/:user/history', asyncHandler(async (req, res) => {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.user)) throw new MailError(400, 'Invalid customer.');
