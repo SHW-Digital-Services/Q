@@ -6,7 +6,7 @@ import { getServiceSupabase, requireStaff } from './admin.js';
 import { boundedString, isUuid, requireExactObject } from '../security.js';
 import { supportCategories, supportStatuses } from '../../src/shared/support.js';
 import { sendSupportEmail } from '../supportMail.js';
-import { allowedMailOrigin } from '../zohoMail.js';
+import { allowedMailOrigin } from '../microsoft365Mail.js';
 
 const hash = (token: string | Buffer) => createHash('sha256').update(token).digest('hex');
 const cookieName = 'q_support_session';

@@ -1,6 +1,6 @@
 export type MailFolder = { folderId: string; name: string; type: string; path?: string; unreadCount?: number };
 
-// Zoho also gives custom folders the type "Inbox". Prefer the system path.
+// Prefer the provider's system Inbox folder over custom folders with similar names.
 export function inboxFolder(folders: MailFolder[]): string {
   return (folders.find(f => f.path?.toLowerCase() === '/inbox')
     || folders.find(f => f.name?.toLowerCase() === 'inbox')
@@ -8,7 +8,7 @@ export function inboxFolder(folders: MailFolder[]): string {
     || folders[0])?.folderId || '';
 }
 
-// Prefer Zoho's system folder over a custom folder with a similar name.
+// Prefer the provider's system Trash folder over a custom folder with a similar name.
 export function trashFolder(folders: MailFolder[]): string {
   return (folders.find(f => f.path?.toLowerCase() === '/trash')
     || folders.find(f => String(f.type).toLowerCase() === 'trash')

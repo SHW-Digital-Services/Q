@@ -8,7 +8,7 @@ last_updated: 29/09/2026
 
 ## Email formatting
 
-The Zoho Mail portal uses DOMPurify to sanitise received HTML with a formatting-only allowlist. DOMPurify is offered under Apache-2.0 or MPL-2.0; its distributed licence and notices are preserved with the dependency and production bundle. Zoho Mail is an external service governed by the operator's account terms.
+The Microsoft 365 mail portal uses DOMPurify to sanitise received HTML with a formatting-only allowlist. DOMPurify is offered under Apache-2.0 or MPL-2.0; its distributed licence and notices are preserved with the dependency and production bundle. Microsoft 365 is an external service governed by the operator's account terms.
 
 Q Intelligence uses Llama 3.2 for private on-device AI generation and WebLLM as its in-browser inference runtime.
 

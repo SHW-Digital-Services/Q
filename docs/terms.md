@@ -1,9 +1,9 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.5.3
+version: 1.5.4
 effective_date: 02/08/2026
-last_updated: 30/09/2026
+last_updated: 14/10/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -12,9 +12,9 @@ operator: Scott Harvey-Whittle trading as SHW Digital Services
 
 ## CRM communications and administration
 
-Staff and Admins may access the shared office@q-ai.online Zoho mailbox through the CRM. Actions operate under its permissions and provider limits. Q temporarily relays content without saving mailbox content or attachments in Supabase. Drafts remain on the current page until explicitly saved to Zoho or sent. Operators should verify recipients, placeholders, facts and links before sending, and check Zoho Sent before repeating an uncertain send. Generic templates do not authorise marketing or replace required consent.
+Staff and Admins may access the shared office@q-ai.online Microsoft 365 mailbox through the CRM. Actions operate under the mailbox's delegated permissions and Microsoft's service limits. Q temporarily relays message content and attachments; it does not save them in Supabase. Draft text may be recovered in the current browser session until explicitly saved to Microsoft 365 or sent. Operators should verify recipients, placeholders, facts and links before sending, and check Outlook Sent Items before repeating an uncertain send. Generic templates do not authorise marketing or replace required consent.
 
-Admin webhook integrations retain provider event records for review. Generated address-shaped identifiers are not mailboxes. Admin user deletion is irreversible through the CRM and does not cancel external payments or erase Zoho mail; existing constraints and retained operational records may apply. Staff cannot delete users or change public launch status.
+Admin webhook integrations retain provider event records for review. Generated address-shaped identifiers are not mailboxes. Admin user deletion is irreversible through the CRM and does not cancel external payments or erase Microsoft 365 mail; existing constraints and retained operational records may apply. Staff cannot delete users or change public launch status.
 
 ## 1. Introduction
 
@@ -605,6 +605,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.5.4 | 14/10/2026 | Updated CRM communications terms for the Microsoft 365 mail migration. |
 | 1.5.0 | 28/09/2026 | Added Groq hosted AI provider and provider-specific processing disclosures. |
 | 1.4.0 | 28/09/2026 | Added Brevo Conversations support-chat scope and privacy boundaries. |
 | 1.3.0 | 16/09/2026 | Added Brevo and distinguished optional marketing/community emails from necessary service notices. |
@@ -623,7 +624,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 **Operator:** Scott Harvey-Whittle trading as SHW Digital Services  
 **Availability:** Worldwide  
 **Governing Law:** England & Wales  
-**Current Version:** 1.5.0
+**Current Version:** 1.5.4
 
 ---
 

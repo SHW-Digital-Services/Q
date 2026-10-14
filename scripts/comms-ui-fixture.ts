@@ -1,4 +1,4 @@
-// Isolated visual QA server. It uses only invented data and cannot contact Zoho
+// Isolated visual QA server. It uses only invented data and cannot contact Microsoft 365
 // or Supabase. Never mount this script in the production application.
 import express from 'express';
 import { build } from 'esbuild';
@@ -28,7 +28,7 @@ app.use('/api/v1/admin', (req, res) => {
   return res.json([]);
 });
 app.use('/api/comms', (req, res) => {
-  if (req.path === '/status') return res.json({ configured: !req.headers.authorization?.includes('setup'), connected: true, mailUrl: 'https://mail.zoho.eu' });
+  if (req.path === '/status') return res.json({ configured: !req.headers.authorization?.includes('setup'), connected: true, mailUrl: 'https://outlook.office.com/mail/' });
   if (req.path === '/accounts') return res.json({ accounts: [{ accountId: '10001', email: 'office@q-ai.online', name: 'Q support' }] });
   if (req.path.endsWith('/folders')) return res.json({ folders: [{ folderId: '20001', name: 'Inbox', type: 'Inbox' }, { folderId: '20002', name: 'Sent', type: 'Sent' }, { folderId: '20003', name: 'Drafts', type: 'Drafts' }, { folderId: '20004', name: 'Archive', type: 'Archive' }] });
   if (req.path === '/accounts/10001/messages') return res.json({ messages: [{ messageId: '30001', folderId: '20001', subject: 'Help getting started', from: 'visitor@example.test', to: 'office@q-ai.online', receivedAt: String(Date.now()), unread: true, hasAttachment: true }], hasMore: false });

@@ -1,9 +1,9 @@
 ---
 title: Processor Register
 description: Sub-processor and Processor Register for Q Intelligence
-version: 1.6.2
+version: 1.6.3
 effective_date: 02/08/2026
-last_updated: 29/09/2026
+last_updated: 14/10/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 jurisdiction: Worldwide
@@ -23,7 +23,7 @@ This register supports transparency under applicable data protection legislation
 
 | Provider | Purpose | Data Processed |
 |----------|---------|----------------|
-| Zoho Mail | Staff/Admin mailbox hosting and OAuth-authorised mail operations through Q's CRM portal | Mailbox content, recipients, send/reply/draft actions, folders, attachments and authentication metadata; Q relays bodies/attachments temporarily; matching office email metadata (sender/recipient, subject, date and provider identifiers) is logged in Supabase customer records |
+| Microsoft 365 (Exchange Online / Microsoft Graph) | Staff/Admin mailbox hosting and delegated mail operations through Q's CRM portal | Mailbox content, recipients, send/reply/draft actions, folders, attachments and authentication metadata; Q relays bodies and temporarily holds uploaded attachment bytes in server memory; matching office email metadata (sender/recipient, subject, date and provider identifiers) is logged in Supabase customer records |
 | Supabase | Authentication, PostgreSQL database, object storage, user sessions | Account information, authentication data, uploaded files, application data |
 | Groq | Optional hosted AI model processing explicitly selected by the user when `GROQ_API_KEY` is configured | PII-masked prompts, recent chat context, selected profile context, relevant opted-in memory, AI responses, and technical usage metadata |
 | OpenAI | Optional hosted AI fallback when Groq is not configured; may also create optional vetted-knowledge embeddings when its key is configured | PII-masked prompts and embedding inputs, recent chat context, selected profile context, relevant opted-in memory, AI responses, embeddings, and technical usage metadata |
@@ -33,6 +33,8 @@ This register supports transparency under applicable data protection legislation
 | Brevo website tracker | Optional analytics, loaded only after the visitor allows analytics | Page paths, browser identifier/cookies, IP address and technical visit information |
 
 WebLLM performs inference on the user's device and is not used by Q as a processor of prompts on Q's behalf. A user's browser contacts model-distribution infrastructure to download the WebLLM runtime and model assets; those services may process ordinary network metadata under their own policies.
+
+For Microsoft 365, the applicable Microsoft Products and Services Data Protection Addendum and tenant agreement govern the provider processing. The precise contracting entity, tenant geography, retention configuration and transfer terms depend on the operator's Microsoft 365 subscription and configuration. This register does not assert a particular data centre or exclusive in-country processing. Review the [Microsoft DPA](https://www.microsoft.com/licensing/docs/view/Microsoft-Products-and-Services-Data-Protection-Addendum-DPA?lang=1) and the tenant's own service terms before relying on the integration.
 
 For hosted AI generation, Q uses Groq when `GROQ_API_KEY` is configured and otherwise uses OpenAI when `OPENAI_API_KEY` is configured. If an OpenAI key is configured, Q may separately send the PII-masked user message to OpenAI to create an embedding for optional vetted-knowledge retrieval, even when Groq generates the response. Groq states that inference requests are not retained by default but may be temporarily logged for reliability troubleshooting or abuse investigations for up to 30 days; Groq offers an organisation-level Zero Data Retention control, which is not enabled by Q unless separately configured. Groq states that retained customer data is stored in US Google Cloud Platform buckets. Review the Groq terms and transfer safeguards before use. OpenAI's API processing terms and retention disclosures apply when OpenAI is selected for generation or embeddings. OpenAI states that API inputs and outputs are not used to train its models by default unless the API customer explicitly opts in; standard API abuse-monitoring logs may retain customer content and associated metadata for up to 30 days unless a different approved retention control applies or law requires longer retention.
 
@@ -53,7 +55,7 @@ Current governing and transparency documents:
 
 ## 2.1 Brevo Email Communications
 
-Optional incoming Brevo webhooks store provider payloads, supplied email addresses, event type and receipt/review metadata in Supabase for Admin review. Known credential fields are redacted. This is separate from Zoho message bodies and attachments, which stay in Zoho; matched office email metadata is logged in private Supabase CRM records. Verify the Zoho contracting entity, hosting configuration, retention and applicable processing agreement against the operator's account. This entry does not assert execution of an agreement or exclusive processing in a particular country.
+Optional incoming Brevo webhooks store provider payloads, supplied email addresses, event type and receipt/review metadata in Supabase for Admin review. Known credential fields are redacted. This is separate from Microsoft 365 message bodies and attachments, which stay in Exchange Online; matched office email metadata is logged in private Supabase CRM records. Verify the applicable Microsoft contracting entity, tenant geography, retention settings and processing terms against the operator's account. This entry does not assert exclusive processing in a particular country.
 
 Q acts as controller for its marketing and community mailing lists. Brevo processes mailing data on Q's instructions under the applicable Brevo data-processing agreement. Its exact contracting entity and applicable terms depend on Q's Brevo account agreement; the brand name alone does not determine the contracting entity.
 
@@ -187,6 +189,7 @@ This Register should be read together with:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.6.3 | 14/10/2026 | Replaced the CRM mailbox processor disclosure with Microsoft 365 and documented delegated access and unresolved tenant-specific contract/location details. |
 | 1.5.0 | 28/09/2026 | Added Groq hosted AI processing, data retention and US data-location disclosures. |
 | 1.4.0 | 28/09/2026 | Added Brevo Conversations purposes, data categories and support-record handling. |
 | 1.3.0 | 16/09/2026 | Added Brevo marketing/community email processing, data categories and provider references. |

@@ -1,18 +1,18 @@
 ---
 title: Cookie Policy
 description: Cookie Policy for Q Intelligence
-version: 1.3.3
+version: 1.3.4
 effective_date: 02/08/2026
-last_updated: 30/09/2026
+last_updated: 14/10/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
 
 # Cookie Policy
 
-## CRM Zoho Mail connection cookies
+## CRM Microsoft 365 mail connection
 
-The shared office@q-ai.online connection no longer stores Zoho OAuth tokens in browser cookies. Its refresh token is held in server hosting secrets and access tokens exist temporarily in server memory. Legacy q_zoho_state and q_zoho_mail cookies are ignored and cleared on Q logout. Standard Q authentication remains required. Unsent drafts and personalised template values use account-scoped browser session storage for refresh recovery; Q logout clears the operator's recovery data.
+The shared office@q-ai.online and private Scott mailbox connections do not store Microsoft OAuth tokens in browser cookies. Their refresh tokens are held in server hosting secrets and access tokens exist temporarily in server memory. Legacy q_zoho_state and q_zoho_mail cookies are ignored and cleared on Q logout. Standard Q authentication remains required. Unsent drafts and personalised template values use account-scoped browser session storage for refresh recovery; Q logout clears the operator's recovery data. Uploaded attachment bytes are held temporarily in server memory until sent or expired and are not placed in browser storage.
 
 ## 1. Introduction
 
@@ -237,6 +237,7 @@ Support: office@q-ai.online
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.3.4 | 14/10/2026 | Updated CRM mail token and temporary attachment disclosures for Microsoft 365. |
 | 1.2.0 | 28/09/2026 | Added Brevo Conversations loading, browser storage, consent boundaries and deletion disclosures. |
 | 1.3.0 | 28/09/2026 | Added opt-in Brevo website analytics tracker and cookie preference controls. |
 | 1.1.0 | 16/09/2026 | Added Brevo email pixels, tracked links, hosted-page context and separate consent choices. |

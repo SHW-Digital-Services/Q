@@ -2,7 +2,7 @@ export type EmailTemplate = { id: string; category: string; title: string; subje
 const template = (id: string, category: string, title: string, subject: string, paragraphs: string): EmailTemplate => ({ id, category, title, subject, body: `Hi {{name}},\n\n${paragraphs}\n\nTake care,\n{{staff_name}}\nThe Q team` });
 
 // Generic product copy only. Personalised messages stay in component memory
-// until the staff member explicitly sends or saves a draft to Zoho.
+// until the staff member explicitly sends or saves a draft to Microsoft 365.
 export const emailTemplates: EmailTemplate[] = [
   template('support-received', 'Support', 'We’ve received your message', 'We’ve received your message', 'Thanks for getting in touch. We’ve received your message about {{topic}} and will take a closer look.\n\nYou don’t need to share anything more personal than you feel comfortable sharing. If there’s a practical detail that might help, you can reply here. We’ll update you by {{update_date}}.'),
   template('support-details', 'Support', 'A little more information', 'A quick question about your request', 'Thanks for helping us understand what happened. Could you tell us {{question}}?\n\nPlease leave out passwords, verification codes and private journal or chat content. A description of the screen or an edited screenshot is enough. We’ll use that to work out the next step together.'),

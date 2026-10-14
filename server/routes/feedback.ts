@@ -2,7 +2,7 @@ import express from 'express';
 import { asyncHandler, getAuthenticatedUser, getCanonicalAppUrl } from '../middleware.js';
 import { getServiceSupabase, requireStaff } from './admin.js';
 import { boundedString, isUuid, requireExactObject } from '../security.js';
-import { allowedMailOrigin } from '../zohoMail.js';
+import { allowedMailOrigin } from '../microsoft365Mail.js';
 import { feedbackReviewStates, roadmapStatuses } from '../../src/shared/feedback.js';
 
 type Dependencies = { db: () => any; authenticate: typeof getAuthenticatedUser; staff: typeof requireStaff; origin: typeof getCanonicalAppUrl };

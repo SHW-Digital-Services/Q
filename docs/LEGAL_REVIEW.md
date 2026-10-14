@@ -1,5 +1,9 @@
 Use this file to record legal reviews and approvals for the policies in docs/.
 
+## 14 October 2026: Microsoft 365 Communications migration
+
+Updated Q's planned CRM mailbox provider from Zoho Mail to Microsoft Graph for the shared office and Scott private mailboxes, and updated the Privacy Policy, Terms, Cookie Policy, Security Policy, Processor Register, user/support guidance and third-party notices. Disclosures cover server-held delegated refresh tokens, temporary in-memory attachment handling, retained CRM email metadata, support notifications and Microsoft tenant-specific contract/location settings. Added a migration for opaque Graph IDs. The user confirms that the updated legal documentation was legally approved on 14 October 2026. This records that approval as reported by the user; it does not establish production deployment, Microsoft tenant consent, or verification of the operator's Microsoft agreement and data residency.
+
 ## 29 September 2026: Communications and Admin functions
 
 Added implementation disclosures for the Zoho mail relay, encrypted session/state cookies, 30 generic templates, separate stored Brevo events, integration identifiers and Admin-only deletion. The Zoho portal writes no mailbox content, attachments or personalised drafts to Supabase; existing CRM support records and Brevo events remain distinct. Updated Privacy, Cookie, Security, Terms, Processor Register and third-party notices. This records behaviour, not legal approval or verification of a Zoho processing agreement. Verify the operator's contract, data-centre settings, API entitlement and retention before production connection. Free-plan REST API access has not been tested against the user's account. References: https://www.zoho.com/mail/help/api/using-oauth-2.html and https://www.zoho.com/mail/zohomail-pricing.html.

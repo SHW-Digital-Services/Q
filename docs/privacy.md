@@ -1,9 +1,9 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.5.3
+version: 1.5.4
 effective_date: 02/08/2026
-last_updated: 30/09/2026
+last_updated: 14/10/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -13,15 +13,15 @@ product: Q Intelligence
 
 ## Staff communications and incoming service events
 
-Authorised Staff and Admins can access the shared office@q-ai.online Zoho mailbox. Zoho holds the mailbox data. Q temporarily relays email content, addresses, folders and attachments between the browser and Zoho to display mail and perform the operator's selected action. This portal does not save mailbox content, attachments, personalised templates or drafts to Supabase, browser local/session storage or Q application logs. An explicit draft-save action writes to Zoho. Generic starter templates are product copy; downloaded attachments are saved on the operator's device.
+Authorised Staff and Admins can access the shared office@q-ai.online Microsoft 365 mailbox. Microsoft 365 holds the mailbox data. Q temporarily relays email content, addresses, folders and attachments between the browser and Microsoft Graph to display mail and perform the operator's selected action. This portal does not save mailbox content or attachments to Supabase or application logs. Composer text is temporarily recoverable in account-scoped browser session storage. Uploaded attachment bytes are held temporarily in server memory until sent or expired; they are not persisted. An explicit draft-save action writes a draft to Microsoft 365. Downloaded attachments are saved on the operator's device.
 
-The office@q-ai.online shared mailbox uses a refresh token held only in server hosting secrets and access tokens cached in server memory. Mail operations recheck each Q user's Staff/Admin role and reject other mailbox IDs. Logging out does not disconnect other operators. The platform connection is revoked through Zoho and removal of the hosting token. Mailbox content and attachments are not stored in Supabase; HTML is sanitised and attachments are served as downloads.
+The shared office and private Scott mailboxes use separate Microsoft refresh tokens held only in server hosting secrets and access tokens cached in server memory. Mail operations recheck each Q user's Staff/Admin role, verify the configured Microsoft mailbox, and reject other mailbox IDs. Only Scott can access his private mailbox. Logging out does not disconnect other operators. The platform connection is revoked in Microsoft Entra/Exchange and by removing the hosting token. Mailbox content and attachments are not stored in Supabase; HTML is sanitised and attachments are served as downloads.
 
-The customer's 360° communication history can display matching sent and received Zoho emails using the customer's current registered email address. This matching and display happens on demand for authorised Staff/Admins, with periodic refresh while the history is visible. The resulting email history is not copied into Supabase or Q application logs and follows the availability of messages in Zoho. Existing website support requests and manually recorded CRM communications retain their separate storage arrangements.
+The customer's 360° communication history can display matching sent and received Microsoft 365 emails using the customer's current registered email address. This matching and display happens on demand for authorised Staff/Admins, with periodic refresh while the history is visible. Limited email metadata (including sender/recipient, subject, date and provider identifiers) is logged in protected Supabase CRM records for customer support and ticket deduplication. Message bodies and attachments remain in Microsoft 365. Existing website support requests and manually recorded CRM communications retain their separate storage arrangements.
 
-Separately, Admin-configured Brevo webhooks store event data in Supabase: event type, receipt/review times, email if supplied and provider payload. Known credential fields are redacted. Events support review and do not automatically change accounts, subscriptions or consent. Retained event data remains subject to the operator's retention procedure. Generated `@q-ai.online` integration identifiers are labels, not inboxes. Existing CRM support/contact records are distinct from the Zoho mailbox portal.
+Separately, Admin-configured Brevo webhooks store event data in Supabase: event type, receipt/review times, email if supplied and provider payload. Known credential fields are redacted. Events support review and do not automatically change accounts, subscriptions or consent. Retained event data remains subject to the operator's retention procedure. Generated `@q-ai.online` integration identifiers are labels, not inboxes. Existing CRM support/contact records are distinct from the Microsoft 365 mailbox portal.
 
-Admin deletion removes a Q authentication account and linked data according to existing deletion rules. Retained operational records may remain; this action does not erase Zoho mail, local exports or provider payment history. Unresolved subscriptions must be addressed first. It does not replace the privacy-request process below.
+Admin deletion removes a Q authentication account and linked data according to existing deletion rules. Retained operational records may remain; this action does not erase Microsoft 365 mail, local exports or provider payment history. Unresolved subscriptions must be addressed first. It does not replace the privacy-request process below.
 
 ## 1. Introduction
 
@@ -301,7 +301,7 @@ This enables us to respond effectively and improve customer service.
 
 ### Customer email records in Q CRM
 
-Emails sent to our office support mailbox may be matched to your verified Q account email address and logged in your customer support record. Q stores sender and recipient addresses, subject, date, provider message identifiers and ticket details for staff follow-up. Original email bodies and attachments remain in Zoho. Q does not import staff private-mailbox messages into customer records. Access to CRM records is restricted to authorised staff and administrators.
+Emails sent to our office support mailbox may be matched to your verified Q account email address and logged in your customer support record. Q stores sender and recipient addresses, subject, date, provider message identifiers and ticket details for staff follow-up. Original email bodies and attachments remain in Microsoft 365. Q does not import staff private-mailbox messages into customer records. Access to CRM records is restricted to authorised staff and administrators.
 
 ### Previous Brevo support chat
 
@@ -537,8 +537,8 @@ Current providers include:
 | Groq | Optional hosted AI processing when configured |
 | OpenAI | Optional hosted AI fallback and, when configured, separate vetted-knowledge embeddings |
 | PayPal | Payment processing |
+| Microsoft 365 (Exchange Online) | Staff/Admin mailbox hosting, CRM email communications and support notifications |
 | Brevo (formerly Sendinblue) | Historical support records from the removed Brevo Conversations widget; optional marketing emails, newsletters and community updates; mailing-list, delivery and unsubscribe management |
-| Email providers | Transactional email delivery |
 | Cloud hosting providers | Infrastructure and security |
 | Analytics providers | Performance and usage monitoring |
 
@@ -1001,6 +1001,7 @@ This Privacy Policy should be read together with the Terms of Service,Cookie Pol
 
 Version   Date         Summary
 
+1.5.4     14/10/2026  Updated office mailbox, customer-history, support-notification and processor disclosures for Microsoft 365.
 1.5.0     28/09/2026   Added Groq hosted AI provider, retention, data-location and transfer disclosures.
 1.5.0     28/09/2026   Added opt-in Brevo website analytics tracker disclosures and cookie preference controls.
 1.4.0     28/09/2026   Added Brevo Conversations support chat, visitor data, storage, retention and privacy-request disclosures.
@@ -1062,11 +1063,11 @@ Q does not automatically load an external video player for hosted links. Opening
 
 ### Q Help & Support conversations
 
-Q stores deliberately submitted support requests, conversation replies, staff-only internal notes, assignment and activity records in its protected support database. Signed-in requests belong to the verified account; signed-out requests require a request-specific email access link. Email notifications use the existing office Zoho mailbox and contain only a generic notice and link, without the request subject, conversation text or notes. No journal, AI chat, mood or identity context is automatically attached.
+Q stores deliberately submitted support requests, conversation replies, staff-only internal notes, assignment and activity records in its protected support database. Signed-in requests belong to the verified account; signed-out requests require a request-specific email access link. Email notifications use the existing office Microsoft 365 mailbox and contain only a generic notice and link, without the request subject, conversation text or notes. No journal, AI chat, mood or identity context is automatically attached.
 
 Draft recovery uses plaintext, account- or verified-request-scoped browser session storage. Successful submission clears the draft; Q logout or closing guest access clears relevant recovery data. One-use email links expire after 24 hours and create an HttpOnly request-specific browser session. Closing guest access revokes that session.
 
-Resolved or closed support conversations become eligible for operational deletion 365 days after their last activity. This includes associated messages, activity, notification records, access grants and linked CRM copies. Open requests are retained for follow-up. Deletion depends on running the operator purge; this release does not install a schedule. Emails already held in Zoho and provider backups follow their separate retention arrangements.
+Resolved or closed support conversations become eligible for operational deletion 365 days after their last activity. This includes associated messages, activity, notification records, access grants and linked CRM copies. Open requests are retained for follow-up. Deletion depends on running the operator purge; this release does not install a schedule. Emails already held in Microsoft 365 and provider backups follow their separate retention arrangements.
 
 
 ## Q improvement suggestions and roadmap

@@ -20,11 +20,11 @@ The legacy single-response update endpoint returns `SUPPORT_CONVERSATION_REQUIRE
 
 ## Email notifications
 
-The existing server-configured `office@q-ai.online` Zoho mailbox sends a generic notice and link. Subjects, conversation text and internal notes remain in Q. Account links use `/app?tab=help&request=<id>`; guest links use `/support#access=<token>`.
+The server-configured `office@q-ai.online` Microsoft 365 mailbox sends a generic notice and link. Subjects, conversation text and internal notes remain in Q. Account links use `/app?tab=help&request=<id>`; guest links use `/support#access=<token>`.
 
-Use the existing server-only `ZOHO_MAIL_CLIENT_ID`, `ZOHO_MAIL_CLIENT_SECRET`, `ZOHO_MAIL_REFRESH_TOKEN`, `ZOHO_MAIL_REGION`, `ZOHO_MAIL_COOKIE_KEY` and `APP_URL` configuration documented in `zoho-mail-comms.md`. The shared connection needs its existing message-create scope. No new provider or browser secret is required.
+Use the server-only `M365_MAIL_CLIENT_ID`, `M365_MAIL_TENANT_ID`, `M365_MAIL_REFRESH_TOKEN`, `M365_MAIL_COOKIE_KEY` and `APP_URL` configuration documented in [Microsoft 365 Communications](microsoft365-mail-comms.md). The shared connection needs delegated mail read/write and send permissions. No browser secret is used.
 
-Replies commit before notification attempts. Email failures cannot discard them. Staff see pending, accepted, unavailable or failed/uncertain notification states. Acceptance does not prove inbox delivery. After checking the office Sent mailbox, staff can retry without duplicating a reply. Processing attempts older than five minutes can be recovered the same way. No scheduled retry worker is included.
+Replies commit before notification attempts. Email failures cannot discard them. Staff see pending, accepted, unavailable or failed/uncertain notification states. Acceptance does not prove inbox delivery. After checking Outlook Sent Items, staff can retry without duplicating a reply. Processing attempts older than five minutes can be recovered the same way. No scheduled retry worker is included.
 
 ## Access, drafts and retention
 
@@ -32,7 +32,7 @@ Replies commit before notification attempts. Email failures cannot discard them.
 - Tables and RPC functions are service-role-only, with RLS enabled. No direct anonymous/authenticated DB access or automatic private-app content imports.
 - Transactions and row locks preserve history under concurrent changes. Unchanged create/message submissions have retry identifiers.
 - Account/staff drafts use account-scoped plaintext browser session storage; guest drafts use the verified request scope. Successful submission clears its draft. Q logout or closing guest access clears relevant recovery data. Closing a form keeps its draft. Storage failure displays a warning.
-- Resolved/closed requests become eligible for the existing operational purge after 365 days without activity. Messages, events, notifications, guest grants and linked legacy CRM copies cascade with the request. Open/recent requests remain. The operator purge must be run; this release installs no schedule. Zoho email and backups follow separate retention arrangements.
+- Resolved/closed requests become eligible for the existing operational purge after 365 days without activity. Messages, events, notifications, guest grants and linked legacy CRM copies cascade with the request. Open/recent requests remain. The operator purge must be run; this release installs no schedule. Microsoft 365 email and backups follow separate retention arrangements.
 - `/support` is excluded from public indexing and analytics. Credentials do not enter query strings or ordinary audit metadata.
 - This is product/account support, not an emergency service. No response deadline is promised.
 
@@ -42,7 +42,7 @@ Apply `supabase/migrations/20261008001518_support_conversations.sql` before depl
 
 Run `npm run check:support`, `npm run check:support-archive`, `npm run check:crm-drafts`, `npm run lint`, `npm run build` and `git diff --check`. The support suite runs the migration/functions in PGlite and exercises the Express API against those records. It checks ownership, permissions, links, notes, assignment, retries and retention without hosted-data changes or real email.
 
-Before production release, verify with two real accounts and restricted staff access; confirm migration application, Zoho acceptance and receipt, and guest links over deployed HTTPS. Local fixtures do not establish these live results.
+Before production release, verify with two real accounts and restricted staff access; confirm the Microsoft 365 database migration, message acceptance and receipt, and guest links over deployed HTTPS. Local source changes do not establish these live results.
 
 ## Release 2: private suggestions and public roadmap
 
@@ -61,7 +61,7 @@ Voting, attachments, a public incident page and automated monitoring remain defe
 
 ## Hosted schema verification, 8 October 2026
 
-Release-one migration `20261008001518_support_conversations.sql` is applied to Q's linked Supabase project (`brnhalxydcakutxiregp`). Its migration history matches the repository version. The ownership columns, four conversation/access/notification tables, RLS and service-only function permissions were verified. A service-role support-list query through hosted PostgREST returned 200, and unauthenticated `https://q-ai.online/api/support/requests` returned the expected 401. Authenticated browser submission, replies and Zoho delivery still require live verification. Release-two feedback migration `20261008120641_feedback_roadmap.sql` is now applied. Hosted service-role reads of all three feedback tables returned 200. A rolled-back hosted transaction verified draft creation, publication snapshots and stale revision rejection without leaving test data. RLS and service-only table/function permissions were verified; hosted browser flows remain to be checked after Release 2 deployment.
+Release-one migration `20261008001518_support_conversations.sql` is applied to Q's linked Supabase project (`brnhalxydcakutxiregp`). Its migration history matches the repository version. The ownership columns, four conversation/access/notification tables, RLS and service-only function permissions were verified. A service-role support-list query through hosted PostgREST returned 200, and unauthenticated `https://q-ai.online/api/support/requests` returned the expected 401. Authenticated browser submission, replies and Microsoft 365 delivery still require live verification. Release-two feedback migration `20261008120641_feedback_roadmap.sql` is now applied. Hosted service-role reads of all three feedback tables returned 200. A rolled-back hosted transaction verified draft creation, publication snapshots and stale revision rejection without leaving test data. RLS and service-only table/function permissions were verified; hosted browser flows remain to be checked after Release 2 deployment.
 
 
 ## Release 3: help centre and private attachments
@@ -79,4 +79,4 @@ Validation: check:help-support-release3, check:public-trust, check:crm-drafts, l
 
 ## CRM revamp
 
-Communications now opens Tickets, with assignment, priority, due dates and date/search filters. Customer emails from the shared office mailbox create tickets and communication history entries during automatic CRM sync. Open the original email link to reply by email, or use Q replies for a conversation inside Q. The CRM uses shared role-aware navigation and inline customer-record tabs; administrator controls appear only for administrator accounts. See `zoho-mail-comms.md` for sync scope and operational limits.
+Communications now opens Tickets, with assignment, priority, due dates and date/search filters. Customer emails from the shared office mailbox create tickets and communication history entries during automatic CRM sync. Open the original email link to reply by email, or use Q replies for a conversation inside Q. The CRM uses shared role-aware navigation and inline customer-record tabs; administrator controls appear only for administrator accounts. See [Microsoft 365 Communications](microsoft365-mail-comms.md) for sync scope and operational limits.

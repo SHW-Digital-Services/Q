@@ -1,9 +1,9 @@
 ---
 title: Security Policy
 description: Security Policy for Q Intelligence
-version: 1.2.3
+version: 1.2.4
 effective_date: 26/08/2026
-last_updated: 30/09/2026
+last_updated: 14/10/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -13,11 +13,11 @@ product: Q Intelligence
 
 ## CRM communications, receiving and deletion
 
-The office@q-ai.online shared mailbox uses a refresh token held only in server hosting secrets and access tokens cached in server memory. Mail operations recheck each Q user's Staff/Admin role and reject other mailbox IDs. Logging out does not disconnect other operators. The platform connection is revoked through Zoho and removal of the hosting token. Mailbox content and attachments are not stored in Supabase; HTML is sanitised and attachments are served as downloads.
+The office@q-ai.online mailbox uses Microsoft Graph delegated access. Its refresh token is held only in server hosting secrets and access tokens plus short-lived attachment bytes are held in server memory. The Scott personal mailbox uses a separate refresh token and is restricted to Scott's Q account. Mail operations recheck each Q user's Staff/Admin role and the configured mailbox ID. Logging out does not disconnect other operators. Revoke access in Microsoft Entra/Exchange and remove the hosting refresh token to disconnect a mailbox. Mail bodies and attachments are not persisted in Supabase; HTML is sanitised and attachments are served as downloads.
 
 Brevo endpoint management/event access requires Admin authorisation. Receiving checks the active state and bearer secret transactionally; only token hashes/prefixes are retained. Known credential fields are redacted and exact payload retries deduplicated. Direct Supabase client access to endpoint/event tables is revoked. Event review does not execute billing/customer actions.
 
-The Admin Only page groups privileged functions, with server checks independent of button visibility. Deletion requires Admin access and exact target-email confirmation, protects the current operator and Admin accounts, checks unresolved subscriptions and records security outcomes. Existing deletion/Storage constraints apply. Deletion does not cancel external payments or erase Zoho mail.
+The Admin Only page groups privileged functions, with server checks independent of button visibility. Deletion requires Admin access and exact target-email confirmation, protects the current operator and Admin accounts, checks unresolved subscriptions and records security outcomes. Existing deletion/Storage constraints apply. Deletion does not cancel external payments or erase Microsoft 365 mail.
 
 ## 1. Purpose
 
@@ -303,6 +303,7 @@ Privacy enquiries: office@q-ai.online
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.2.4 | 14/10/2026 | Updated CRM mailbox authorization and token revocation controls for Microsoft 365. |
 | 1.0.0 | 26/08/2026 | Initial Security Policy. |
 | 1.0.1 | 26/08/2026 | Added native CRM roles, PayPal synchronisation, webhook verification, and staff-assisted payment safeguards. |
 | 1.1.0 | 04/09/2026 | Added permission-scoped staff access, recent AAL2 enforcement for high-risk operations, database-backed throttling, server-only security events, atomic PayPal webhook processing states, and privacy lifecycle controls. |

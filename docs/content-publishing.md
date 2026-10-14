@@ -4,7 +4,7 @@ Apply `20260929204319_news_item_updates.sql` and `20260929204822_help_videos.sql
 
 ## News and related updates
 
-Open `/crm` → **Admin Only** to manage news, updates and Help Videos. Staff/Admin preview remains on the CRM. The Admin-only webhook inbox and Staff/Admin communications portal are documented separately in [Brevo webhooks](brevo-webhooks.md) and [Zoho Mail communications](zoho-mail-comms.md).
+Open `/crm` → **Admin Only** to manage news, updates and Help Videos. Staff/Admin preview remains on the CRM. The Admin-only webhook inbox and Staff/Admin communications portal are documented separately in [Brevo webhooks](brevo-webhooks.md) and [Microsoft 365 Communications](microsoft365-mail-comms.md).
 
 The CRM list shows published and draft news/updates by default. Select **View Archived** to inspect archived records, and **View Published & Drafts** to return. Both lists have **Load more news & updates** when older records remain. The admin list API defaults to active records; use `archived=true` for archives and `offset`/`limit` for pagination. Status filtering happens before pagination so archives cannot crowd out older active news. Existing records remain readable if the related-news column has not yet been installed; relationship controls require that migration.
 

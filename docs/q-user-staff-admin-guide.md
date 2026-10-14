@@ -10,7 +10,7 @@ This guide explains how Q Intelligence is operated by three audiences:
 
 ## Core Operating Model
 
-Staff and Admins open **Communications** to access the shared office@q-ai.online Zoho mailbox and use **Email templates**. Mailbox content, attachments and personalised drafts are not saved to Supabase. There are 30 editable starter templates. See [Zoho Mail setup](zoho-mail-comms.md).
+Staff and Admins open **Communications** to access the shared office@q-ai.online Microsoft 365 mailbox and use **Email templates**. Mailbox content and attachments are not saved to Supabase. There are 30 editable starter templates. See [Microsoft 365 Communications](microsoft365-mail-comms.md).
 
 Admins open **Admin Only** for launch controls, publishing, Help Videos, Staff roles, products, Brevo events and **Delete User** within a customer record. Staff do not see this button. See [Admin functions](admin-functions.md) and [Brevo webhooks](brevo-webhooks.md). The normal news list shows drafts/published posts; use **View Archived** for archives.
 
@@ -32,10 +32,10 @@ Staff should not access Supabase. Staff use the Q website admin panel and Zoho B
 
 Q is a sensitive product. Treat user information with the highest practical care.
 
-1. Never store a user's password, temporary password, reset link, journal content, chat content, mood logs, identity notes, saved goals, or sensitive support details in Zoho.
+1. Never store a user's password, temporary password, reset link, journal content, chat content, mood logs, identity notes, saved goals, or sensitive support details in Microsoft 365.
 2. Never ask a user to send a password in plain text.
 3. Never share Supabase dashboard access with routine support staff.
-4. Never share `SUPABASE_SERVICE_ROLE_KEY`, Zoho client secrets, Zoho refresh tokens, PayPal secrets, or AI provider keys with staff.
+4. Never share `SUPABASE_SERVICE_ROLE_KEY`, Microsoft refresh tokens, PayPal secrets, or AI provider keys with staff.
 5. Use Zoho Bigin for customer relationship notes only: contact status, follow-up tasks, owner, safe contact preferences, and non-sensitive operational notes.
 6. Use the Q website admin panel for password support.
 7. Use Supabase only for owner/admin technical administration.

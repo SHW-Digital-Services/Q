@@ -1,6 +1,6 @@
 # Incoming Brevo events
 
-Admins open `/crm` → **Admin Only** → **Brevo Webhooks**. Staff do not have access to endpoint setup, event payloads or review actions. Apply `supabase/migrations/20260929214155_incoming_webhooks.sql` to the same Supabase project used by the deployed Q backend before use. No migration is needed for Zoho mailbox content.
+Admins open `/crm` → **Admin Only** → **Brevo Webhooks**. Staff do not have access to endpoint setup, event payloads or review actions. Apply `supabase/migrations/20260929214155_incoming_webhooks.sql` to the same Supabase project used by the deployed Q backend before use. Microsoft mailbox content is not stored in Supabase; the separate `20261014152029_migrate_office_email_to_microsoft365.sql` migration only updates private CRM email metadata handling for opaque Graph IDs.
 
 Create a named endpoint and choose transactional, marketing or other. Q displays its receiving URL and a bearer token once. Copy both into Brevo's webhook configuration and enable [bearer webhook authentication](https://developers.brevo.com/docs/secured-webhooks). Requests go to `POST <APP_URL>/api/webhooks/brevo/<endpoint-id>` with `Authorization: Bearer <token>` and `Content-Type: application/json`. Production `APP_URL` must be the HTTPS canonical origin. The endpoint accepts one event or a batch of 1–100 events; each needs a string `event` name. Requests are limited to 256 KB, individual events to 32 KB and nesting to 20 levels.
 
