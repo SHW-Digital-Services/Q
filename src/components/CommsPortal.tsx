@@ -101,6 +101,17 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
   const postJson = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) });
   const report = (err: unknown) => setError(err instanceof Error ? err.message : 'Unable to complete this email request.');
   function clearMailbox() { unreadBaseline.current = null; requestVersion.current++; setCheckedIds([]); setBulkMoveFolder(''); setMessages([]); setSelected(null); setDetail(null); setFolders([]); setAccount(''); setFolder(''); setAccounts([]); }
+  function checkInbox() {
+    setSearchText('');
+    setSearch('');
+    setFolder(inboxFolder(folders));
+    setStart(1);
+    setCheckedIds([]);
+    setSelected(null);
+    setDetail(null);
+    setFolderRevision(v => v + 1);
+    setRevision(v => v + 1);
+  }
 
   useEffect(() => { setCheckedIds([]); setBulkMoveFolder(''); }, [account, mailboxMode, folder, search, start]);
 
@@ -263,7 +274,7 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
     {tab === 'help' && <HelpArticleAdmin />}
     {tab === 'templates' && <EmailTemplatesSection canUse={Boolean(status?.connected && account && !busy)} onUse={(subject, content) => beginCompose({ ...emptyComposer, subject, content })} />}
     {tab === 'mail' && status?.connected && <>
-      <div className="mt-5 flex flex-wrap items-center gap-2"><span className="rounded-xl border border-white/10 px-3 py-2 text-sm">{status.mailbox}</span><button onClick={() => beginCompose()} disabled={!account || busy} className={button}><Plus className="h-4 w-4" /> Compose</button><button onClick={() => { setStart(1); setFolderRevision(v => v + 1); setRevision(v => v + 1); }} disabled={loading || busy} className={button}><RefreshCw className="h-4 w-4" /> Refresh</button><a href={status.mailUrl} target="_blank" rel="noreferrer" className={button}>Open Microsoft 365 Mail</a></div>
+      <div className="mt-5 flex flex-wrap items-center gap-2"><span className="rounded-xl border border-white/10 px-3 py-2 text-sm">{status.mailbox}</span><button onClick={() => beginCompose()} disabled={!account || busy} className={button}><Plus className="h-4 w-4" /> Compose</button><button onClick={checkInbox} disabled={loading || busy || !account} className={button} aria-label="Check inbox from the newest messages"><RefreshCw className="h-4 w-4" /> Check inbox</button><a href={status.mailUrl} target="_blank" rel="noreferrer" className={button}>Open Outlook</a></div>
       {composeOpen && <section aria-label="Email composer" className="mt-5 rounded-2xl border border-purple-400/30 bg-purple-500/5 p-4 sm:p-5"><div className="flex items-center justify-between"><h2 className="font-bold">{composer.replyTo ? 'Reply' : 'New email'}</h2><button aria-label="Discard unsaved email" disabled={busy} onClick={() => { if ((!composer.subject && !composer.content) || window.confirm('Discard this unsaved email?')) { setComposeOpen(false); setComposer(emptyComposer); setUploads([]); } }} className={button}><X className="h-4 w-4" /></button></div><p className="mt-2 text-xs text-slate-400">From {accounts.find(a => a.accountId === account)?.email}. Unsaved text is temporarily saved in this browser tab and restored after a refresh. Sending, saving in Microsoft 365, or discarding clears this draft.</p>
         <fieldset disabled={busy} className="mt-4 grid gap-3 sm:grid-cols-2">{(['to', 'cc', 'bcc', 'subject'] as const).map(key => <label key={key} className={`text-xs text-slate-300 ${key === 'subject' ? 'sm:col-span-2' : ''}`}><span className="mb-1 block">{({ to: 'To', cc: 'Cc', bcc: 'Bcc', subject: 'Subject' })[key]}</span><input value={composer[key]} maxLength={key === 'subject' ? 300 : 3000} onChange={e => setComposer({ ...composer, [key]: e.target.value })} placeholder={key === 'subject' ? 'Email subject' : 'Email addresses, separated by commas'} className={`${control} w-full`} /></label>)}<label className="text-xs text-slate-300 sm:col-span-2"><span className="mb-1 block">Message</span><textarea value={composer.content} maxLength={50000} onChange={e => setComposer({ ...composer, content: e.target.value })} rows={12} className={`${control} w-full resize-y leading-relaxed`} /></label></fieldset>
         <div className="mt-3 flex flex-wrap gap-2">{uploads.map((a, i) => <span key={a.proof} className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs">{a.name}<button disabled={busy} aria-label={`Remove ${a.name}`} onClick={() => setUploads(items => items.filter((_, index) => index !== i))}><X className="h-3 w-3" /></button></span>)}</div>
