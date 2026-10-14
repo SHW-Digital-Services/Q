@@ -1,6 +1,6 @@
 import React, { FormEvent, useState } from 'react';
 import { ArrowLeft, Lock, Mail, ShieldCheck } from 'lucide-react';
-import { getSupabaseClient, mapSupabaseUser } from '../services/supabase';
+import { crmMicrosoftSsoDeniedKey, crmMicrosoftSsoPendingKey, getSupabaseClient, mapSupabaseUser, signInWithMicrosoftForCrm } from '../services/supabase';
 import { AuthUser } from '../types';
 import { QLogo } from './QLogo';
 
@@ -8,7 +8,31 @@ export function CrmAccessPage({ onUserSignedIn }: { onUserSignedIn: (user: AuthU
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    if (window.sessionStorage.getItem(crmMicrosoftSsoDeniedKey) === '1') {
+      window.sessionStorage.removeItem(crmMicrosoftSsoDeniedKey);
+      return 'This Microsoft account does not have an authorised Staff or Admin role for the CRM.';
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('error') || params.has('error_description')) {
+      window.sessionStorage.removeItem(crmMicrosoftSsoPendingKey);
+      window.history.replaceState({}, '', window.location.pathname);
+      return 'Microsoft sign-in was cancelled or could not be completed.';
+    }
+    return null;
+  });
+
+  const handleMicrosoftSignIn = async () => {
+    setErrorMessage(null);
+    setLoading(true);
+    try {
+      await signInWithMicrosoftForCrm();
+    } catch (error: any) {
+      setErrorMessage(error?.message || 'Unable to sign in with Microsoft.');
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -67,7 +91,18 @@ export function CrmAccessPage({ onUserSignedIn }: { onUserSignedIn: (user: AuthU
             Sign in with an authorised staff account to manage customers, subscriptions, content and support activity.
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <button
+            type="button"
+            onClick={() => void handleMicrosoftSignIn()}
+            disabled={loading}
+            className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:opacity-60"
+          >
+            <span aria-hidden="true" className="grid h-4 w-4 grid-cols-2 gap-[2px]"><span className="bg-[#f25022]" /><span className="bg-[#7fba00]" /><span className="bg-[#00a4ef]" /><span className="bg-[#ffb900]" /></span>
+            {loading ? 'Connecting to Microsoft...' : 'Continue with Microsoft'}
+          </button>
+          <div className="my-5 flex items-center gap-3 text-xs text-slate-500"><span className="h-px flex-1 bg-white/10" />or sign in with email<span className="h-px flex-1 bg-white/10" /></div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             {errorMessage && (
               <div className="rounded-2xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
                 {errorMessage}

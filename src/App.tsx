@@ -14,7 +14,7 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { LandingPage } from './components/LandingPage';
 import { CrmAccessPage } from './components/CrmAccessPage';
 import { getSyncStatus, getSecuritySettings, saveSecuritySettings } from './services/storage';
-import { getSupabaseClient, mapSupabaseUser } from './services/supabase';
+import { crmMicrosoftSsoDeniedKey, crmMicrosoftSsoPendingKey, getSupabaseClient, mapSupabaseUser } from './services/supabase';
 import { SyncStatusState, SecuritySettings, AuthUser } from './types';
 import { FakeNotesApp } from './components/FakeNotesApp';
 import { useCamouflage } from './hooks/useCamouflage';
@@ -230,15 +230,25 @@ export default function App() {
 
       try {
         const response = await fetch('/api/v1/admin/me', { headers: { Authorization: `Bearer ${token}` } });
+        const microsoftSsoPending = window.sessionStorage.getItem(crmMicrosoftSsoPendingKey) === '1';
+        if (response.status === 403 && microsoftSsoPending) {
+          window.sessionStorage.removeItem(crmMicrosoftSsoPendingKey);
+          window.sessionStorage.setItem(crmMicrosoftSsoDeniedKey, '1');
+          await supabase?.auth.signOut();
+          return;
+        }
         if (!response.ok) throw new Error('Not authorised for CRM access.');
         const staff = await response.json();
         const allowed = staff.role === 'staff' || staff.role === 'partner_admin';
         if (cancelled) return;
+        if (microsoftSsoPending) window.sessionStorage.removeItem(crmMicrosoftSsoPendingKey);
+        window.sessionStorage.removeItem(crmMicrosoftSsoDeniedKey);
         setCanAccessCrm(allowed);
         setCrmAccessChecked(true);
         if (!allowed) setPreviewUserId(null);
 
       } catch {
+        window.sessionStorage.removeItem(crmMicrosoftSsoPendingKey);
         if (!cancelled) {
           setPreviewUserId(null);
           setCanAccessCrm(false);

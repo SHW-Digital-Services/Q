@@ -2,6 +2,8 @@ import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { AuthUser } from '../types';
 
 let supabaseInstance: SupabaseClient | null = null;
+export const crmMicrosoftSsoPendingKey = 'q.crm.microsoft.sso.pending';
+export const crmMicrosoftSsoDeniedKey = 'q.crm.microsoft.sso.denied';
 
 export function isAdminUser(user: User | null | undefined) {
   const adminFlag = user?.user_metadata?.isAdmin ?? user?.app_metadata?.isAdmin ?? false;
@@ -59,6 +61,28 @@ export async function signInWithGoogle() {
   });
 
   if (error) throw error;
+}
+
+export async function signInWithMicrosoftForCrm() {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error('Secure staff access is temporarily unavailable. Please contact Q support.');
+  }
+
+  if (typeof window !== 'undefined') {
+    window.sessionStorage.setItem(crmMicrosoftSsoPendingKey, '1');
+    window.sessionStorage.removeItem(crmMicrosoftSsoDeniedKey);
+  }
+  const redirectTo = new URL('/crm', window.location.origin).toString();
+  const { error } = await supabase.auth.signInWithSSO({
+    domain: 'q-ai.online',
+    options: { redirectTo }
+  });
+
+  if (error) {
+    if (typeof window !== 'undefined') window.sessionStorage.removeItem(crmMicrosoftSsoPendingKey);
+    throw error;
+  }
 }
 
 // Map Supabase User to App AuthUser
