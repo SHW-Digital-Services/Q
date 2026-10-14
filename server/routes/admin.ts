@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser, asyncHandler, getCanonicalAppUrl, sendOpaqueError } from '../middleware.js';
 import { buildAnalyticsExport } from '../analyticsEngine.js';
 import { getPayPalAccessToken, getPaypalBaseUrl } from './billing.js';
-import { createAdminSecurityMiddleware, requireExactObject } from '../security.js';
+import { createAdminSecurityMiddleware, requireExactObject, writeSecurityEvent } from '../security.js';
 import { listAdminContent } from '../adminContentList.js';
 import { syncPayPalProductStatus } from '../paypalProductStatus.js';
 
@@ -506,8 +506,37 @@ export async function requireStaff(req: express.Request, res: express.Response) 
     if (!identity) { res.status(401).json({ error: 'Authentication required.' }); return null; }
     const serviceSupabase = getServiceSupabase();
     if (!serviceSupabase) { res.status(503).json({ error: 'Staff account access is temporarily unavailable.' }); return null; }
-    const { data: profile, error } = await serviceSupabase.from('profiles').select('role,staff_permissions').eq('id', identity.user.id).maybeSingle();
+    let { data: profile, error } = await serviceSupabase.from('profiles').select('role,staff_permissions').eq('id', identity.user.id).maybeSingle();
     if (error) { res.status(500).json({ error: 'Staff role check failed.' }); return null; }
+    const email = identity.user.email?.trim().toLowerCase() ?? '';
+    const trustedSsoProvider = 'sso:93a0e3f6-6e12-43bc-a682-8e65d7405611';
+    const signedInThroughQMicrosoftSso = identity.user.email_confirmed_at
+      && email.endsWith('@q-ai.online')
+      && identity.user.identities?.some((item) => item.provider.toLowerCase() === trustedSsoProvider);
+    if (signedInThroughQMicrosoftSso && profile && ['user', 'beta_tester'].includes(profile.role)) {
+      const { data: promoted, error: promotionError } = await serviceSupabase
+        .from('profiles')
+        .update({ role: 'staff' })
+        .eq('id', identity.user.id)
+        .in('role', ['user', 'beta_tester'])
+        .select('role,staff_permissions')
+        .maybeSingle();
+      if (promotionError) { res.status(500).json({ error: 'Staff role provisioning failed.' }); return null; }
+      if (promoted) {
+        profile = promoted;
+        await writeSecurityEvent(serviceSupabase, req, {
+          actorId: identity.user.id,
+          subjectId: identity.user.id,
+          action: 'crm.sso.staff_role_auto_assigned',
+          outcome: 'allowed',
+          metadata: { previous_role: 'user_or_beta_tester', assigned_role: 'staff', sso_provider: trustedSsoProvider }
+        });
+      } else {
+        const refreshed = await serviceSupabase.from('profiles').select('role,staff_permissions').eq('id', identity.user.id).maybeSingle();
+        if (refreshed.error) { res.status(500).json({ error: 'Staff role check failed.' }); return null; }
+        profile = refreshed.data;
+      }
+    }
     if (!['staff', 'partner_admin'].includes(profile?.role)) { res.status(403).json({ error: 'Staff access required.' }); return null; }
     return { identity, serviceSupabase, role: profile.role as 'staff' | 'partner_admin', permissions: profile.staff_permissions ?? [] };
   } catch { res.status(401).json({ error: 'Authentication check failed.' }); return null; }

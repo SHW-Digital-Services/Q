@@ -4,9 +4,11 @@ Microsoft SSO is offered only on the CRM access page. It returns to `/crm`; publ
 
 ## Access control and account provisioning
 
-SAML authentication does not grant CRM access. The CRM still checks `GET /api/v1/admin/me`, and only an existing `staff` or `partner_admin` profile is admitted. New Supabase SAML users receive the normal default `user` role. An existing Admin must explicitly assign the appropriate CRM role to the SSO account before it can enter. Do not promote accounts automatically based on email or SAML claims.
+The CRM checks `GET /api/v1/admin/me`, and only `staff` or `partner_admin` profiles are admitted. On that server-side check, a user is automatically assigned `staff` when all of these are true: Supabase confirms the email, the email ends in `@q-ai.online`, and the authenticated identity belongs to the configured Q Microsoft SAML provider (`93a0e3f6-6e12-43bc-a682-8e65d7405611`). This does not grant staff to password, Google, or other SSO sign-ins based only on their email address. Role promotions are recorded in `security_events`.
 
-Supabase SAML creates a separate Auth user from an existing password or OAuth account even when the email matches. Do not assume identity linking or profile UUID continuity. Preserve existing staff roles and records; explicitly provision the new SSO UUID through the existing Admin role-management workflow.
+Existing `staff` and `partner_admin` roles are preserved. An eligible `user` or `beta_tester` account is promoted to `staff`; the flow never assigns `partner_admin`. Other accounts still need an explicit role assignment through the existing Admin role-management workflow.
+
+Supabase SAML creates a separate Auth user from an existing password or OAuth account even when the email matches. Do not assume identity linking or profile UUID continuity. An eligible SSO identity receives the role on its own UUID; any pre-existing password or OAuth account and its role are left unchanged.
 
 ## Supabase setup
 
@@ -17,7 +19,7 @@ Supabase SAML creates a separate Auth user from an existing password or OAuth ac
    https://login.microsoftonline.com/51ca04ab-672a-4491-a110-0c69c41441fd/federationmetadata/2007-06/federationmetadata.xml?appid=43047eba-c55c-419a-98ba-c749001dbcbf
    ```
 
-   The configured SSO lookup domain in the CRM code is `q-ai.online`. Include any additional staff sign-in domains when registering the provider if they need to initiate SSO too.
+   The configured SSO lookup domain in the CRM code is `q-ai.online`. The role auto-assignment is intentionally limited to the Q provider ID above and this domain.
 
 3. Allow these redirect URLs in Supabase Auth URL Configuration:
 
@@ -42,4 +44,4 @@ The email claim must be present in the assertion. Entra's current `emailaddress`
 
 ## Verification boundaries
 
-The CRM button calls Supabase `signInWithSSO` for `q-ai.online`. The Supabase provider connection, redirect allowlist, deployed frontend, and each SSO user's explicit CRM role still need to be configured and checked. Test with an existing Admin, an existing staff account, and a normal user; normal users must remain denied.
+The CRM button calls Supabase `signInWithSSO` for `q-ai.online`. Verify the Supabase provider connection and redirect allowlist, then test with an eligible `@q-ai.online` SAML identity, a non-Q-domain identity, and password/Google sign-in for a Q-domain address. Only the eligible Microsoft SAML identity should be auto-assigned `staff`; an existing Admin remains `partner_admin`.
