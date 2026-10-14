@@ -3,14 +3,14 @@ import express from 'express';
 import { randomBytes } from 'node:crypto';
 import { createCommsRouter } from '../server/routes/comms';
 import { createAdminDeleteUsersRouter } from '../server/routes/adminDeleteUsers';
-import { sealMail, openMail, validMailSession, MailSession, MailConfig, mailRecipients, ZohoMailClient, parseZohoJson, tokenRequest, allowedMailOrigin } from '../server/zohoMail';
+import { sealMail, openMail, validMailSession, type MailSession, type MailConfig, mailRecipients, Microsoft365MailClient, allowedMailOrigin } from '../server/microsoft365Mail.js';
 import { emailTemplates, fillEmailTemplate, templatePlaceholders } from '../src/data/emailTemplates';
 import { combinedInboxFolders, visibleMailFolders, inboxFolder, trashFolder } from '../src/services/mailFolders';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const target = '00000000-0000-4000-8000-000000000002';
 const key = randomBytes(32);
-const config: MailConfig = { clientId: 'fixture-client', clientSecret: 'fixture-secret', refreshToken: 'fixture-refresh', key, accountsOrigin: 'https://accounts.zoho.eu', mailOrigin: 'https://mail.zoho.eu', redirectUri: '', appOrigin: '', secure: false };
+const config: MailConfig = { clientId: 'fixture-client', tenantId: 'fixture-tenant', mailboxId: 'office@q-ai.online', refreshToken: 'fixture-refresh', key, accountsOrigin: 'https://login.microsoftonline.com/fixture-tenant/oauth2/v2.0', mailOrigin: 'https://graph.microsoft.com/v1.0', redirectUri: '', appOrigin: '', secure: false };
 const session: MailSession = { owner, access: 'fixture-access', refresh: 'fixture-refresh', expires: Date.now() + 3600000, tokenExpires: Date.now() + 3600000 };
 const calls: { url: URL; init: RequestInit }[] = [];
 let providerStatus = 200; let mailboxEmail = 'office@q-ai.online'; let malformedMessages = false; let emptyView: 'none' | 'extended' | 'all' = 'none';
@@ -93,18 +93,12 @@ try {
   assert.equal(inboxFolder([customFolder, { ...actualInbox, name: 'Boite de reception' }]), '20001');
   assert.equal(inboxFolder([customFolder, { ...actualInbox, path: undefined }]), '20001');
   assert.equal(inboxFolder([]), '');
-  for (const [error, expected] of [['invalid_client', /same Self Client/], ['invalid_client_secret', /configured Client ID/], ['invalid_code', /not the short-lived/], ['invalid_grant', /new office mailbox refresh token/]] as const) {
-    await assert.rejects(tokenRequest(config, { grant_type: 'refresh_token', refresh_token: 'fixture-refresh' }, (async () => new Response(JSON.stringify({ error, error_description: 'SECRET_DO_NOT_LEAK' }))) as typeof fetch), (failure: any) => expected.test(failure.message) && !failure.message.includes('SECRET_DO_NOT_LEAK'));
-  }
-  for (const body of [null, { error: 'UNKNOWN_SECRET_DO_NOT_LEAK' }]) await assert.rejects(tokenRequest(config, {}, (async () => new Response(JSON.stringify(body))) as typeof fetch), (failure: any) => !failure.message.includes('SECRET_DO_NOT_LEAK') && failure.message.includes('hosting settings'));
   const sealed = sealMail(session, key, 'session');
   assert.deepEqual(openMail(sealed, key, 'session'), session);
   assert.equal(openMail(sealed, key, 'state'), null);
   assert.equal(openMail(sealed.slice(0, -4) + 'AAAA', key, 'session'), null);
   assert.equal(validMailSession(session, target), false);
   assert.equal(validMailSession({ ...session, expires: 0 }, owner), false);
-  const exactId = parseZohoJson('{"messageId":1709876190693100009,"content":"ID 1709876190693100009 stays in a quoted string","safe":25,"decimal":1.25}');
-  assert.equal(exactId.messageId, '1709876190693100009'); assert.equal(exactId.safe, 25); assert.equal(exactId.decimal, 1.25); assert.equal(exactId.content, 'ID 1709876190693100009 stays in a quoted string');
   assert.throws(() => mailRecipients('person@example.test\r\nBcc: attacker@example.test'), /valid/);
   assert.equal(emailTemplates.length, 30); assert.equal(new Set(emailTemplates.map(t => t.id)).size, 30);
   for (const template of emailTemplates) {
@@ -234,9 +228,9 @@ try {
 
   providerStatus = 403; const denied = await request('/accounts'); assert.equal(denied.status, 403); assert(!(await denied.text()).includes('DO_NOT_LEAK')); providerStatus = 200;
   let refreshCount = 0; const expired = { ...session, tokenExpires: 0 };
-  const client = new ZohoMailClient(config, expired, () => refreshCount++, fetcher);
-  const tokensBefore = calls.filter(c => c.url.pathname === '/oauth/v2/token').length;
-  await Promise.all([client.json('/accounts'), client.json('/accounts')]); assert.equal(refreshCount, 1); assert.equal(calls.filter(c => c.url.pathname === '/oauth/v2/token').length, tokensBefore + 1);
+  const client = new Microsoft365MailClient(config, expired, () => refreshCount++, fetcher);
+  const tokensBefore = calls.filter(c => c.url.pathname.endsWith('/oauth2/v2.0/token')).length;
+  await Promise.all([client.json('/accounts'), client.json('/accounts')]); assert.equal(refreshCount, 1); assert.equal(calls.filter(c => c.url.pathname.endsWith('/oauth2/v2.0/token')).length, tokensBefore + 1);
   const disconnected = await request('/disconnect', { method: 'POST' }); assert.equal(disconnected.status, 200); assert.equal((await disconnected.json()).shared, true); assert(disconnected.headers.getSetCookie().some(c => c.startsWith('q_zoho_mail=;') && c.includes('Max-Age=0')));
   assert.equal((await request('/accounts', {}, 'fixture-other', '')).status, 200); assert(!calls.some(c => c.url.pathname.endsWith('/revoke')));
   const deleteRequest = (id = target, confirmation = 'visitor@example.test', auth = 'fixture-admin') => fetch(`${origin}/api/admin/delete-users/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${auth}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ confirmation }) });
