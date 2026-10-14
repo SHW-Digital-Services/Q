@@ -7,6 +7,7 @@ import { QLogo } from './QLogo';
 export function CrmAccessPage({ onUserSignedIn }: { onUserSignedIn: (user: AuthUser) => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPasswordSignIn, setShowPasswordSignIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -98,17 +99,24 @@ export function CrmAccessPage({ onUserSignedIn }: { onUserSignedIn: (user: AuthU
             className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:opacity-60"
           >
             <span aria-hidden="true" className="grid h-4 w-4 grid-cols-2 gap-[2px]"><span className="bg-[#f25022]" /><span className="bg-[#7fba00]" /><span className="bg-[#00a4ef]" /><span className="bg-[#ffb900]" /></span>
-            {loading ? 'Connecting to Microsoft...' : 'Continue with Microsoft'}
+            {loading ? 'Connecting to Microsoft...' : 'Sign in with Microsoft'}
           </button>
-          <div className="my-5 flex items-center gap-3 text-xs text-slate-500"><span className="h-px flex-1 bg-white/10" />or sign in with email<span className="h-px flex-1 bg-white/10" /></div>
+          <button
+            type="button"
+            onClick={() => setShowPasswordSignIn((visible) => !visible)}
+            aria-expanded={showPasswordSignIn}
+            aria-controls="crm-password-sign-in"
+            className="mx-auto mt-4 block text-sm font-medium text-purple-200 underline decoration-purple-200/50 underline-offset-4 transition hover:text-white"
+          >
+            {showPasswordSignIn ? 'Hide email and password sign-in' : 'Sign in another way'}
+          </button>
+          {errorMessage && (
+            <div role="alert" className="mt-4 rounded-2xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+              {errorMessage}
+            </div>
+          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {errorMessage && (
-              <div className="rounded-2xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-                {errorMessage}
-              </div>
-            )}
-
+          {showPasswordSignIn && <form id="crm-password-sign-in" onSubmit={handleSubmit} className="mt-5 space-y-4">
             <label className="block text-sm text-slate-200">
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Email</span>
               <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
@@ -146,7 +154,7 @@ export function CrmAccessPage({ onUserSignedIn }: { onUserSignedIn: (user: AuthU
             >
               {loading ? 'Checking access...' : 'Enter CRM'}
             </button>
-          </form>
+          </form>}
         </section>
       </div>
     </main>
