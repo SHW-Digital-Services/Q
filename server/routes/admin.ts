@@ -900,7 +900,7 @@ adminRouter.get('/crm/users/:id', asyncHandler(async (req, res) => {
   if (databaseError) return res.status(500).json({ error: databaseError.message });
   const user = authData.user;
   return res.json({
-    identity: { id: user.id, email: user.email, phone: user.phone, signupAt: user.created_at, lastLoginAt: user.last_sign_in_at, emailConfirmedAt: user.email_confirmed_at, metadata: user.user_metadata },
+    identity: { id: user.id, email: user.email, phone: user.phone, signupAt: user.created_at, lastLoginAt: user.last_sign_in_at, emailConfirmedAt: user.email_confirmed_at, metadata: user.user_metadata, hasSsoIdentity: user.identities?.some((identity: any) => String(identity.provider || '').toLowerCase().startsWith('sso:')) ?? false },
     profile: profileResult.data,
     subscription: subscriptionResult.data,
     notes: notesResult.data ?? [], tasks: tasksResult.data ?? [], payments: paymentsResult.data ?? [],
@@ -924,6 +924,7 @@ adminRouter.post('/crm/users/:id/email-change', asyncHandler(async (req, res) =>
   if (authError || !authData?.user) return res.status(404).json({ error: 'Customer account not found.' });
   if (profileError) return res.status(500).json({ error: 'Unable to check the customer account role.' });
   if (!['user', 'beta_tester'].includes(profile?.role)) return res.status(403).json({ error: 'Customer email changes are not available for Staff or Admin accounts.' });
+  if (authData.user.identities?.some((identity: any) => String(identity.provider || '').toLowerCase().startsWith('sso:'))) return res.status(409).json({ error: 'This account uses Microsoft SSO. Change its email address in the identity provider instead.' });
 
   const currentEmail = String(authData.user.email || '').trim().toLowerCase();
   if (!currentEmail) return res.status(409).json({ error: 'This account does not have a current email address to verify.' });

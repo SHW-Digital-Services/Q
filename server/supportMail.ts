@@ -16,7 +16,7 @@ export async function sendSupportEmail(email: string, link: string, fetcher: typ
 export async function sendEmailChangeConfirmations(currentEmail: string, currentLink: string, newEmail: string, newLink: string, fetcher: typeof fetch = fetch): Promise<void> {
   const config = mailConfig();
   if (!config) throw new Error('SUPPORT_MAIL_UNAVAILABLE');
-  const mailbox = 'office@q-ai.online';
+  const mailbox = config.mailboxId;
   const client = new Microsoft365MailClient(config, { owner: mailbox, access: '', refresh: config.refreshToken, tokenExpires: 0, expires: Number.MAX_SAFE_INTEGER }, () => {}, fetcher);
   const accounts = await client.json('/accounts');
   const matching = (Array.isArray(accounts) ? accounts : []).filter(account => String(account.primaryEmailAddress || '').toLowerCase() === mailbox);
