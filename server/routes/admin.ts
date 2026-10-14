@@ -69,6 +69,7 @@ function sendContentSchemaMissing(res: express.Response) {
 adminRouter.use(createAdminSecurityMiddleware(getServiceSupabase));
 
 const vercelLogLimits = new Set([10, 30, 50, 100]);
+const maxVercelRuntimeLogsPerDeployment = 256;
 
 function parseVercelRuntimeLogs(raw: string): any[] {
   if (!raw.trim()) return [];
@@ -83,6 +84,105 @@ function parseVercelRuntimeLogs(raw: string): any[] {
     try { const parsed = JSON.parse(line); return Array.isArray(parsed) ? parsed : [parsed]; }
     catch { return []; }
   });
+}
+
+function getVercelLogItems(parsed: any): any[] {
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed?.logs)) return parsed.logs;
+  if (Array.isArray(parsed?.data)) return parsed.data;
+  if (parsed && typeof parsed === 'object' && parsed.rowId) return [parsed];
+  return [];
+}
+
+function collectVercelLogObjects(buffer: string): { logs: any[]; remainder: string } {
+  if (!buffer.trim()) return { logs: [], remainder: buffer };
+  try {
+    return { logs: getVercelLogItems(JSON.parse(buffer)), remainder: '' };
+  } catch { /* A streaming response may not contain a complete JSON document yet. */ }
+
+  const logs: any[] = [];
+  const seen = new Set<string>();
+  const starts: number[] = [];
+  let inString = false;
+  let escaped = false;
+  let consumed = 0;
+
+  for (let index = 0; index < buffer.length; index += 1) {
+    const character = buffer[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') {
+      inString = true;
+      continue;
+    }
+    if (character === '{') starts.push(index);
+    else if (character === '}' && starts.length) {
+      const start = starts.pop()!;
+      try {
+        const parsed = JSON.parse(buffer.slice(start, index + 1));
+        const items = getVercelLogItems(parsed);
+        for (const item of items) {
+          const key = String(item?.rowId ?? `${item?.timestampInMs}-${item?.message}`);
+          if (item && typeof item === 'object' && !seen.has(key)) {
+            seen.add(key);
+            logs.push(item);
+          }
+        }
+        if (starts.length === 0) consumed = index + 1;
+      } catch { /* Keep incomplete JSON in the buffer for the next chunk. */ }
+    }
+  }
+
+  return { logs, remainder: consumed ? buffer.slice(consumed) : buffer };
+}
+
+async function readVercelRuntimeLogs(response: Response, limit: number) {
+  if (!response.body) return parseVercelRuntimeLogs(await response.text()).slice(0, limit);
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const logs: any[] = [];
+  let buffer = '';
+
+  try {
+    while (logs.length < maxVercelRuntimeLogsPerDeployment) {
+      const idleMs = logs.length ? 600 : 1500;
+      const nextChunk = await new Promise<
+        | { kind: 'read'; result: ReadableStreamReadResult<Uint8Array> }
+        | { kind: 'idle' }
+      >((resolve, reject) => {
+        const timer = setTimeout(() => resolve({ kind: 'idle' }), idleMs);
+        reader.read().then(
+          result => { clearTimeout(timer); resolve({ kind: 'read', result }); },
+          error => { clearTimeout(timer); reject(error); }
+        );
+      });
+
+      if (nextChunk.kind === 'idle') break;
+      if (nextChunk.result.done) {
+        buffer += decoder.decode();
+        logs.push(...parseVercelRuntimeLogs(buffer));
+        break;
+      }
+
+      buffer += decoder.decode(nextChunk.result.value, { stream: true });
+      const parsed = collectVercelLogObjects(buffer);
+      logs.push(...parsed.logs);
+      buffer = parsed.remainder;
+    }
+  } catch (error) {
+    // Keep entries already received if the shared provider deadline expires.
+    if (logs.length && isVercelTimeout(error)) return logs.slice(0, maxVercelRuntimeLogsPerDeployment);
+    throw error;
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+
+  return logs.slice(0, limit);
 }
 
 function isVercelTimeout(error: unknown) {
@@ -125,7 +225,7 @@ adminRouter.get('/vercel-logs', asyncHandler(async (req, res) => {
       const query = teamQuery ? `?teamId=${encodeURIComponent(teamId!)}` : '';
       const response = await fetch(`https://api.vercel.com/v1/projects/${encodeURIComponent(projectId)}/deployments/${encodeURIComponent(deploymentId)}/runtime-logs${query}`, { headers, cache: 'no-store', signal: vercelSignal });
       if (!response.ok) return [];
-      const rawLogs = parseVercelRuntimeLogs(await response.text());
+      const rawLogs = await readVercelRuntimeLogs(response, limit);
       return rawLogs.map(log => ({
         id: `${deploymentId}:${String(log.rowId ?? `${log.timestampInMs}-${log.message}`)}`,
         timestamp: Number(log.timestampInMs) || 0,
