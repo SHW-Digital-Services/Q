@@ -73,7 +73,9 @@ export async function signInWithMicrosoftForCrm() {
     window.sessionStorage.setItem(crmMicrosoftSsoPendingKey, '1');
     window.sessionStorage.removeItem(crmMicrosoftSsoDeniedKey);
   }
-  const redirectTo = new URL('/crm', window.location.origin).toString();
+  const isLocalDevelopment = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  const crmOrigin = isLocalDevelopment ? window.location.origin : 'https://www.q-ai.online';
+  const redirectTo = new URL('/crm', crmOrigin).toString();
   const { error } = await supabase.auth.signInWithSSO({
     domain: 'q-ai.online',
     options: { redirectTo }
