@@ -1,7 +1,7 @@
 From c0609b3dc4a4cc86aaea26a7697b47ff594783eb Mon Sep 17 00:00:00 2001
 From: it-hub-generator <devnull@example.com>
 Date: Fri, 16 Oct 2026 00:00:00 +0000
-Subject: [PATCH] Add IT Hub subpackage with Better Stack, Supabase and Vercel integration
+Subject: [PATCH] Add IT Hub subpackage and follow-up fixes
 
 ---
 diff --git a/it-hub/.env.example b/it-hub/.env.example
@@ -28,7 +28,6 @@ index 0000000..8c4deea
 +IT_HUB_API_KEY=replace-with-strong-api-key
 +
 +PORT=3000
-
 diff --git a/it-hub/.gitignore b/it-hub/.gitignore
 new file mode 100644
 index 0000000..deed335
@@ -38,37 +37,6 @@ index 0000000..deed335
 +node_modules/
 +dist/
 +.env
-
-diff --git a/it-hub/package.json b/it-hub/package.json
-new file mode 100644
-index 0000000..d24e980
---- /dev/null
-+++ b/it-hub/package.json
-@@ -0,0 +1,23 @@
-+{
-+  "name": "it-hub",
-+  "version": "0.1.0",
-+  "private": true,
-+  "scripts": {
-+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-+    "build": "tsc -p .",
-+    "start": "node dist/index.js"
-+  },
-+  "dependencies": {
-+    "@supabase/supabase-js": "^2.34.0",
-+    "axios": "^1.4.0",
-+    "express": "^4.18.2",
-+    "dotenv": "^16.0.3",
-+    "body-parser": "^1.20.2"
-+  },
-+  "devDependencies": {
-+    "ts-node-dev": "^2.0.0",
-+    "typescript": "^5.0.0",
-+    "@types/express": "^4.17.17",
-+    "@types/node": "^20.4.2"
-+  }
-+}
-
 diff --git a/it-hub/README.md b/it-hub/README.md
 new file mode 100644
 index 0000000..277c695
@@ -101,7 +69,35 @@ index 0000000..277c695
 +- src/webhooks/vercel.ts — verifies x-vercel-signature (HMAC-SHA1) and logs events
 +- src/services/betterstack.ts — BetterStack v3 integration
 +- src/services/supabase_server.ts — server-side Supabase logging
-
+diff --git a/it-hub/package.json b/it-hub/package.json
+new file mode 100644
+index 0000000..a2e3414
+--- /dev/null
++++ b/it-hub/package.json
+@@ -0,0 +1,23 @@
++{
++  "name": "it-hub",
++  "version": "0.1.0",
++  "private": true,
++  "scripts": {
++    "dev": "tsx watch src/index.ts",
++    "build": "tsc -p .",
++    "start": "node dist/index.js"
++  },
++  "dependencies": {
++    "@supabase/supabase-js": "^2.34.0",
++    "axios": "^1.4.0",
++    "express": "^4.18.2",
++    "dotenv": "^16.0.3",
++    "body-parser": "^1.20.2"
++  },
++  "devDependencies": {
++    "typescript": "^5.0.0",
++    "tsx": "^4.23.15",
++    "@types/express": "^4.17.17",
++    "@types/node": "^20.4.2"
++  }
++}
 diff --git a/it-hub/src/index.ts b/it-hub/src/index.ts
 new file mode 100644
 index 0000000..9ee0137
@@ -119,7 +115,6 @@ index 0000000..9ee0137
 +  console.error('Failed to start IT Hub server', err);
 +  process.exit(1);
 +});
-
 diff --git a/it-hub/src/routes/incidents.ts b/it-hub/src/routes/incidents.ts
 new file mode 100644
 index 0000000..b4312ca
@@ -167,7 +162,6 @@ index 0000000..b4312ca
 +    res.status(500).json({ error: 'failed to fetch status' });
 +  }
 +}
-
 diff --git a/it-hub/src/server.ts b/it-hub/src/server.ts
 new file mode 100644
 index 0000000..14e9220
@@ -201,7 +195,6 @@ index 0000000..14e9220
 +app.listen(port, () => {
 +  console.log(`IT Hub listening on ${port}`);
 +});
-
 diff --git a/it-hub/src/services/betterstack.ts b/it-hub/src/services/betterstack.ts
 new file mode 100644
 index 0000000..7f10252
@@ -349,7 +342,6 @@ index 0000000..7f10252
 +  postStatusPageUpdate,
 +  getStatusPage
 +};
-
 diff --git a/it-hub/src/services/supabase_server.ts b/it-hub/src/services/supabase_server.ts
 new file mode 100644
 index 0000000..dc9f041
@@ -387,7 +379,6 @@ index 0000000..dc9f041
 +  if (error) throw error;
 +  return data;
 +}
-
 diff --git a/it-hub/src/services/vercel.ts b/it-hub/src/services/vercel.ts
 new file mode 100644
 index 0000000..32a0667
@@ -426,7 +417,6 @@ index 0000000..32a0667
 +    return null;
 +  }
 +}
-
 diff --git a/it-hub/src/utils/auth.ts b/it-hub/src/utils/auth.ts
 new file mode 100644
 index 0000000..3f0c2f9
@@ -460,7 +450,6 @@ index 0000000..3f0c2f9
 +    return res.status(401).json({ error: 'invalid credentials' });
 +  }
 +}
-
 diff --git a/it-hub/src/utils/signature.ts b/it-hub/src/utils/signature.ts
 new file mode 100644
 index 0000000..dc94cb1
@@ -499,7 +488,6 @@ index 0000000..dc94cb1
 +    return false;
 +  }
 +}
-
 diff --git a/it-hub/src/webhooks/vercel.ts b/it-hub/src/webhooks/vercel.ts
 new file mode 100644
 index 0000000..660120d
@@ -535,7 +523,6 @@ index 0000000..660120d
 +    res.status(500).json({ ok: false, error: 'internal error' });
 +  }
 +}
-
 diff --git a/it-hub/supabase/init.sql b/it-hub/supabase/init.sql
 new file mode 100644
 index 0000000..3829d91
@@ -571,7 +558,6 @@ index 0000000..3829d91
 +
 +revoke all on table it_hub_events, it_hub_incidents from public, anon, authenticated;
 +grant all on table it_hub_events, it_hub_incidents to service_role;
-
 diff --git a/it-hub/tsconfig.json b/it-hub/tsconfig.json
 new file mode 100644
 index 0000000..7858a71
@@ -590,5 +576,4 @@ index 0000000..7858a71
 +    "skipLibCheck": true
 +  }
 +}
-
 -----END PATCH-----
