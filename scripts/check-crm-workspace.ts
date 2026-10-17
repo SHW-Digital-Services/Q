@@ -197,22 +197,23 @@ try {
   assert.equal((await db.query('select * from support_messages where request_id=$1',[guestId])).rows.length,0);
   assert.equal((await db.query('select * from crm_communications where contact_request_id=$1',[guestId])).rows.length,0);
   assert.equal((await db.query('select * from contact_requests where id=$1',[id])).rows.length,1);
-  // Exercise the real office notification transport against fake Zoho endpoints.
-  const mailEnv={ZOHO_MAIL_CLIENT_ID:'fixture-client',ZOHO_MAIL_CLIENT_SECRET:'fixture-secret',ZOHO_MAIL_REFRESH_TOKEN:'fixture-refresh',ZOHO_MAIL_COOKIE_KEY:'a'.repeat(64),ZOHO_MAIL_REGION:'eu',APP_URL:'https://www.q-ai.online'};
+  // Exercise the real office notification transport against fake Microsoft Graph endpoints.
+  const mailEnv={M365_MAIL_CLIENT_ID:'fixture-client',M365_MAIL_TENANT_ID:'fixture-tenant',M365_MAIL_REFRESH_TOKEN:'fixture-refresh',M365_MAIL_COOKIE_KEY:'a'.repeat(64),M365_MAIL_MAILBOX_ID:'office@q-ai.online',APP_URL:'https://www.q-ai.online'};
   const previousEnv=Object.fromEntries(Object.keys(mailEnv).map(key=>[key,process.env[key]]));
   Object.assign(process.env,mailEnv);
   let mailPayload:any;
   try {
     const fetcher:typeof fetch=async(input,init)=>{
       const url=String(input);
-      if(url.endsWith('/oauth/v2/token'))return new Response(JSON.stringify({access_token:'fixture-access',expires_in:3600}),{status:200});
-      if(url.endsWith('/api/accounts'))return new Response(JSON.stringify({status:{code:200},data:[{accountId:'123456789',primaryEmailAddress:'office@q-ai.online'}]}),{status:200});
-      assert.equal(url,'https://mail.zoho.eu/api/accounts/123456789/messages');mailPayload=JSON.parse(String(init?.body));
-      return new Response(JSON.stringify({status:{code:200},data:{messageId:'987654321'}}),{status:200});
+      if(url==='https://login.microsoftonline.com/fixture-tenant/oauth2/v2.0/token')return new Response(JSON.stringify({access_token:'fixture-access',expires_in:3600}),{status:200});
+      if(url==='https://graph.microsoft.com/v1.0/users/office%40q-ai.online/mailFolders?$top=1&$select=id')return new Response(JSON.stringify({value:[{id:'inbox'}]}),{status:200});
+      assert.equal(url,'https://graph.microsoft.com/v1.0/users/office%40q-ai.online/sendMail');
+      assert.equal(init?.method,'POST');mailPayload=JSON.parse(String(init?.body));
+      return new Response(null,{status:202});
     };
     const link='https://www.q-ai.online/support#access=fixture-private-token';
     await sendSupportEmail('recipient@example.test',link,fetcher);
-    assert.equal(mailPayload.toAddress,'recipient@example.test');assert.equal(mailPayload.fromAddress,'office@q-ai.online');assert.equal(mailPayload.subject,'Your Q support request');assert.equal(mailPayload.mailFormat,'plaintext');assert.ok(mailPayload.content.includes(link));assert.ok(!mailPayload.content.includes('Customer-facing staff reply'));assert.equal(mailPayload.ccAddress,undefined);assert.equal(mailPayload.bccAddress,undefined);
+    assert.equal(mailPayload.saveToSentItems,true);assert.equal(mailPayload.message.subject,'Your Q support request');assert.deepEqual(mailPayload.message.toRecipients,[{emailAddress:{address:'recipient@example.test'}}]);assert.deepEqual(mailPayload.message.ccRecipients,[]);assert.deepEqual(mailPayload.message.bccRecipients,[]);assert.equal(mailPayload.message.body.contentType,'Text');assert.ok(mailPayload.message.body.content.includes(link));assert.ok(!mailPayload.message.body.content.includes('Customer-facing staff reply'));
     await assert.rejects(sendSupportEmail('recipient@example.test',link,async()=>new Response('{}',{status:403})));
   } finally {for(const [key,value] of Object.entries(previousEnv)){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
   const attachment=randomUUID(),internalFile=randomUUID();

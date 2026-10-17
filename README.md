@@ -1,6 +1,6 @@
-[![Supabase migrations](https://github.com/SHW-Digital-Services/Q/actions/workflows/supabase-migrations.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/supabase-migrations.yml)   
-[![CodeQL](https://github.com/SHW-Digital-Services/Q/actions/workflows/codeql.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/codeql.yml)   
-[![Check legal files](https://github.com/SHW-Digital-Services/Q/actions/workflows/check-legal-files.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/check-legal-files.yml)   
+[![Supabase migrations](https://github.com/SHW-Digital-Services/Q/actions/workflows/supabase-migrations.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/supabase-migrations.yml)
+[![CodeQL](https://github.com/SHW-Digital-Services/Q/actions/workflows/codeql.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/codeql.yml)
+[![Check legal files](https://github.com/SHW-Digital-Services/Q/actions/workflows/check-legal-files.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/check-legal-files.yml)
 [![Application CI](https://github.com/SHW-Digital-Services/Q/actions/workflows/ci.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/ci.yml)
 
 # Q Intelligence
@@ -81,3 +81,7 @@ The production build currently emits a large-chunk warning because the WebLLM ru
 - Data: Supabase Auth, PostgreSQL, pgvector, and RLS
 - Backend: Node.js and Express
 - Deployment: Vercel-compatible and conventional Node hosting
+
+## IT Hub
+
+The CRM Administration menu includes an IT Hub panel for service health, BetterStack status, incident creation, and event history. Its standalone service package and setup instructions are in [`it-hub/README.md`](it-hub/README.md). Configure `BETTERSTACK_API_KEY` and, when available, `BETTERSTACK_STATUS_PAGE_ID` in the server environment. Incident creation uses the signed-in admin's email, with `BETTERSTACK_REQUESTER_EMAIL` as a fallback. Apply the IT Hub events migration in `supabase/migrations` before using event history.

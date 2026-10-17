@@ -1,7 +1,6 @@
-import {StrictMode} from 'react';
+import {StrictMode, Suspense, lazy} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
-import StaffChat from './components/StaffChat';
 import './index.css';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -12,6 +11,8 @@ import { Analytics } from '@vercel/analytics/react';
 import { installChunkLoadRecovery } from './services/chunkLoadRecovery';
 import UserActivityTracker from './components/UserActivityTracker';
 
+const StaffChat = lazy(() => import('./components/StaffChat'));
+
 installChunkLoadRecovery(window);
 
 createRoot(document.getElementById('root')!).render(
@@ -20,7 +21,7 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <GlobalTextTranslator />
         {window.location.pathname !== '/support' && <BrevoTrackerConsent />}
-        <OnlinePresenceProvider><UserActivityTracker /><App />{!['/crm/chat', '/admin/crm/chat'].includes(window.location.pathname) && <StaffChat page={false} />}</OnlinePresenceProvider>
+        <OnlinePresenceProvider><UserActivityTracker /><App />{!['/crm/chat', '/admin/crm/chat'].includes(window.location.pathname) && <Suspense fallback={null}><StaffChat page={false} /></Suspense>}</OnlinePresenceProvider>
         {window.location.pathname !== '/support' && <Analytics />}
       </ThemeProvider>
     </LanguageProvider>

@@ -1,6 +1,6 @@
 import { CrmEmailSyncProvider } from '../contexts/CrmEmailSyncContext';
 import React, { useEffect, useState } from 'react';
-import { Users, Mail, MessageCircle, Radio, FileText, BookOpen, Package, Settings, Link as LinkIcon, UserCog, ArrowLeft, LogOut, Newspaper, KeyRound, Eye, ScrollText, Archive, ClipboardList, PenLine } from 'lucide-react';
+import { Users, Mail, MessageCircle, Radio, FileText, BookOpen, Package, Settings, Link as LinkIcon, UserCog, ArrowLeft, LogOut, Newspaper, KeyRound, Eye, ScrollText, Archive, ClipboardList, PenLine, Activity } from 'lucide-react';
 import { getSupabaseClient } from '../services/supabase';
 import { type CrmEmailSignature } from '../services/crmEmailSignature';
 import CrmEmailSignatureSetup from './CrmEmailSignatureSetup';
@@ -18,6 +18,7 @@ export const crmViews: Record<string, { title: string; description: string; admi
   integrations: { title: 'Integrations', description: 'Manage connected services and event notifications.', admin: true },
   settings: { title: 'Site settings', description: 'Manage public availability and preview Q.', admin: true },
   'vercel-logs': { title: 'Vercel logs', description: 'Live runtime logs from the Q production project.', admin: true },
+  'it-hub': { title: 'IT Hub', description: 'Service health, incident management and IT Hub event history.', admin: true },
 };
 
 export default function CrmWorkspace({ children, view = 'customers', onSignOut, onBack, onPreview }: { children: React.ReactNode; view?: string; onSignOut: () => Promise<void>; onBack?: () => void; onPreview?: () => Promise<void> }) {
@@ -54,7 +55,7 @@ export default function CrmWorkspace({ children, view = 'customers', onSignOut, 
   const allowed = role === 'staff' || admin;
   const info = crmViews[view];
   const links = [['customers', 'Customers', Users, '/crm'], ['communications', 'Communications', Mail, '/crm/comms'], ['chat', 'Team chat', MessageCircle, '/crm/chat'], ['online', 'Online users', Radio, '/crm/online'], ['review', 'Content review', FileText, '/crm?view=review'], ['guides', 'Life Guides', BookOpen, '/crm?view=guides'], ['access', 'Account support', KeyRound, '/crm?view=access']] as const;
-  const adminLinks = [['publishing', 'Publishing', Newspaper], ['products', 'Products', Package], ['team', 'Team access', UserCog], ['customer-archive', 'Customer archive', Archive], ['audit-log', 'Audit log', ClipboardList], ['integrations', 'Integrations', LinkIcon], ['vercel-logs', 'Vercel logs', ScrollText], ['settings', 'Site settings', Settings]] as const;
+  const adminLinks = [['publishing', 'Publishing', Newspaper], ['products', 'Products', Package], ['team', 'Team access', UserCog], ['customer-archive', 'Customer archive', Archive], ['audit-log', 'Audit log', ClipboardList], ['integrations', 'Integrations', LinkIcon], ['it-hub', 'IT Hub', Activity], ['vercel-logs', 'Vercel logs', ScrollText], ['settings', 'Site settings', Settings]] as const;
   const nav = (id: string, label: string, Icon: typeof Users, href: string) => <a key={id} href={href} aria-current={view === id ? 'page' : undefined} className={`flex min-h-11 items-center gap-3 rounded-lg border-l-2 px-3 py-3 text-sm ${view === id ? 'border-violet-500 bg-violet-500/15 text-white' : 'border-transparent text-slate-300 hover:bg-white/5 hover:text-white'}`}><Icon className="h-5 w-5 shrink-0" />{label}</a>;
 
   if (!signatureLoaded || !allowed) return <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-slate-100"><p role={error ? 'alert' : 'status'}>{error || 'Checking workspace access…'}</p></main>;
