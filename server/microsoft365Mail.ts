@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 import { getCanonicalAppUrl } from './middleware.js';
 
 export class MailError extends Error { constructor(public status: number, message: string) { super(message); } }
-export type MailConfig = { clientId: string; tenantId: string; mailboxId: string; refreshToken: string; key: Buffer; accountsOrigin: string; mailOrigin: string; redirectUri: string; appOrigin: string; secure: boolean };
+export type MailConfig = { clientId: string; tenantId: string; mailboxId: string; useSignedInUser: boolean; refreshToken: string; key: Buffer; accountsOrigin: string; mailOrigin: string; redirectUri: string; appOrigin: string; secure: boolean };
 export function mailConfig(prefix = 'M365_MAIL'): MailConfig | null {
   const shared = 'M365_MAIL_';
   const clientId = (process.env[`${prefix}_CLIENT_ID`] || process.env[`${shared}CLIENT_ID`])?.trim(), tenantId = (process.env[`${prefix}_TENANT_ID`] || process.env[`${shared}TENANT_ID`])?.trim() || 'common';
@@ -12,7 +12,7 @@ export function mailConfig(prefix = 'M365_MAIL'): MailConfig | null {
   const appOrigin = getCanonicalAppUrl();
   const mailboxId = (process.env[`${prefix}_MAILBOX_ID`] || (prefix === 'M365_SCOTT_MAIL' ? 'scott@q-ai.online' : 'cs@q-ai.online')).trim().toLowerCase();
   if (!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(mailboxId)) return null;
-  return { clientId, tenantId, mailboxId, refreshToken, key: Buffer.from(key, 'hex'), accountsOrigin: `https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/oauth2/v2.0`, mailOrigin: 'https://graph.microsoft.com/v1.0', redirectUri: `${appOrigin}/api/comms/oauth/callback`, appOrigin, secure: new URL(appOrigin).protocol === 'https:' };
+  return { clientId, tenantId, mailboxId, useSignedInUser: prefix === 'M365_SCOTT_MAIL', refreshToken, key: Buffer.from(key, 'hex'), accountsOrigin: `https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/oauth2/v2.0`, mailOrigin: 'https://graph.microsoft.com/v1.0', redirectUri: `${appOrigin}/api/comms/oauth/callback`, appOrigin, secure: new URL(appOrigin).protocol === 'https:' };
 }
 export const MAIL_SCOPES = 'offline_access Mail.ReadWrite Mail.Send Mail.ReadWrite.Shared Mail.Send.Shared';
 export function allowedMailOrigin(origin: string, configured: string): boolean {
@@ -34,7 +34,7 @@ export class Microsoft365MailClient {
   private refreshing:Promise<void>|null=null; private uploads=new Map<string,{name:string;bytes:Buffer;expires:number}>(); private mailboxEmail='';
   constructor(public config:MailConfig,public session:MailSession,private onRefresh:()=>void,private fetcher:typeof fetch=fetch){}
   private async request(url:string,init:RequestInit={}){if(this.session.tokenExpires<=Date.now()+60000)await this.refresh();let r=await this.fetcher(url,{...init,headers:{...init.headers,Authorization:`Bearer ${this.session.access}`},redirect:'error',signal:AbortSignal.timeout(20000)});if(r.status===401){await r.body?.cancel();await this.refresh();r=await this.fetcher(url,{...init,headers:{...init.headers,Authorization:`Bearer ${this.session.access}`},redirect:'error',signal:AbortSignal.timeout(20000)});}if(!r.ok){const graphRequestId=r.headers.get('request-id')||r.headers.get('client-request-id')||'unavailable';console.warn(`[Microsoft 365] Graph request failed status=${r.status} requestId=${graphRequestId}`);await r.body?.cancel();throw new MailError(r.status===403?403:r.status===429?429:r.status===401?401:502,r.status===403?'Microsoft has not allowed this mail action. Check the Entra permissions, mailbox access and tenant policy.':r.status===429?'Microsoft is busy. Please wait before trying again.':r.status===401?'Your Microsoft connection has expired. Re-authorize the mailbox.':'Microsoft could not complete this request. For a send attempt, check Outlook Sent Items before retrying.');}return r;}
-  private get userRoot(){return `/users/${encodeURIComponent(this.config.mailboxId)}`;}
+  private get userRoot(){return this.config.useSignedInUser?'/me':`/users/${encodeURIComponent(this.config.mailboxId)}`;}
   private url(path:string){return `${this.config.mailOrigin}${path.replace(/^\/me(?=\/|\?|$)/,this.userRoot)}`;}
   async response(path:string,init:RequestInit={}){const p=path.split('?')[0],q=new URLSearchParams(path.split('?')[1]||''),m=p.match(/\/folders\/([^/]+)\/messages\/([^/]+)\/(attachments\/([^/]+)|inline)$/);
     if(m){let attachmentId=m[4];if(p.endsWith('/inline')){const list=await this.get(`/me/messages/${encodeURIComponent(m[2])}/attachments?$select=id,name,size,contentId,isInline`);const match=(list.value||[]).find((a:any)=>a.isInline&&a.contentId===q.get('contentId'));if(!match)throw new MailError(404,'This embedded image is no longer available.');attachmentId=match.id;}const r=await this.request(this.url(`/me/messages/${encodeURIComponent(m[2])}/attachments/${encodeURIComponent(attachmentId)}/$value`));return r;}
