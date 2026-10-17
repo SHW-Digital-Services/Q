@@ -59,6 +59,7 @@ export async function writeSecurityEvent(db: any, request: Request, event: {
 
 export function createRateLimitMiddleware(getServiceDb: () => any) {
   return async (request: Request, response: Response, next: NextFunction) => {
+    const requestId = getRequestId(request);
     const routeClass = request.path.includes('password-reset') && request.method === 'POST' ? 'password-reset'
       : request.path.includes('contact-requests') || request.path === '/api/support/access' || request.path === '/api/support/access/exchange' ? 'contact'
       : request.path === '/api/feedback/suggestions' && request.method === 'POST' ? 'feedback'
@@ -68,22 +69,28 @@ export function createRateLimitMiddleware(getServiceDb: () => any) {
     const limits: Record<string, [number, number]> = {
       'password-reset': [5, 900], contact: [10, 900], feedback: [10, 900], billing: [30, 60], referral: [30, 60], admin: [120, 60], api: [120, 60]
     };
-    const db = getServiceDb();
-    if (!db) return next();
-    const [maximum, seconds] = limits[routeClass];
-    const subject = createHash('sha256').update(`${request.ip}|${request.headers.authorization ? 'authenticated' : 'anonymous'}`).digest('hex').slice(0, 32);
-    const result = await db.rpc('consume_api_rate_limit', { bucket_key: `${routeClass}:${subject}`, window_seconds: seconds, maximum_requests: maximum });
-    if (result.error) {
-      console.error(`[Rate Limit] requestId=${getRequestId(request)}`, result.error.message);
+    try {
+      const db = getServiceDb();
+      if (!db) return next();
+      const [maximum, seconds] = limits[routeClass];
+      const subject = createHash('sha256').update(`${request.ip}|${request.headers.authorization ? 'authenticated' : 'anonymous'}`).digest('hex').slice(0, 32);
+      const result = await db.rpc('consume_api_rate_limit', { bucket_key: `${routeClass}:${subject}`, window_seconds: seconds, maximum_requests: maximum });
+      if (result.error) {
+        console.error(`[Rate Limit] requestId=${requestId}`, result.error.message);
+        if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') return next();
+        return response.status(503).json({ error: 'Request protection is temporarily unavailable.', requestId });
+      }
+      const decision = Array.isArray(result.data) ? result.data[0] : result.data;
+      if (!decision?.allowed) {
+        response.setHeader('Retry-After', String(decision?.retry_after_seconds ?? seconds));
+        return response.status(429).json({ error: 'Too many requests. Please try again later.', requestId });
+      }
+      return next();
+    } catch (error) {
+      console.error(`[Rate Limit] requestId=${requestId}`, error instanceof Error ? error.message : error);
       if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') return next();
-      return response.status(503).json({ error: 'Request protection is temporarily unavailable.', requestId: getRequestId(request) });
+      return response.status(503).json({ error: 'Request protection is temporarily unavailable.', requestId });
     }
-    const decision = Array.isArray(result.data) ? result.data[0] : result.data;
-    if (!decision?.allowed) {
-      response.setHeader('Retry-After', String(decision?.retry_after_seconds ?? seconds));
-      return response.status(429).json({ error: 'Too many requests. Please try again later.', requestId: getRequestId(request) });
-    }
-    next();
   };
 }
 
