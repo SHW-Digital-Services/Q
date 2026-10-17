@@ -31,6 +31,14 @@ export function createCommsRouter(dependencies: Dependencies) {
     if (dependencies.privateMailbox && !isScott(context)) return res.status(403).json({ error: 'This mailbox is private.' });
     res.locals.mailOwner = context.identity.user.id;
     res.locals.mailStaff = context;
+    if (req.method === 'POST' && req.path === '/tickets/sync') {
+      if (!requireExactObject(req.body, ['start'])) return res.status(400).json({ error: 'Invalid sync fields.' });
+      const start = Number(req.body.start || 1);
+      if (!Number.isSafeInteger(start) || start < 1 || start > 100000) return res.status(400).json({ error: 'Invalid email page.' });
+      if (context.role !== 'partner_admin' && context.permissions?.length && !context.permissions.includes('support.write')) {
+        return res.status(403).json({ error: 'Support write access is required to sync email tickets.' });
+      }
+    }
     const config = dependencies.config(); res.locals.mailConfig = config;
     // Bearer authentication is required on all mail actions, including disconnect.
     if (req.method !== 'GET' && req.headers.origin && config && !allowedMailOrigin(req.headers.origin, config.appOrigin)) return res.status(403).json({ error: 'Open the communications portal on Q’s configured site address.' });
@@ -239,10 +247,16 @@ export function createCommsRouter(dependencies: Dependencies) {
     await (res.locals.mailClient as Microsoft365MailClient).json(`/accounts/${mailId(req.params.account)}/updatemessage`, { ...jsonBody(payload), method: 'PUT' });
     return res.json({ success: true });
   }));
-  router.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  router.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     // Never log provider bodies, email text, addresses or credential material.
+    const requestId = getRequestId(req);
     const tooLarge = (err as any)?.type === 'entity.too.large';
-    return res.status(tooLarge ? 413 : err instanceof MailError ? err.status : 502).json({ error: tooLarge ? 'Choose an attachment up to 3 MB.' : err instanceof MailError ? err.message : 'Microsoft 365 is temporarily unavailable. If you were sending, check Sent in Microsoft 365 before trying again.' });
+    if (err instanceof MailError) console.warn(`[Communications] requestId=${requestId} status=${err.status}: ${err.message}`);
+    else if (tooLarge) console.warn(`[Communications] requestId=${requestId} request body exceeded the limit`);
+    else console.error(`[Communications] requestId=${requestId} ${err instanceof Error ? err.name : 'UnknownError'}`);
+    const status = tooLarge ? 413 : err instanceof MailError ? err.status : 502;
+    const error = tooLarge ? 'Choose an attachment up to 3 MB.' : err instanceof MailError ? err.message : 'Microsoft 365 is temporarily unavailable. If you were sending, check Sent in Microsoft 365 before trying again.';
+    return res.status(status).json({ error, requestId });
   });
   return router;
 }

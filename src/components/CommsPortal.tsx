@@ -94,7 +94,7 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
     const { data } = await client.auth.getSession();
     if (!data.session) throw new Error('Sign in to Q to use communications.');
     const response = await fetch(`/api/comms${mailboxMode}${path}`, { ...init, credentials: 'same-origin', cache: 'no-store', signal, headers: { ...(init.body && typeof init.body === 'string' ? { 'Content-Type': 'application/json' } : {}), ...init.headers, Authorization: `Bearer ${data.session.access_token}` } });
-    if (!response.ok) { const result = await response.json().catch(() => ({})); if (result.code === 'MAIL_CONNECTION_REQUIRED') setStatus(s => s ? { ...s, connected: false } : s); throw new Error(result.error || 'Unable to complete this email request.'); }
+    if (!response.ok) { const result = await response.json().catch(() => ({})); if (result.code === 'MAIL_CONNECTION_REQUIRED') setStatus(s => s ? { ...s, connected: false } : s); throw new Error(result.requestId ? `${result.error || 'Unable to complete this email request.'} (Reference: ${result.requestId})` : result.error || 'Unable to complete this email request.'); }
     return response;
   }
   const mailJson = async (path: string, init?: RequestInit, signal?: AbortSignal) => (await mailRequest(path, init, signal)).json();
