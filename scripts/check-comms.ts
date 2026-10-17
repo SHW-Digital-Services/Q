@@ -10,7 +10,7 @@ import { combinedInboxFolders, visibleMailFolders, inboxFolder, trashFolder } fr
 const owner = '00000000-0000-4000-8000-000000000001';
 const target = '00000000-0000-4000-8000-000000000002';
 const key = randomBytes(32);
-const config: MailConfig = { clientId: 'fixture-client', tenantId: 'fixture-tenant', mailboxId: 'office@q-ai.online', refreshToken: 'fixture-refresh', key, accountsOrigin: 'https://login.microsoftonline.com/fixture-tenant/oauth2/v2.0', mailOrigin: 'https://graph.microsoft.com/v1.0', redirectUri: '', appOrigin: '', secure: false };
+const config: MailConfig = { clientId: 'fixture-client', tenantId: 'fixture-tenant', mailboxId: 'office@q-ai.online', useSignedInUser: false, refreshToken: 'fixture-refresh', key, accountsOrigin: 'https://login.microsoftonline.com/fixture-tenant/oauth2/v2.0', mailOrigin: 'https://graph.microsoft.com/v1.0', redirectUri: '', appOrigin: '', secure: false };
 const session: MailSession = { owner, access: 'fixture-access', refresh: 'fixture-refresh', expires: Date.now() + 3600000, tokenExpires: Date.now() + 3600000 };
 const calls: { url: URL; init: RequestInit }[] = [];
 let providerStatus = 200; let mailboxEmail = 'office@q-ai.online'; let malformedMessages = false; let emptyView: 'none' | 'extended' | 'all' = 'none';
