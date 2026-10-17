@@ -744,7 +744,7 @@ adminRouter.delete('/content/api-clients/:id', asyncHandler(async (req, res) => 
 adminRouter.get('/staff', asyncHandler(async (req, res) => {
   const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
   const [{ data: profiles, error }, { data: usersData, error: usersError }] = await Promise.all([
-    adminCtx.serviceSupabase.from('profiles').select('id, role, staff_permissions, preferred_name, created_at').in('role', ['staff', 'partner_admin']).order('created_at'),
+    adminCtx.serviceSupabase.from('profiles').select('id, role, staff_permissions, preferred_name, created_at').in('role', ['staff', 'partner_admin', 'social_media_manager']).order('created_at'),
     adminCtx.serviceSupabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
   ]);
   if (error || usersError) return res.status(500).json({ error: error?.message || usersError?.message || 'Unable to load staff.' });
@@ -756,7 +756,7 @@ adminRouter.patch('/users/:id/role', asyncHandler(async (req, res) => {
   const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
   if (!requireExactObject(req.body, ['role'])) return res.status(400).json({ error: 'Unexpected request fields.' });
   const role = req.body?.role;
-  if (!['user', 'staff', 'partner_admin'].includes(role)) return res.status(400).json({ error: 'Role must be user, staff, or partner_admin.' });
+  if (!['user', 'staff', 'partner_admin', 'social_media_manager'].includes(role)) return res.status(400).json({ error: 'Role must be user, staff, partner_admin, or social_media_manager.' });
   const targetId = req.params.id;
   const { data: current, error: currentError } = await adminCtx.serviceSupabase.from('profiles').select('id, role').eq('id', targetId).maybeSingle();
   if (currentError || !current) return res.status(404).json({ error: 'User profile not found.' });
@@ -849,7 +849,7 @@ adminRouter.post('/crm/users', asyncHandler(async (req, res) => {
   const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
   const requestedRole = req.body?.role;
-  const role = staffCtx.role === 'partner_admin' && ['user', 'staff', 'partner_admin'].includes(requestedRole) ? requestedRole : 'user';
+  const role = staffCtx.role === 'partner_admin' && ['user', 'staff', 'partner_admin', 'social_media_manager'].includes(requestedRole) ? requestedRole : 'user';
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'A valid email address is required.' });
   const redirectTo = `${getCanonicalAppUrl()}/app`;
   const authResult = await staffCtx.serviceSupabase.auth.admin.inviteUserByEmail(email, { redirectTo, data: { name: name || email.split('@')[0], invited_by_q_crm: true } });

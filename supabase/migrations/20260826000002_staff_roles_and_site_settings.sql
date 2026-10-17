@@ -3,7 +3,7 @@ do $$ declare constraint_name text; begin
   where conrelid = 'public.profiles'::regclass and contype = 'c' and pg_get_constraintdef(oid) like '%role%';
   if constraint_name is not null then execute format('alter table public.profiles drop constraint %I', constraint_name); end if;
 end $$;
-alter table public.profiles add constraint profiles_role_check check (role in ('user','beta_tester','staff','partner_admin'));
+alter table public.profiles add constraint profiles_role_check check (role in ('user','beta_tester','staff','partner_admin','social_media_manager'));
 
 create table if not exists public.site_settings (
   key text primary key,
