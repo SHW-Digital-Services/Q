@@ -67,16 +67,18 @@ function LoadingView({ label = 'Loading...' }: { label?: string }) {
 
 function StatusPageButton({ placement = 'left' }: { placement?: 'left' | 'right' }) {
   return (
-    <a
-      href="https://status.q-ai.online"
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Open Q Status Page in a new tab"
-      className={`${placement === 'right' ? 'q-fixed-top-right' : 'q-fixed-top-left'} q-compact-fixed fixed z-[60] inline-flex min-h-11 items-center gap-1.5 rounded-full border border-purple-300/60 bg-white/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-violet-700 shadow-lg shadow-violet-200/50 backdrop-blur-sm transition hover:bg-white dark:border-purple-500/30 dark:bg-slate-900/80 dark:text-violet-200`}
-    >
-      <span className="q-fixed-label">Status Page</span>
-      <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
-    </a>
+    <div className={`relative z-[60] flex min-h-14 w-full items-center px-4 pt-[max(0.5rem,env(safe-area-inset-top))] ${placement === 'right' ? 'justify-end' : 'justify-start'}`}>
+      <a
+        href="https://q-intelligence.betteruptime.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Open Q Status Page in a new tab"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-purple-300/60 bg-white/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-violet-700 shadow-lg shadow-violet-200/50 backdrop-blur-sm transition hover:bg-white dark:border-purple-500/30 dark:bg-slate-900/80 dark:text-violet-200"
+      >
+        <span>Status Page</span>
+        <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+      </a>
+    </div>
   );
 }
 

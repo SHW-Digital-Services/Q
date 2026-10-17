@@ -6,14 +6,14 @@ The app applies rate limiting to `/api`. Admin route aliases are `/api/v1/admin`
 
 ## Public health and AI
 
-| Method | Endpoint | Notes / monitor approach |
-|---|---|---|
-| GET | `/api/health` | Primary availability check. Expect HTTP 200 and JSON `status: ok`, `services.api/database/auth: up`; 503 means unhealthy. |
-| GET | `/api/health/supabase` | Detailed Supabase health check; same dependency checks, useful as a diagnostic monitor. |
-| GET | `/api/q-ai/health`, `/api/ai/health` | AI provider/config status. Does not prove a model inference succeeds; pair with provider telemetry or a controlled staging canary. |
-| POST | `/api/q-ai/chat`, `/api/ai/chat` | AI chat; staging synthetic only, avoid production content/cost. |
-| POST | `/api/q-ai/generate-guide`, `/api/ai/generate-guide` | AI guide generation; staging synthetic only. |
-| POST | `/api/q-ai/query`, `/api/ai/query` | AI query; staging synthetic only. |
+| Friendly status-page name | Method | Endpoint | Notes / monitor approach |
+|---|---|---|---|
+| Q Platform — Core API Health | GET | `/api/health` | Primary availability check. Expect HTTP 200 and JSON `status: ok`, `services.api/database/auth: up`; 503 means unhealthy. |
+| Q Platform — Supabase Health | GET | `/api/health/supabase` | Detailed Supabase health check; same dependency checks, useful as a diagnostic monitor. |
+| Q AI — Provider Status | GET | `/api/q-ai/health`, `/api/ai/health` | AI provider/config status. Does not prove a model inference succeeds; pair with provider telemetry or a controlled staging canary. |
+| Q AI — Chat | POST | `/api/q-ai/chat`, `/api/ai/chat` | AI chat; staging synthetic only, avoid production content/cost. |
+| Q AI — Guide Generation | POST | `/api/q-ai/generate-guide`, `/api/ai/generate-guide` | AI guide generation; staging synthetic only. |
+| Q AI — Query | POST | `/api/q-ai/query`, `/api/ai/query` | AI query; staging synthetic only. |
 
 ## Billing and referrals
 
@@ -157,13 +157,21 @@ Admin routes below are available under both `/api/v1/admin` and `/api/admin`, un
 
 ## Monitor setup
 
-### Availability monitors
+### Recommended seven status-page monitors
 
-1. **Primary HTTP uptime monitor:** `GET https://www.q-ai.online/api/health`, every 1 minute, 10-second timeout. Assert HTTP 200, JSON `status == "ok"`, and all `services` values equal `up`. Alert after 2 failed checks in a 3-check window; clear after 2 successful checks.
-2. **Supabase diagnostic monitor:** `GET https://www.q-ai.online/api/health/supabase`, every 5 minutes. Expect 200 and `status == "ok"`; use it to identify whether database or auth is down. Since `/api` is rate-limited, do not poll more frequently without checking the configured limits.
-3. **Public journey monitor:** Every 5–15 minutes, check one or two low-cost public GET routes such as `/api/content` and `/api/help-centre/articles`; assert the expected JSON shape, not merely a 200. Keep each endpoint in its own check so failures are diagnosable.
-4. **Authenticated synthetic journeys:** Run every 15–30 minutes against staging with dedicated accounts. Cover sign-in/session, a representative read from CRM/support, and a controlled write/read/delete cycle using disposable records. Do not run production writes, emails, payments, privacy exports/deletions, or incident creation.
-5. **Dependency monitors:** Use Supabase dashboard/telemetry, Vercel function logs, Microsoft 365/Graph request outcomes, PayPal webhook delivery, and Brevo webhook delivery. Avoid issuing unapproved requests against customer mailboxes or provider webhooks.
+Use these seven low-noise checks as the initial Better Stack monitor set. All are read-only GET requests. Run each every 1 minute with a 10-second timeout; alert after 2 failures in 3 checks and clear after 2 successful checks. If the `/api` rate limit is lower than expected, reduce the interval for API checks.
+
+| Friendly status-page name | Short description (under 50 characters) | Method and URL | Success condition |
+|---|---|---|---|
+| Q Website | Checks that the public website loads. | `GET https://www.q-ai.online/` | HTTP 200 and HTML response. |
+| Q Platform — Core API | Checks API, database, and auth health. | `GET https://www.q-ai.online/api/health` | HTTP 200; JSON `status == "ok"`; `services.api`, `services.database`, and `services.auth` are all `up`. |
+| Q Platform — Supabase | Checks Supabase Auth and database. | `GET https://www.q-ai.online/api/health/supabase` | HTTP 200 and JSON `status == "ok"`; use as the dependency-specific diagnostic. |
+| Q AI — Provider | Checks AI configuration and enabled state. | `GET https://www.q-ai.online/api/q-ai/health` | HTTP 200, JSON `status == "operational"`, and `aiEnabled == true` when hosted AI is intended to be available. The alias `/api/ai/health` is equivalent; monitor one path only. |
+| Q Content | Checks published content can be listed. | `GET https://www.q-ai.online/api/content` | HTTP 200 and JSON contains a `posts` array. |
+| Q Help Centre | Checks public help articles can be loaded. | `GET https://www.q-ai.online/api/help-centre/articles` | HTTP 200 and a JSON array response. |
+| Q Public Roadmap | Checks the public roadmap can be loaded. | `GET https://www.q-ai.online/api/feedback/roadmap` | HTTP 200 and a JSON array response. |
+
+These checks cover the website, core API, Supabase, AI configuration, and three public read paths without probing every route. They do not verify authenticated CRM workflows, AI inference quality, mailbox sync, outgoing mail, or webhook processing. Keep those in provider telemetry and occasional staging-only synthetic journeys rather than adding more public monitors.
 
 ### Metrics to capture
 
