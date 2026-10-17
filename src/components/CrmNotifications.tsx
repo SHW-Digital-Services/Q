@@ -4,7 +4,7 @@ import {getSupabaseClient} from '../services/supabase';
 import {useCrmDraftState} from '../hooks/useCrmDraftState';
 import {combinedInboxFolders, type MailFolder} from '../services/mailFolders';
 
-const labels:Record<string,string>={customers:'New CRM customer',activity:'CRM activity updated',tasks:'CRM task updated',communications:'New CRM communication',support:'Support activity updated',feedback:'New improvement suggestion',billing:'CRM payment activity',security:'Security activity updated',mail:'New unread email in Inbox',personalMail:'New unread email in your personal Inbox'};
+const labels:Record<string,string>={ticket:'New Ticket',roadmap:'New Roadmap Item',mail:'New email in Inbox',personalMail:'New email in your personal Inbox'};
 export default function CrmNotifications(){
  const [enabled,setEnabled]=useCrmDraftState('crmDeviceNotifications',false);
  const [baseline,setBaseline]=useCrmDraftState<Record<string,string|number|null>>('crmNotificationBaseline',{});
@@ -43,7 +43,7 @@ export default function CrmNotifications(){
     await Promise.all(modes.map(async mode=>{try{const accounts=await get(`/api/comms${mode.path}/accounts`);const account=accounts.accounts?.[0]?.accountId;if(account){const data=await get(`/api/comms${mode.path}/accounts/${account}/folders`);next[mode.key]=combinedInboxFolders(data.folders as MailFolder[]).reduce((sum,item)=>sum+(item.unreadCount||0),0);}}catch{failed=true;}}));
    }catch{failed=true;}
    finally{
-    if(!controller.signal.aborted){const previous=latest.current;const changed=Object.keys(next).filter(key=>key in previous && next[key]!==null && ((key==='mail'||key==='personalMail')?Number(next[key])>Number(previous[key]):Date.parse(String(next[key]))>(previous[key]?Date.parse(String(previous[key])):0)));if(changed.length)announce(changed);const merged={...previous,...next};latest.current=merged;setBaseline(merged);setHealth(failed?'Some CRM notifications are temporarily unavailable.':'');}pending=false;
+    if(!controller.signal.aborted){const previous=latest.current;const changed=Object.keys(next).filter(key=>['ticket','roadmap','mail','personalMail'].includes(key)&&key in previous&&next[key]!==null&&((key==='mail'||key==='personalMail')?Number(next[key])>Number(previous[key]):Date.parse(String(next[key]))>(previous[key]?Date.parse(String(previous[key])):0)));if(changed.length)announce(changed);const merged={...previous,...next};latest.current=merged;setBaseline(merged);setHealth(failed?'Some CRM notifications are temporarily unavailable.':'');}pending=false;
    }
   }
   void poll();const timer=window.setInterval(()=>void poll(),30000);const visible=()=>{if(document.visibilityState==='visible')void poll();};document.addEventListener('visibilitychange',visible);
