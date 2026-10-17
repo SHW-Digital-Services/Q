@@ -28,7 +28,16 @@ while ([DateTimeOffset]::UtcNow -lt $deadline) {
     $errorBody = $_.ErrorDetails.Message
     if ($errorBody -match 'authorization_pending') { continue }
     if ($errorBody -match 'slow_down') { $interval += 5; continue }
-    throw 'Microsoft device authorization failed or was declined. Start again and check the account and app permissions.'
+    # Preserve Microsoft's actionable OAuth error while never printing a token response.
+    $oauthError = $null
+    try { $oauthError = $errorBody | ConvertFrom-Json -ErrorAction Stop } catch { }
+    if ($oauthError.error -or $oauthError.error_description) {
+      $code = if ($oauthError.error) { [string]$oauthError.error } else { 'unknown_error' }
+      $description = if ($oauthError.error_description) { [string]$oauthError.error_description } else { 'No additional description was provided.' }
+      $correlation = if ($oauthError.correlation_id) { " Correlation ID: $($oauthError.correlation_id)." } else { '' }
+      throw "Microsoft device authorization failed ($code): $description$correlation"
+    }
+    throw 'Microsoft device authorization failed and Microsoft returned no readable OAuth error. Check the Entra sign-in logs for the attempt.'
   }
 }
 throw 'The device code expired before authorization completed. Start again.'
