@@ -28,6 +28,7 @@
     "build",
     "coverage",
     "supabase/functions",
-    "site-tests/q-playwright-tests"
+    "site-tests/q-playwright-tests",
+    "it-hub"
   ]
 }
