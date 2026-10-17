@@ -2,7 +2,7 @@
 
 This is a self-contained subpackage that implements an IT Hub service integrating:
 
-- BetterStack Incidents v3 API (create/update incidents, status-page incidents & updates)
+- BetterStack Incidents v3 API (create/update incidents) and status-page reports and updates (v2)
 - Supabase (server-side logging and lightweight incident mirror)
 - Vercel webhook handling (HMAC-SHA1 x-vercel-signature verification over raw body)
 

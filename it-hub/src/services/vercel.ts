@@ -25,7 +25,7 @@ export async function createIncidentIfDeploymentFailed(payload: any) {
     await logEvent('incident_created_from_vercel', { payload, incident });
     return incident;
   } catch (err) {
-    console.error('failed to create incident from vercel payload', err);
+    console.error('[IT Hub] Incident creation from Vercel failed:', err instanceof Error ? `${err.name}: ${err.message}` : 'Unknown error');
     await logEvent('incident_creation_error', { error: String(err), payload });
     return null;
   }

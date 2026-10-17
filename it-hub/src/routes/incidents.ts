@@ -11,7 +11,7 @@ export async function createIncidentHandler(req: Request, res: Response) {
     await logEvent('incident_created', created);
     res.status(201).json(created);
   } catch (err) {
-    console.error(err);
+    console.error('[IT Hub] Incident creation failed:', err instanceof Error ? `${err.name}: ${err.message}` : 'Unknown error');
     res.status(500).json({ error: 'failed to create incident' });
   }
 }
@@ -24,7 +24,7 @@ export async function updateIncidentHandler(req: Request, res: Response) {
     await logEvent('incident_update', updated);
     res.json(updated);
   } catch (err) {
-    console.error(err);
+    console.error('[IT Hub] Incident update failed:', err instanceof Error ? `${err.name}: ${err.message}` : 'Unknown error');
     res.status(500).json({ error: 'failed to update incident' });
   }
 }
@@ -35,7 +35,7 @@ export async function getStatusHandler(req: Request, res: Response) {
     const events = await getRecentEvents(50);
     res.json({ statusPage, recentEvents: events });
   } catch (err) {
-    console.error(err);
+    console.error('[IT Hub] Status fetch failed:', err instanceof Error ? `${err.name}: ${err.message}` : 'Unknown error');
     res.status(500).json({ error: 'failed to fetch status' });
   }
 }

@@ -23,7 +23,7 @@ export async function handleVercelWebhook(req: Request & { rawBody?: Buffer }, r
     await createIncidentIfDeploymentFailed(payload);
     res.json({ ok: true });
   } catch (err) {
-    console.error('vercel webhook handler error', err);
+    console.error('[IT Hub] Vercel webhook handler failed:', err instanceof Error ? `${err.name}: ${err.message}` : 'Unknown error');
     res.status(500).json({ ok: false, error: 'internal error' });
   }
 }

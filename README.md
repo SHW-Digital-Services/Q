@@ -1,30 +1,87 @@
-# IT Hub
+[![Supabase migrations](https://github.com/SHW-Digital-Services/Q/actions/workflows/supabase-migrations.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/supabase-migrations.yml)
+[![CodeQL](https://github.com/SHW-Digital-Services/Q/actions/workflows/codeql.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/codeql.yml)
+[![Check legal files](https://github.com/SHW-Digital-Services/Q/actions/workflows/check-legal-files.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/check-legal-files.yml)
+[![Application CI](https://github.com/SHW-Digital-Services/Q/actions/workflows/ci.yml/badge.svg)](https://github.com/SHW-Digital-Services/Q/actions/workflows/ci.yml)
 
-An IT Hub service that:
+# Q Intelligence
 
-- Integrates with BetterStack to create and update incidents and post status page updates.
-- Stores logs and events in Supabase.
-- Receives Vercel deployment webhooks and logs deployment/deploy-failures; creates incidents on failures.
+Q is a privacy-conscious LGBTQ+ wellbeing, life-guidance, and personal-reflection application built with React, TypeScript, Express, and Supabase.
 
-Quick start:
+## Key features
 
-1. Copy `.env.example` to `.env` and fill values.
-2. Run `npm install`.
-3. Start dev: `npm run dev` (uses `ts-node-dev`).
-4. Configure Vercel webhook to POST to `/webhooks/vercel` (use the secret in `.env`).
-5. Configure BetterStack API key and status-page IDs.
+- **Premium programmes, insights and continuity:** Self-paced guided programmes, mood/tag insights, and opt-in cross-device snapshots with conflict protection. See [premium features and deployment](docs/premium-features.md).
 
-Security notes
+- **Private local AI:** WebLLM runs Llama 3.2 1B in a Web Worker using WebGPU. After the initial model download, generation can run without sending prompts to an AI API.
+- **Optional hosted AI:** Users can explicitly select server-hosted AI through Groq (when `GROQ_API_KEY` is configured) or OpenAI as a fallback. Client-side PII masking is applied before hosted requests.
+- **Per-user memory:** User-approved memories are stored in Supabase and protected by Row Level Security. Relevant memories are retrieved only for the authenticated user.
+- **Crisis support:** A static, offline-capable country directory provides one-tap emergency, phone, text, and chat actions. Crisis intent is checked before model inference.
+- **Safety controls:** a single discreet Notes mode, privacy lock, and local-data controls are built into the application.
+- **Journaling and mood tracking:** Browser-stored reflection tools plus user-owned Supabase records where the feature explicitly saves to the signed-in account. Browser storage and JSON exports are not encrypted by Q.
+- **Operations:** PayPal subscriptions, staff access controls, and optional Zoho Bigin CRM synchronization.
 
-- Keep secrets out of source control. Use environment variables or your platform's secret store.
-- Use a Supabase `service_role` key only on a trusted server (never expose it in browser or client apps).
+See [Local AI, memory, and safety](docs/local-ai-memory-safety.md) and the [user, staff, and admin guide](docs/q-user-staff-admin-guide.md) for operational details.
 
-Files added
+## Requirements
 
-- README.md — this file
-- package.json — dependencies and scripts
-- .env.example — environment variables (placeholders)
-- supabase/init.sql — SQL to create required tables in Supabase
-- src/* — TypeScript source: server, webhooks, services, and utilities
+- Node.js 20 or later
+- A WebGPU-capable browser for local AI
+- Supabase credentials for authentication and cloud memory
+- A Groq API key for the hosted AI free tier, or an OpenAI API key if using OpenAI
 
-If you want, I can open a PR from branch `it-hub` to your default branch after you review the changes.
+## Local development
+
+```powershell
+npm install
+Copy-Item .env.example .env
+npm run dev
+```
+
+Open the displayed local URL and use `/app` for the authenticated application.
+
+## Environment variables
+
+Copy `.env.example` and configure only the integrations in use. Never expose server secrets through a `VITE_` variable.
+
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
+AI_FREE_MODEL=gpt-5-nano
+AI_PAID_MODEL=gpt-5-mini
+AI_EMBEDDING_MODEL=text-embedding-3-small
+```
+
+`GROQ_API_KEY` enables hosted chat and guide generation through Groq. If it is absent, `OPENAI_API_KEY` enables the existing OpenAI provider. OpenAI is still required for server-side vetted-knowledge embeddings; hosted chat works without those optional embeddings.
+
+## WebLLM behavior
+
+The first local-AI request downloads and caches approximately 1 GB of model assets. Actual storage and memory requirements vary by browser and device. Local AI requires WebGPU and may be unavailable on older devices, private browsing configurations, or browsers that disable hardware acceleration.
+
+The model is loaded in a dedicated worker from `src/workers/webllm.worker.ts`. Provider orchestration is in `src/services/webLlm.ts`.
+
+Chat and Life Guides both use real model inference in private local mode; neither substitutes fixed checklists or canned answers. Local mode is the default for both features. Model loading progress is shown, and a failed guide retains its prompt for retry without saving a replacement. GPUs without half-precision shader support use the compatible float32 model. Hosted AI remains optional and requires a funded API account.
+
+## Validation
+
+```powershell
+npm run lint
+npm run check:local-ai
+npm run build
+git diff --check
+```
+
+The production build currently emits a large-chunk warning because the WebLLM runtime and worker are substantial. This warning does not indicate a failed build.
+
+## Technical stack
+
+- Frontend: React 19, TypeScript, Tailwind CSS, Motion
+- Local AI: `@mlc-ai/web-llm`, WebGPU, Web Workers
+- Hosted AI: Groq OpenAI-compatible Chat Completions API (preferred when configured), with OpenAI Responses API fallback through the Express server
+- Data: Supabase Auth, PostgreSQL, pgvector, and RLS
+- Backend: Node.js and Express
+- Deployment: Vercel-compatible and conventional Node hosting
+
+## IT Hub
+
+The CRM Administration menu includes an IT Hub panel for service health, BetterStack status, incident creation, and event history. Its standalone service package and setup instructions are in [`it-hub/README.md`](it-hub/README.md). Configure `BETTERSTACK_API_KEY` and, when available, `BETTERSTACK_STATUS_PAGE_ID` in the server environment. Incident creation uses the signed-in admin's email, with `BETTERSTACK_REQUESTER_EMAIL` as a fallback. Apply the IT Hub events migration in `supabase/migrations` before using event history.

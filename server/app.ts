@@ -28,6 +28,7 @@ import { helpCentreRouter } from './routes/helpCentre.js';
 import { supportRouter } from './routes/support.js';
 import { feedbackRouter } from './routes/feedback.js';
 import { userActivityRouter } from './routes/userActivity.js';
+import { itHubAdminRouter } from './routes/itHubAdmin.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -216,6 +217,7 @@ app.use(['/api/v1/admin', '/api/admin'], adminRouter);
 app.use(['/api/v1/admin/delete-users', '/api/admin/delete-users'], adminDeleteUsersRouter);
 app.use(['/api/v1/admin/help-videos', '/api/admin/help-videos'], helpVideosAdminRouter);
 app.use(['/api/v1/admin/brevo-webhooks', '/api/admin/brevo-webhooks'], brevoWebhookAdminRouter);
+app.use('/api/v1/admin/it-hub', itHubAdminRouter);
 app.use('/api/webhooks/brevo', brevoWebhookReceiver);
 app.use('/api/referrals', referralsRouter);
 app.use('/api/privacy', privacyRouter);

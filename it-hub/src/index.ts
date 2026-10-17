@@ -6,6 +6,6 @@ dotenv.config();
 import('./server').then(mod => {
   // server starts on import
 }).catch(err => {
-  console.error('Failed to start IT Hub server', err);
+  console.error('[IT Hub] Server startup failed:', err instanceof Error ? `${err.name}: ${err.message}` : 'Unknown error');
   process.exit(1);
 });

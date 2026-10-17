@@ -5,8 +5,9 @@ if (!API_KEY) throw new Error('Missing BETTERSTACK_API_KEY env var');
 
 const INCIDENTS_BASE = process.env.BETTERSTACK_INCIDENTS_BASE || 'https://incidents.betterstack.com/api/v3';
 const INCIDENT_ACTIONS_BASE = process.env.BETTERSTACK_INCIDENT_ACTIONS_BASE || 'https://uptime.betterstack.com/api/v3';
-const COMMENTS_BASE = process.env.BETTERSTACK_COMMENTS_BASE || 'https://uptime.betterstack.com/api/v2';
-const STATUS_BASE = process.env.BETTERSTACK_STATUS_BASE || 'https://status.betterstack.com/api/v2';
+const COMMENTS_BASE = process.env.BETTERSTACK_COMMENTS_BASE || 'https://incidents.betterstack.com/api/v2';
+const STATUS_BASE = process.env.BETTERSTACK_STATUS_BASE || 'https://incidents.betterstack.com/api/v2';
+const STATUS_UPDATES_BASE = process.env.BETTERSTACK_STATUS_UPDATES_BASE || 'https://uptime.betterstack.com/api/v2';
 
 const client: AxiosInstance = axios.create({
   headers: {
@@ -77,48 +78,45 @@ export async function updateIncident(externalId: string, payload: {
   return result;
 }
 
-/**
- * Create a public status page incident (v2 status API) — kept for status page updates.
- */
-export async function createStatusPageIncident(pageId: string, payload: {
-  name: string;
-  message?: string;
-  status?: string;
-  started_at?: string;
-  metadata?: any;
-}) {
-  const body: any = {
-    incident: {
-      name: payload.name,
-      message: payload.message || '',
-      status: payload.status || 'investigating',
-      ...(payload.started_at ? { started_at: payload.started_at } : {}),
-      ...(payload.metadata ? { metadata: payload.metadata } : {})
-    }
-  };
+type StatusPageAffectedResource = {
+  status_page_resource_id: string;
+  status: 'maintenance' | 'resolved' | 'degraded' | 'downtime';
+};
 
-  const url = `${STATUS_BASE}/pages/${encodeURIComponent(pageId)}/incidents`;
-  const resp = await client.post(url, body);
-  return (resp.data && resp.data.incident) ? resp.data.incident : resp.data;
-}
-
-/**
- * Post an update to a status page incident (v2)
- */
-export async function postStatusPageUpdate(pageId: string, incidentId: string, update: {
+/** Create a status page report using Better Stack's status-pages API. */
+export async function createStatusPageReport(pageId: string, payload: {
+  title: string;
   message: string;
-  status?: string;
+  reportType?: 'manual' | 'maintenance';
+  notifySubscribers?: boolean;
+  affectedResources: StatusPageAffectedResource[];
 }) {
   const body = {
-    update: {
-      message: update.message,
-      ...(update.status ? { status: update.status } : {})
-    }
+    title: payload.title,
+    message: payload.message,
+    report_type: payload.reportType || 'manual',
+    ...(payload.notifySubscribers !== undefined ? { notify_subscribers: payload.notifySubscribers } : {}),
+    affected_resources: payload.affectedResources
   };
-
-  const url = `${STATUS_BASE}/pages/${encodeURIComponent(pageId)}/incidents/${encodeURIComponent(incidentId)}/updates`;
+  const url = `${STATUS_BASE}/status-pages/${encodeURIComponent(pageId)}/status-reports`;
   const resp = await client.post(url, body);
-  return (resp.data && resp.data.update) ? resp.data.update : resp.data;
+  return resp.data;
+}
+
+/** Post a status update to an existing status page report. */
+export async function postStatusPageUpdate(pageId: string, reportId: string, update: {
+  message: string;
+  notifySubscribers?: boolean;
+  affectedResources: StatusPageAffectedResource[];
+}) {
+  const body = {
+    message: update.message,
+    ...(update.notifySubscribers !== undefined ? { notify_subscribers: update.notifySubscribers } : {}),
+    affected_resources: update.affectedResources
+  };
+  const url = `${STATUS_UPDATES_BASE}/status-pages/${encodeURIComponent(pageId)}/status-reports/${encodeURIComponent(reportId)}/status-updates`;
+  const resp = await client.post(url, body);
+  return resp.data;
 }
 
 /**
@@ -127,7 +125,7 @@ export async function postStatusPageUpdate(pageId: string, incidentId: string, u
 export async function getStatusPage(pageId?: string) {
   const id = pageId || process.env.BETTERSTACK_STATUS_PAGE_ID;
   if (!id) return null;
-  const url = `${STATUS_BASE}/pages/${encodeURIComponent(id)}`;
+  const url = `${STATUS_BASE}/status-pages/${encodeURIComponent(id)}`;
   const resp = await client.get(url);
   return resp.data;
 }
@@ -135,7 +133,7 @@ export async function getStatusPage(pageId?: string) {
 export default {
   createIncident,
   updateIncident,
-  createStatusPageIncident,
+  createStatusPageReport,
   postStatusPageUpdate,
   getStatusPage
 };
