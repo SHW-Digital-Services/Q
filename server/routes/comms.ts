@@ -2,7 +2,7 @@ import {logCustomerOfficeEmail,syncOfficeEmailTickets} from '../crmEmailTickets.
 import express from 'express';
 import { combinedInboxFolders } from '../../src/services/mailFolders.js';
 import { requireStaff } from './admin.js';
-import { asyncHandler } from '../middleware.js';
+import { asyncHandler, getRequestId } from '../middleware.js';
 import { requireExactObject } from '../security.js';
 import { MailError, mailConfig, sealMail, openMail, mailId, mailRecipients, Microsoft365MailClient, boundedResponse, allowedMailOrigin } from '../microsoft365Mail.js';
 import type { MailConfig, MailSession } from '../microsoft365Mail.js';
@@ -72,7 +72,7 @@ export function createCommsRouter(dependencies: Dependencies) {
     const staff=res.locals.mailStaff;if(staff.role!=='partner_admin'&&staff.permissions?.length&&!staff.permissions.includes('support.write'))return res.status(403).json({error:'Support write access is required to sync email tickets.'});
     if(!requireExactObject(req.body,['start']))return res.status(400).json({error:'Invalid sync fields.'});
     const start=Number(req.body.start||1);if(!Number.isSafeInteger(start)||start<1||start>100000)return res.status(400).json({error:'Invalid email page.'});
-    try{return res.json(await syncOfficeEmailTickets(staff.serviceSupabase,res.locals.mailClient,String(res.locals.officeMailbox.accountId),start,mailbox));}catch{return res.status(503).json({error:'Shared mailbox email sync could not complete. Previously logged tickets are safe; retry to finish.'});}
+    try{return res.json(await syncOfficeEmailTickets(staff.serviceSupabase,res.locals.mailClient,String(res.locals.officeMailbox.accountId),start,mailbox));}catch(error){const requestId=getRequestId(req);console.error(`[Office email sync] requestId=${requestId}`,error instanceof Error?error.message:'Unknown sync error');return res.status(503).json({error:'Shared mailbox email sync could not complete. Previously logged tickets are safe; retry to finish.',requestId});}
   }));
   router.get('/customers/:user/history', asyncHandler(async (req, res) => {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.user)) throw new MailError(400, 'Invalid customer.');
