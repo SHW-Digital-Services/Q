@@ -8,6 +8,7 @@ import { GlobalTextTranslator } from './components/GlobalTextTranslator';
 import { OnlinePresenceProvider } from './contexts/OnlinePresenceContext';
 import { BrevoTrackerConsent } from './components/BrevoTrackerConsent';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { installChunkLoadRecovery } from './services/chunkLoadRecovery';
 import UserActivityTracker from './components/UserActivityTracker';
 
@@ -23,6 +24,7 @@ createRoot(document.getElementById('root')!).render(
         {window.location.pathname !== '/support' && <BrevoTrackerConsent />}
         <OnlinePresenceProvider><UserActivityTracker /><App />{!['/crm/chat', '/admin/crm/chat'].includes(window.location.pathname) && <Suspense fallback={null}><StaffChat page={false} /></Suspense>}</OnlinePresenceProvider>
         {window.location.pathname !== '/support' && <Analytics />}
+        {window.location.pathname !== '/support' && <SpeedInsights />}
       </ThemeProvider>
     </LanguageProvider>
   </StrictMode>,
