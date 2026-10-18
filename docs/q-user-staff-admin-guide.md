@@ -10,7 +10,7 @@ This guide explains how Q Intelligence is operated by three audiences:
 
 ## Core Operating Model
 
-Staff and Admins open **Communications** to access the shared office@q-ai.online Microsoft 365 mailbox and use **Email templates**. Mailbox content and attachments are not saved to Supabase. There are 30 editable starter templates. See [Microsoft 365 Communications](microsoft365-mail-comms.md).
+Staff and Admins open **Communications** to access the shared `cs@q-ai.online` Microsoft 365 mailbox and use **Email templates**. Staff can also connect their own Microsoft 365 inbox, which is shown as **My inbox** and uses their own email address. Mailbox content and attachments are not saved to Supabase. There are 30 editable starter templates. See [Microsoft 365 Communications](microsoft365-mail-comms.md).
 
 Admins open **Admin Only** for launch controls, publishing, Help Videos, Staff roles, products, Brevo events and **Delete User** within a customer record. Staff do not see this button. See [Admin functions](admin-functions.md) and [Brevo webhooks](brevo-webhooks.md). The normal news list shows drafts/published posts; use **View Archived** for archives.
 

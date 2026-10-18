@@ -68,7 +68,7 @@ export function createCommsRouter(dependencies: Dependencies) {
     const connection = dependencies.personalMailbox && config ? personalSession(_req, config, owner) : null;
     const personalAvailable = !dependencies.personalMailbox && !dependencies.privateMailbox && Boolean(config && personalSession(_req, config, owner));
     const currentConnection = !dependencies.personalMailbox && !dependencies.privateMailbox && config ? personalSession(_req, config, owner) : null;
-    return res.json({ configured: Boolean(config), connected: dependencies.personalMailbox ? Boolean(connection) : Boolean(config), shared: !dependencies.privateMailbox, mailbox: dependencies.personalMailbox ? connection?.access.email || 'My inbox' : mailbox, personalAvailable, personalEmail: currentConnection?.access.email, mailUrl: 'https://outlook.office.com/mail/', storage: 'microsoft365' });
+    return res.json({ configured: Boolean(config), connected: dependencies.personalMailbox ? Boolean(connection) : Boolean(config), shared: !dependencies.privateMailbox, mailbox: dependencies.personalMailbox ? connection?.access.email || 'My inbox' : mailbox, personalAvailable, personalEmail: currentConnection?.access.email, staffEmail: res.locals.mailStaff?.identity?.user?.email || null, mailUrl: 'https://outlook.office.com/mail/', storage: 'microsoft365' });
   });
   router.post('/oauth/start', asyncHandler(async (req, res) => {
     if (!dependencies.personalMailbox) return res.status(409).json({ error: 'Mailbox connections are started from the personal inbox selector.' });

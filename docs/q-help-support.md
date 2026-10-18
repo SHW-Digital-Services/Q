@@ -20,7 +20,7 @@ The legacy single-response update endpoint returns `SUPPORT_CONVERSATION_REQUIRE
 
 ## Email notifications
 
-The server-configured `office@q-ai.online` Microsoft 365 mailbox sends a generic notice and link. Subjects, conversation text and internal notes remain in Q. Account links use `/app?tab=help&request=<id>`; guest links use `/support#access=<token>`.
+The shared `cs@q-ai.online` Microsoft 365 mailbox sends a generic notice and link. Subjects, conversation text and internal notes remain in Q. Account links use `/app?tab=help&request=<id>`; guest links use `/support#access=<token>`.
 
 Use the server-only `M365_MAIL_CLIENT_ID`, `M365_MAIL_TENANT_ID`, `M365_MAIL_REFRESH_TOKEN`, `M365_MAIL_COOKIE_KEY` and `APP_URL` configuration documented in [Microsoft 365 Communications](microsoft365-mail-comms.md). The shared connection needs delegated mail read/write and send permissions. No browser secret is used.
 

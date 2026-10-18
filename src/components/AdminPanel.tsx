@@ -10,6 +10,7 @@ import { BrevoWebhookAdmin } from './BrevoWebhookAdmin';
 import { AdminDeleteUser } from './AdminDeleteUser';
 import VercelLogsPanel from './VercelLogsPanel';
 import ItHubAdmin from './ItHubAdmin';
+import CommunityCompetitionAdmin from './CommunityCompetitionAdmin';
 
 interface AdminPanelProps {
   adminMode?: boolean;
@@ -746,6 +747,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         {view === "integrations" && <>{showAdminFunctions && <BrevoWebhookAdmin />}</>}
         {view === "it-hub" && <>{showAdminFunctions && <ItHubAdmin />}</>}
         {view === "vercel-logs" && <>{showAdminFunctions && <VercelLogsPanel />}</>}
+        {view === "competition" && <>{showAdminFunctions && <CommunityCompetitionAdmin />}</>}
         {view === "publishing" && <>{showAdminFunctions && <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>

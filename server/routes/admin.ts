@@ -9,6 +9,7 @@ import { listAdminContent } from '../adminContentList.js';
 import { syncPayPalProductStatus } from '../paypalProductStatus.js';
 import { sendEmailChangeConfirmations } from '../supportMail.js';
 import { normalizeCrmEmailSignature } from '../../src/services/crmEmailSignature.js';
+import { buildCommunityNewsletter, deliverCommunityNewsletter } from '../communityNewsletter.js';
 
 export const adminRouter = express.Router();
 
@@ -69,6 +70,33 @@ function sendContentSchemaMissing(res: express.Response) {
 }
 
 adminRouter.use(createAdminSecurityMiddleware(getServiceSupabase));
+
+adminRouter.get('/community-competition', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  const { data, error } = await adminCtx.serviceSupabase.from('community_newsletters').select('id,award_month,status,payload,created_at,awarded_at,delivered_at,delivery_error').order('award_month', { ascending: false }).limit(24);
+  if (error) return res.status(503).json({ error: 'Unable to load competition history.' });
+  return res.json({ competitions: data ?? [] });
+}));
+
+adminRouter.post('/community-competition', asyncHandler(async (req, res) => {
+  const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
+  if (!requireExactObject(req.body, ['action', 'month']) || !['preview', 'award'].includes(req.body.action) || typeof req.body.month !== 'string' || !/^\d{4}-\d{2}$/.test(req.body.month) || Number(req.body.month.slice(5)) < 1 || Number(req.body.month.slice(5)) > 12) return res.status(400).json({ error: 'Choose a valid competition month and action.' });
+  const month = `${req.body.month}-01`;
+  const { data: existing, error: existingError } = await adminCtx.serviceSupabase.from('community_newsletters').select('id,status').eq('award_month', month).maybeSingle();
+  if (existingError) return res.status(503).json({ error: 'Unable to check the competition status.' });
+  if (req.body.action === 'award' && existing && existing.status === 'delivered') return res.status(409).json({ error: 'This competition has already been awarded and delivered.' });
+  const payload = await buildCommunityNewsletter(req.body.month, { award: req.body.action === 'award' });
+  if (req.body.action === 'preview') return res.json({ success: true, preview: true, payload });
+  try {
+    await deliverCommunityNewsletter(payload);
+    const { error: updateError } = await adminCtx.serviceSupabase.from('community_newsletters').update({ status: 'delivered', delivered_at: new Date().toISOString(), delivery_error: null, updated_at: new Date().toISOString() }).eq('award_month', month);
+    if (updateError) return res.status(502).json({ error: 'Winners were awarded and the newsletter was sent, but delivery status could not be saved.', payload });
+  } catch (error: any) {
+    await adminCtx.serviceSupabase.from('community_newsletters').update({ status: 'delivery_failed', delivery_error: String(error?.message || 'Slack delivery failed.').slice(0, 1000), updated_at: new Date().toISOString() }).eq('award_month', month);
+    return res.status(502).json({ error: 'Winners were awarded, but the newsletter could not be delivered.', payload });
+  }
+  return res.json({ success: true, preview: false, payload });
+}));
 
 const vercelLogLimits = new Set([10, 30, 50, 100]);
 const maxVercelRuntimeLogsPerDeployment = 256;
