@@ -73,9 +73,10 @@ export async function signInWithMicrosoftForCrm() {
     window.sessionStorage.setItem(crmMicrosoftSsoPendingKey, '1');
     window.sessionStorage.removeItem(crmMicrosoftSsoDeniedKey);
   }
-  const isLocalDevelopment = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-  const crmOrigin = isLocalDevelopment ? window.location.origin : 'https://www.q-ai.online';
-  const redirectTo = new URL('/crm', crmOrigin).toString();
+  // Return to the CRM on the same host that started sign-in. Hard-coding the
+  // www host can hand the callback to a different canonical-domain redirect,
+  // which may send users to the public home page instead of the CRM.
+  const redirectTo = new URL('/crm', window.location.origin).toString();
   const { error } = await supabase.auth.signInWithSSO({
     domain: 'q-ai.online',
     options: { redirectTo }
