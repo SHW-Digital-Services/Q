@@ -8,7 +8,7 @@ if ($ClientId -notmatch '^[0-9a-fA-F-]{36}$') { throw 'Enter the 36-character ap
 if ($TenantId -notmatch '^[0-9a-fA-F-]{36}$') { throw 'TenantId must be the Microsoft Entra tenant GUID.' }
 if ($Mailbox -notmatch '^[^\s@]+@[^\s@]+\.[^\s@]+$') { throw 'Enter the mailbox address to authorize.' }
 $Authority = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0"
-$Scopes = 'offline_access Mail.ReadWrite Mail.Send Mail.ReadWrite.Shared Mail.Send.Shared'
+$Scopes = 'offline_access User.Read Mail.ReadWrite Mail.Send Mail.ReadWrite.Shared Mail.Send.Shared'
 try {
   $device = Invoke-RestMethod -Method Post -Uri "$Authority/devicecode" -Body @{ client_id=$ClientId; scope=$Scopes }
 } catch { throw 'Microsoft device authorization could not start. Check the tenant, client ID, public-client setting, and delegated API permissions.' }

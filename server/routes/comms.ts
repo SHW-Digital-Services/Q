@@ -4,23 +4,42 @@ import { combinedInboxFolders } from '../../src/services/mailFolders.js';
 import { requireStaff } from './admin.js';
 import { asyncHandler, getRequestId } from '../middleware.js';
 import { requireExactObject } from '../security.js';
-import { MailError, mailConfig, sealMail, openMail, mailId, mailRecipients, Microsoft365MailClient, boundedResponse, allowedMailOrigin } from '../microsoft365Mail.js';
+import { MailError, MAIL_SCOPES, mailConfig, sealMail, openMail, cookieValue, setMailCookie, mailId, mailRecipients, Microsoft365MailClient, boundedResponse, allowedMailOrigin } from '../microsoft365Mail.js';
 import type { MailConfig, MailSession } from '../microsoft365Mail.js';
 import { normalizeCrmEmailSignature, renderCrmEmailHtml } from '../../src/services/crmEmailSignature.js';
 
-type Dependencies = { authoriseStaff: typeof requireStaff; config: () => MailConfig | null; fetcher: typeof fetch; mailbox?: string; privateMailbox?: boolean };
+type Dependencies = { authoriseStaff: typeof requireStaff; config: () => MailConfig | null; fetcher: typeof fetch; mailbox?: string; privateMailbox?: boolean; personalMailbox?: boolean };
 type AttachmentProof = { owner: string; account: string; expires: number; attachment: { storeName: string; attachmentName: string; attachmentPath: string } };
 const sessionCookie = 'q_m365_mail';
 const stateCookie = 'q_m365_state';
+const personalAccessCookie = 'q_m365_personal_access';
+const personalRefreshCookie = 'q_m365_personal_refresh';
+const personalDeviceCookie = 'q_m365_personal_device';
+const personalLifetime = 90 * 24 * 60 * 60;
+type PersonalAccess = { owner: string; email: string; name: string; access: string; tokenExpires: number; expires: number };
+type PersonalRefresh = { owner: string; refresh: string; expires: number };
+type PersonalDevice = { owner: string; deviceCode: string; interval: number; expires: number };
+const personalClients = new Map<string, { email: string; client: Microsoft365MailClient }>();
 const jsonBody = (body: unknown) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const mailMessagePage = (messages: any[], hasMore: boolean) => ({ messages: messages.map(m => ({ messageId: String(m.messageId), folderId: String(m.folderId), subject: m.subject || '(No subject)', from: m.fromAddress || m.sender || '', to: m.toAddress || '', summary: m.summary || '', receivedAt: m.receivedTime || m.receivedtime || m.sentDateInGMT, unread: ['0', 'unread'].includes(String(m.status)), hasAttachment: ['1', 'true'].includes(String(m.hasAttachment)) })), hasMore });
+
+function personalSession(req: express.Request, config: MailConfig, owner: string) {
+  const access = openMail<PersonalAccess>(cookieValue(req, personalAccessCookie), config.key, `personal-access:${owner}`);
+  const refresh = openMail<PersonalRefresh>(cookieValue(req, personalRefreshCookie), config.key, `personal-refresh:${owner}`);
+  if (!access || !refresh || access.owner !== owner || refresh.owner !== owner || access.expires * 1000 <= Date.now() || refresh.expires * 1000 <= Date.now() || !access.email || !access.access || !refresh.refresh) return null;
+  return { access, refresh };
+}
+
+function setPersonalCookies(res: express.Response, config: MailConfig, access: PersonalAccess, refresh: PersonalRefresh) {
+  setMailCookie(res, config, personalAccessCookie, sealMail(access, config.key, `personal-access:${access.owner}`), access.expires - Math.floor(Date.now() / 1000));
+  setMailCookie(res, config, personalRefreshCookie, sealMail(refresh, config.key, `personal-refresh:${refresh.owner}`), refresh.expires - Math.floor(Date.now() / 1000));
+}
 
 export function createCommsRouter(dependencies: Dependencies) {
   const router = express.Router();
   const mailbox = dependencies.mailbox || dependencies.config()?.mailboxId || 'cs@q-ai.online';
-  const isScott = (context: any) => context.identity.user.email?.toLowerCase() === 'scott@q-ai.online';
-  if (!dependencies.privateMailbox) router.use('/personal', createCommsRouter({
-    ...dependencies, mailbox: 'scott@q-ai.online', privateMailbox: true, config: () => mailConfig('M365_SCOTT_MAIL'),
+  if (!dependencies.personalMailbox && !dependencies.privateMailbox) router.use('/personal', createCommsRouter({
+    ...dependencies, mailbox: undefined, privateMailbox: true, personalMailbox: true, config: () => mailConfig('M365_MAIL'),
   }));
   router.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store, private'); res.setHeader('Pragma', 'no-cache'); res.setHeader('Referrer-Policy', 'no-referrer'); next(); });
   router.get('/oauth/callback', (_req, res) => res.redirect('/crm/comms?connection=setup'));
@@ -28,7 +47,6 @@ export function createCommsRouter(dependencies: Dependencies) {
   let sharedConfig: MailConfig | null = null;
   router.use(asyncHandler(async (req, res, next) => {
     const context = await dependencies.authoriseStaff(req, res); if (!context) return;
-    if (dependencies.privateMailbox && !isScott(context)) return res.status(403).json({ error: 'This mailbox is private.' });
     res.locals.mailOwner = context.identity.user.id;
     res.locals.mailStaff = context;
     if (req.method === 'POST' && req.path === '/tickets/sync') {
@@ -46,17 +64,104 @@ export function createCommsRouter(dependencies: Dependencies) {
   }));
   router.get('/status', (_req, res) => {
     const config: MailConfig | null = res.locals.mailConfig;
-    return res.json({ configured: Boolean(config), connected: Boolean(config), shared: !dependencies.privateMailbox, mailbox, personalAvailable: !dependencies.privateMailbox && isScott(res.locals.mailStaff) && Boolean(mailConfig('M365_SCOTT_MAIL')), mailUrl: 'https://outlook.office.com/mail/', storage: 'microsoft365' });
+    const owner = res.locals.mailOwner as string;
+    const connection = dependencies.personalMailbox && config ? personalSession(_req, config, owner) : null;
+    const personalAvailable = !dependencies.personalMailbox && !dependencies.privateMailbox && Boolean(config && personalSession(_req, config, owner));
+    const currentConnection = !dependencies.personalMailbox && !dependencies.privateMailbox && config ? personalSession(_req, config, owner) : null;
+    return res.json({ configured: Boolean(config), connected: dependencies.personalMailbox ? Boolean(connection) : Boolean(config), shared: !dependencies.privateMailbox, mailbox: dependencies.personalMailbox ? connection?.access.email || 'My inbox' : mailbox, personalAvailable, personalEmail: currentConnection?.access.email, mailUrl: 'https://outlook.office.com/mail/', storage: 'microsoft365' });
   });
-  router.post('/oauth/start', (_req, res) => res.status(409).json({ error: 'An admin configures mailbox connections in the server hosting settings.' }));
-  // Logout must not revoke the shared credential and disconnect everyone else.
+  router.post('/oauth/start', asyncHandler(async (req, res) => {
+    if (!dependencies.personalMailbox) return res.status(409).json({ error: 'Mailbox connections are started from the personal inbox selector.' });
+    const config: MailConfig | null = res.locals.mailConfig;
+    if (!config) return res.status(503).json({ error: 'An admin needs to configure Microsoft 365 Mail in Q hosting settings first.' });
+    if (!requireExactObject(req.body || {}, [])) return res.status(400).json({ error: 'Invalid connection request.' });
+    const owner = res.locals.mailOwner as string;
+    const response = await dependencies.fetcher(`${config.accountsOrigin}/devicecode`, { method: 'POST', body: new URLSearchParams({ client_id: config.clientId, scope: MAIL_SCOPES }), redirect: 'error', signal: AbortSignal.timeout(15000) });
+    const device: any = await response.json().catch(() => ({}));
+    if (!response.ok || typeof device.device_code !== 'string' || typeof device.user_code !== 'string' || typeof device.verification_uri !== 'string') throw new MailError(response.status === 429 ? 429 : 502, 'Microsoft could not start the inbox sign-in. Check the Entra app and delegated mail permissions.');
+    let verification: URL;
+    try { verification = new URL(device.verification_uri); } catch { throw new MailError(502, 'Microsoft returned an invalid sign-in address.'); }
+    if (verification.protocol !== 'https:' || !['microsoft.com', 'login.microsoftonline.com', 'login.microsoft.com'].includes(verification.hostname)) throw new MailError(502, 'Microsoft returned an untrusted sign-in address.');
+    const interval = Math.max(5, Number(device.interval) || 5);
+    const lifetime = Math.min(900, Math.max(interval, Number(device.expires_in) || 900));
+    const payload: PersonalDevice = { owner, deviceCode: device.device_code, interval, expires: Date.now() + lifetime * 1000 };
+    setMailCookie(res, config, personalDeviceCookie, sealMail(payload, config.key, `personal-device:${owner}`), lifetime);
+    return res.json({ verificationUri: verification.toString(), userCode: device.user_code, interval, expiresIn: lifetime });
+  }));
+  router.post('/oauth/poll', asyncHandler(async (req, res) => {
+    if (!dependencies.personalMailbox) return res.status(409).json({ error: 'Mailbox connections are started from the personal inbox selector.' });
+    const config: MailConfig | null = res.locals.mailConfig;
+    if (!config) return res.status(503).json({ error: 'An admin needs to configure Microsoft 365 Mail in Q hosting settings first.' });
+    if (!requireExactObject(req.body || {}, [])) return res.status(400).json({ error: 'Invalid connection request.' });
+    const owner = res.locals.mailOwner as string;
+    const pending = openMail<PersonalDevice>(cookieValue(req, personalDeviceCookie), config.key, `personal-device:${owner}`);
+    if (!pending || pending.owner !== owner || pending.expires <= Date.now()) return res.status(400).json({ error: 'The Microsoft sign-in code expired. Start the connection again.' });
+    const response = await dependencies.fetcher(`${config.accountsOrigin}/token`, { method: 'POST', body: new URLSearchParams({ client_id: config.clientId, grant_type: 'urn:ietf:params:oauth:grant-type:device_code', device_code: pending.deviceCode }), redirect: 'error', signal: AbortSignal.timeout(15000) });
+    const token: any = await response.json().catch(() => ({}));
+    if (!response.ok && token.error === 'authorization_pending') return res.json({ pending: true, interval: pending.interval });
+    if (!response.ok && token.error === 'slow_down') {
+      pending.interval += 5;
+      setMailCookie(res, config, personalDeviceCookie, sealMail(pending, config.key, `personal-device:${owner}`), Math.max(1, Math.ceil((pending.expires - Date.now()) / 1000)));
+      return res.json({ pending: true, interval: pending.interval });
+    }
+    if (!response.ok || typeof token.access_token !== 'string' || typeof token.refresh_token !== 'string') {
+      res.append('Set-Cookie', `${personalDeviceCookie}=; Path=/api/comms; HttpOnly; SameSite=Lax; Max-Age=0${config.secure ? '; Secure' : ''}`);
+      throw new MailError(401, token.error === 'authorization_declined' ? 'Microsoft inbox access was declined.' : 'Microsoft rejected the inbox sign-in. Check the Entra permissions and try connecting again.');
+    }
+    const meResponse = await dependencies.fetcher(`${config.mailOrigin}/me?$select=mail,userPrincipalName,displayName`, { headers: { Authorization: `Bearer ${token.access_token}` }, redirect: 'error', signal: AbortSignal.timeout(15000) });
+    const me: any = await meResponse.json().catch(() => ({}));
+    if (!meResponse.ok) throw new MailError(meResponse.status === 403 ? 403 : 502, 'Microsoft could not verify the signed-in mailbox. Check that the Entra app includes the delegated User.Read permission.');
+    const email = String(me.mail || me.userPrincipalName || '').trim().toLowerCase();
+    const staffEmail = String(res.locals.mailStaff?.identity?.user?.email || '').trim().toLowerCase();
+    if (!email || !staffEmail || email !== staffEmail) throw new MailError(403, 'Sign in to Microsoft using the same email address as your Q staff account to connect your own inbox.');
+    const expires = Math.floor(Date.now() / 1000) + personalLifetime;
+    const access: PersonalAccess = { owner, email, name: String(me.displayName || email), access: token.access_token, tokenExpires: Date.now() + Math.min(Number(token.expires_in) || 3600, 3600) * 1000, expires };
+    const refresh: PersonalRefresh = { owner, refresh: token.refresh_token, expires };
+    setPersonalCookies(res, config, access, refresh);
+    res.append('Set-Cookie', `${personalDeviceCookie}=; Path=/api/comms; HttpOnly; SameSite=Lax; Max-Age=0${config.secure ? '; Secure' : ''}`);
+    personalClients.delete(owner);
+    return res.json({ connected: true, email, name: access.name });
+  }));
   router.post('/disconnect', (_req, res) => {
-    for (const name of [sessionCookie, stateCookie, 'q_zoho_mail', 'q_zoho_state']) res.append('Set-Cookie', `${name}=; Path=/api/comms; HttpOnly; SameSite=Lax; Max-Age=0`);
+    const config: MailConfig | null = res.locals.mailConfig;
+    if (dependencies.personalMailbox) {
+      personalClients.delete(res.locals.mailOwner as string);
+      for (const name of [personalAccessCookie, personalRefreshCookie, personalDeviceCookie]) res.append('Set-Cookie', `${name}=; Path=/api/comms; HttpOnly; SameSite=Lax; Max-Age=0${config?.secure ? '; Secure' : ''}`);
+      return res.json({ disconnected: true, shared: false });
+    }
+    for (const name of [sessionCookie, stateCookie, 'q_zoho_mail', 'q_zoho_state', personalAccessCookie, personalRefreshCookie, personalDeviceCookie]) res.append('Set-Cookie', `${name}=; Path=/api/comms; HttpOnly; SameSite=Lax; Max-Age=0${config?.secure ? '; Secure' : ''}`);
+    personalClients.clear();
     return res.json({ disconnected: false, shared: true });
   });
   router.use(asyncHandler(async (req, res, next) => {
     const config: MailConfig | null = res.locals.mailConfig;
     if (!config?.refreshToken) return res.status(503).json({ error: `An admin needs to configure the ${mailbox} Microsoft 365 connection in Q hosting settings.` });
+    if (dependencies.personalMailbox) {
+      const owner = res.locals.mailOwner as string;
+      const connection = personalSession(req, config, owner);
+      if (!connection) return res.status(401).json({ error: 'Connect your Microsoft 365 inbox to use personal mail.' });
+      let cached = personalClients.get(owner);
+      if (!cached || cached.email !== connection.access.email) {
+        const personalConfig: MailConfig = { ...config, mailboxId: connection.access.email, useSignedInUser: true, refreshToken: connection.refresh.refresh };
+        const session: MailSession = { owner, access: connection.access.access, refresh: connection.refresh.refresh, tokenExpires: connection.access.tokenExpires, expires: connection.access.expires * 1000 };
+        const client = new Microsoft365MailClient(personalConfig, session, () => {}, dependencies.fetcher);
+        cached = { email: connection.access.email, client };
+        personalClients.set(owner, cached);
+      }
+      cached.client.setRefreshCallback(() => {
+        const expiry = Math.floor(Date.now() / 1000) + personalLifetime;
+        const session = cached!.client.session;
+        const access: PersonalAccess = { owner, email: cached!.email, name: connection.access.name, access: session.access, tokenExpires: session.tokenExpires, expires: expiry };
+        const refresh: PersonalRefresh = { owner, refresh: session.refresh, expires: expiry };
+        setPersonalCookies(res, config, access, refresh);
+      });
+      res.locals.mailClient = cached.client;
+      res.locals.officeMailbox = { accountId: '1', primaryEmailAddress: connection.access.email, displayName: connection.access.name };
+      const requestedAccount = req.path.match(/^\/accounts\/([^/]+)/)?.[1];
+      if (requestedAccount && mailId(requestedAccount) !== '1') throw new MailError(403, 'This account is not available in your personal mailbox.');
+      next();
+      return;
+    }
     if (!sharedClient || !sharedConfig || sharedConfig.clientId !== config.clientId || sharedConfig.tenantId !== config.tenantId || sharedConfig.mailboxId !== config.mailboxId || sharedConfig.refreshToken !== config.refreshToken || sharedConfig.mailOrigin !== config.mailOrigin || !sharedConfig.key.equals(config.key)) {
       const session: MailSession = { owner: mailbox, access: '', refresh: config.refreshToken, tokenExpires: 0, expires: Number.MAX_SAFE_INTEGER };
       sharedClient = new Microsoft365MailClient(config, session, () => {}, dependencies.fetcher);
@@ -73,7 +178,7 @@ export function createCommsRouter(dependencies: Dependencies) {
   }));
   router.get('/accounts', asyncHandler(async (_req, res) => {
     const a = res.locals.officeMailbox;
-    return res.json({ accounts: [{ accountId: String(a.accountId), email: mailbox, name: dependencies.privateMailbox ? 'Scott' : 'Q Customer Service' }] });
+    return res.json({ accounts: [{ accountId: String(a.accountId), email: dependencies.personalMailbox ? String(a.primaryEmailAddress) : mailbox, name: dependencies.personalMailbox ? String(a.displayName || a.primaryEmailAddress) : dependencies.privateMailbox ? 'Personal mailbox' : 'Q Customer Service' }] });
   }));
   router.post('/tickets/sync', asyncHandler(async(req,res)=>{
     if(dependencies.privateMailbox)return res.status(403).json({error:'Private mailboxes are not imported into customer tickets.'});
@@ -83,6 +188,7 @@ export function createCommsRouter(dependencies: Dependencies) {
     try{return res.json(await syncOfficeEmailTickets(staff.serviceSupabase,res.locals.mailClient,String(res.locals.officeMailbox.accountId),start,mailbox));}catch(error){const requestId=getRequestId(req);console.error(`[Office email sync] requestId=${requestId}`,error instanceof Error?error.message:'Unknown sync error');return res.status(503).json({error:'Shared mailbox email sync could not complete. Previously logged tickets are safe; retry to finish.',requestId});}
   }));
   router.get('/customers/:user/history', asyncHandler(async (req, res) => {
+    if (dependencies.privateMailbox) throw new MailError(403, 'Customer history is available only from the shared CS mailbox.');
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.user)) throw new MailError(400, 'Invalid customer.');
     const { data, error } = await res.locals.mailStaff.serviceSupabase.auth.admin.getUserById(req.params.user);
     if (error || !data?.user?.email) throw new MailError(404, 'Registered customer not found.');

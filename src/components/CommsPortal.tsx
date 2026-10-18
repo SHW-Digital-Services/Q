@@ -16,6 +16,7 @@ type MailMessage = { messageId: string; folderId: string; subject: string; from:
 type Attachment = { id: string; name: string; size: number };
 type MailDetail = { content: string; images?: Record<string, string>; attachments: Attachment[] };
 type Upload = { name: string; proof: string };
+type PersonalConnect = { verificationUri: string; userCode: string; interval: number; expiresAt: number };
 const emptyComposer = { to: '', cc: '', bcc: '', subject: '', content: '', replyTo: '' };
 const control = 'rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100 disabled:opacity-40';
 const button = `${control} inline-flex min-h-11 items-center justify-center gap-2 hover:bg-white/10`;
@@ -23,8 +24,9 @@ const unreadBadge = 'ml-2 inline-flex h-8 w-8 shrink-0 items-center justify-cent
 const readableDate = (value: string) => { const date = new Date(Number(value)); return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('en-GB'); };
 
 export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<void> }) {
-  const [status, setStatus] = useState<{ configured: boolean; connected: boolean; mailUrl: string; mailbox: string; personalAvailable?: boolean } | null>(null);
+  const [status, setStatus] = useState<{ configured: boolean; connected: boolean; mailUrl: string; mailbox: string; personalAvailable?: boolean; personalEmail?: string } | null>(null);
   const [personalAvailable, setPersonalAvailable] = useState(false);
+  const [personalConnect, setPersonalConnect] = useState<PersonalConnect | null>(null);
   const [mailboxMode, setMailboxMode] = useCrmDraftState('mailboxMode', '');
   const initialSection = new URLSearchParams(window.location.search).get('section');
   const [tab, setTab] = useCrmDraftState<'mail' | 'templates' | 'support' | 'feedback' | 'help'>('tab', initialSection === 'feedback' ? 'feedback' : initialSection === 'help' ? 'help' : initialSection === 'templates' ? 'templates' : initialSection === 'mail' || new URLSearchParams(window.location.search).has('message') ? 'mail' : 'support');
@@ -88,16 +90,18 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
   }
   useEffect(() => () => { void audio.current?.close(); }, []);
 
-  async function mailRequest(path: string, init: RequestInit = {}, signal?: AbortSignal) {
+  async function mailRequestAt(path: string, mode: string, init: RequestInit = {}, signal?: AbortSignal) {
     const client = getSupabaseClient();
     if (!client) throw new Error('Q sign-in is not configured. Contact an Admin.');
     const { data } = await client.auth.getSession();
     if (!data.session) throw new Error('Sign in to Q to use communications.');
-    const response = await fetch(`/api/comms${mailboxMode}${path}`, { ...init, credentials: 'same-origin', cache: 'no-store', signal, headers: { ...(init.body && typeof init.body === 'string' ? { 'Content-Type': 'application/json' } : {}), ...init.headers, Authorization: `Bearer ${data.session.access_token}` } });
+    const response = await fetch(`/api/comms${mode}${path}`, { ...init, credentials: 'same-origin', cache: 'no-store', signal, headers: { ...(init.body && typeof init.body === 'string' ? { 'Content-Type': 'application/json' } : {}), ...init.headers, Authorization: `Bearer ${data.session.access_token}` } });
     if (!response.ok) { const result = await response.json().catch(() => ({})); if (result.code === 'MAIL_CONNECTION_REQUIRED') setStatus(s => s ? { ...s, connected: false } : s); throw new Error(result.requestId ? `${result.error || 'Unable to complete this email request.'} (Reference: ${result.requestId})` : result.error || 'Unable to complete this email request.'); }
     return response;
   }
+  const mailRequest = (path: string, init?: RequestInit, signal?: AbortSignal) => mailRequestAt(path, mailboxMode, init, signal);
   const mailJson = async (path: string, init?: RequestInit, signal?: AbortSignal) => (await mailRequest(path, init, signal)).json();
+  const mailJsonAt = async (path: string, mode: string, init?: RequestInit, signal?: AbortSignal) => (await mailRequestAt(path, mode, init, signal)).json();
   const postJson = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) });
   const report = (err: unknown) => setError(err instanceof Error ? err.message : 'Unable to complete this email request.');
   function clearMailbox() { unreadBaseline.current = null; requestVersion.current++; setCheckedIds([]); setBulkMoveFolder(''); setMessages([]); setSelected(null); setDetail(null); setFolders([]); setAccount(''); setFolder(''); setAccounts([]); }
@@ -112,6 +116,24 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
     setFolderRevision(v => v + 1);
     setRevision(v => v + 1);
   }
+  async function connectPersonalMailbox() {
+    if (busy || personalConnect) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const data = await mailJsonAt('/oauth/start', '/personal', postJson({}));
+      setPersonalConnect({ verificationUri: data.verificationUri, userCode: data.userCode, interval: Number(data.interval) || 5, expiresAt: Date.now() + Number(data.expiresIn || 900) * 1000 });
+    } catch (e) { report(e); }
+    finally { setBusy(false); }
+  }
+  async function disconnectPersonalMailbox() {
+    if (busy) return;
+    setBusy(true); setError('');
+    try {
+      await mailJsonAt('/disconnect', '/personal', postJson({}));
+      clearMailbox(); setPersonalAvailable(false); setPersonalConnect(null); setStatus(null); setMailboxMode(''); setNotice('Your personal inbox was disconnected from Q.');
+    } catch (e) { report(e); }
+    finally { setBusy(false); }
+  }
 
   useEffect(() => { setCheckedIds([]); setBulkMoveFolder(''); }, [account, mailboxMode, folder, search, start]);
 
@@ -124,11 +146,29 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
       if (connection === 'connected') setNotice('Open the shared CS mailbox below.');
       else setError(connection === 'denied' ? 'The Microsoft 365 connection was cancelled. You can connect when you’re ready.' : 'The mailbox could not be connected. Check the Microsoft 365 application settings and try again.');
     }
-    mailJson('/status', undefined, controller.signal).then(data => { if (!controller.signal.aborted) { setStatus(data); if (!mailboxMode) setPersonalAvailable(Boolean(data.personalAvailable)); } }).catch(e => { if (!controller.signal.aborted) report(e); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    mailJson('/status', undefined, controller.signal).then(data => { if (!controller.signal.aborted) { setStatus(data); setPersonalAvailable(Boolean(data.personalAvailable || (mailboxMode === '/personal' && data.connected))); } }).catch(e => { if (!controller.signal.aborted) report(e); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     const supabase = getSupabaseClient();
-    const subscription = supabase?.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') { setComposer(emptyComposer); setUploads([]); setComposeOpen(false); clearMailbox(); setStatus(null); } });
+    const subscription = supabase?.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') { setComposer(emptyComposer); setUploads([]); setComposeOpen(false); clearMailbox(); setStatus(null); setPersonalAvailable(false); setPersonalConnect(null); } });
     return () => { controller.abort(); subscription?.data.subscription.unsubscribe(); requestVersion.current++; };
   }, [mailboxMode]);
+  useEffect(() => {
+    if (!personalConnect) return;
+    let stopped = false;
+    let timer = 0;
+    let interval = personalConnect.interval;
+    const poll = async () => {
+      if (stopped) return;
+      if (Date.now() >= personalConnect.expiresAt) { setPersonalConnect(null); setError('The Microsoft sign-in code expired. Please connect your inbox again.'); return; }
+      try {
+        const data = await mailJsonAt('/oauth/poll', '/personal', postJson({}));
+        if (stopped) return;
+        if (data.pending) { interval = Math.max(interval, Number(data.interval) || interval); timer = window.setTimeout(() => void poll(), interval * 1000); return; }
+        setPersonalConnect(null); setPersonalAvailable(true); setMailboxMode('/personal'); setStatus(null); setLoading(true); setNotice(`Connected your Microsoft 365 inbox: ${data.email}`); setError('');
+      } catch (e) { if (!stopped) { setPersonalConnect(null); report(e); } }
+    };
+    timer = window.setTimeout(() => void poll(), interval * 1000);
+    return () => { stopped = true; window.clearTimeout(timer); };
+  }, [personalConnect]);
   useEffect(() => {
     if (!status) return;
     if (!status.connected) { clearMailbox(); return; }
@@ -266,15 +306,17 @@ export default function CommsPortal({ onSignOut }: { onSignOut: () => Promise<vo
     <button type="button" aria-pressed={soundEnabled} onClick={() => void toggleSound()} className={`${button} mt-4`}>{soundEnabled ? 'Sound notifications on' : 'Enable sound notifications'}</button>
     <nav aria-label="Communications sections" className="mt-6 flex flex-wrap gap-2"><button onClick={() => setTab('mail')} aria-pressed={tab === 'mail'} className={`${button} ${tab === 'mail' ? 'border-purple-400 bg-purple-500/15' : ''}`}><Mail className="h-4 w-4" /> Email tools{totalUnread > 0 && <span aria-label={`${totalUnread} unread emails across all folders`} className={unreadBadge}>{totalUnread}</span>}</button><button onClick={() => setTab('templates')} aria-pressed={tab === 'templates'} className={`${button} ${tab === 'templates' ? 'border-purple-400 bg-purple-500/15' : ''}`}><BookOpen className="h-4 w-4" /> Email templates</button><button onClick={() => setTab('support')} aria-pressed={tab === 'support'} className={`${button} ${tab === 'support' ? 'border-purple-400 bg-purple-500/15' : ''}`}><Mail className="h-4 w-4" /> Tickets</button><button onClick={() => setTab('feedback')} aria-pressed={tab === 'feedback'} className={`${button} ${tab === 'feedback' ? 'border-purple-400 bg-purple-500/15' : ''}`}><BookOpen className="h-4 w-4" /> Feedback &amp; roadmap</button><button onClick={() => setTab('help')} aria-pressed={tab === 'help'} className={button}><BookOpen className="h-4 w-4" /> Help centre</button></nav>
     {error && <p role="alert" className="mt-4 rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-200">{error}</p>}{notice && <p role="status" className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">{notice}</p>}
-    {tab==='mail'&&personalAvailable && <label className="mt-5 flex items-center gap-3 text-sm">Mailbox<select aria-label="Select mailbox" className={control} value={mailboxMode} disabled={busy} onChange={e => { if (composeOpen && (composer.subject || composer.content) && !window.confirm('Keep this email draft and switch mailbox?')) return; clearMailbox(); setStatus(null); setError(''); setNotice(''); setLoading(true); setMailboxMode(e.target.value); }}><option value="">cs@q-ai.online</option><option value="/personal">scott@q-ai.online</option></select></label>}
+    {tab==='mail'&&personalAvailable && <label className="mt-5 flex items-center gap-3 text-sm">Mailbox<select aria-label="Select mailbox" className={control} value={mailboxMode} disabled={busy} onChange={e => { if (composeOpen && (composer.subject || composer.content) && !window.confirm('Keep this email draft and switch mailbox?')) return; clearMailbox(); setStatus(null); setError(''); setNotice(''); setLoading(true); setMailboxMode(e.target.value); }}><option value="">cs@q-ai.online</option><option value="/personal">My inbox ({status?.personalEmail || (mailboxMode === '/personal' ? status?.mailbox : '') || 'connected account'})</option></select></label>}
     {tab==='mail'&&status && !status.configured && <section className="mt-5 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-5"><h2 className="font-bold text-amber-100">Microsoft 365 Mail setup required</h2><p className="mt-2 text-sm text-slate-300">An admin needs to register a Microsoft Entra app for Q and configure the connection. You can browse the templates below while that’s being set up.</p><a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm text-purple-200 underline">Open Microsoft Entra app registrations</a></section>}
+    {tab==='mail'&&status?.configured&&!personalAvailable&&!personalConnect&&<section className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4"><h2 className="font-semibold">Connect your Microsoft 365 inbox</h2><p className="mt-1 text-sm text-slate-400">Connect the Microsoft account that uses the same email address as your Q staff account. Q will keep the inbox connection private to your staff account.</p><button type="button" disabled={busy} onClick={() => void connectPersonalMailbox()} className={`${button} mt-3`}>{busy?'Starting connection…':'Connect my inbox'}</button></section>}
+    {tab==='mail'&&personalConnect&&<section className="mt-5 rounded-2xl border border-purple-400/30 bg-purple-500/10 p-4"><h2 className="font-semibold">Finish connecting your inbox</h2><p className="mt-1 text-sm text-slate-300">Open Microsoft’s sign-in page, sign in with the same account as Q, and enter this one-time code:</p><p className="my-3 font-mono text-2xl font-bold tracking-widest" aria-label="Microsoft sign-in code">{personalConnect.userCode}</p><a href={personalConnect.verificationUri} target="_blank" rel="noreferrer" className="text-sm text-purple-200 underline">Open Microsoft sign-in</a><p className="mt-2 text-xs text-slate-400">Q will finish the connection after you approve access. The code expires in about 15 minutes.</p><button type="button" onClick={() => setPersonalConnect(null)} className={`${button} mt-3`}>Cancel</button></section>}
 
     {tab === 'support' && <SupportInbox />}
     {tab === 'feedback' && <FeedbackWorkspace />}
     {tab === 'help' && <HelpArticleAdmin />}
     {tab === 'templates' && <EmailTemplatesSection canUse={Boolean(status?.connected && account && !busy)} onUse={(subject, content) => beginCompose({ ...emptyComposer, subject, content })} />}
     {tab === 'mail' && status?.connected && <>
-      <div className="mt-5 flex flex-wrap items-center gap-2"><span className="rounded-xl border border-white/10 px-3 py-2 text-sm">{status.mailbox}</span><button onClick={() => beginCompose()} disabled={!account || busy} className={button}><Plus className="h-4 w-4" /> Compose</button><button onClick={checkInbox} disabled={loading || busy || !account} className={button} aria-label="Check inbox from the newest messages"><RefreshCw className="h-4 w-4" /> Check inbox</button><a href={status.mailUrl} target="_blank" rel="noreferrer" className={button}>Open Outlook</a></div>
+      <div className="mt-5 flex flex-wrap items-center gap-2"><span className="rounded-xl border border-white/10 px-3 py-2 text-sm">{status.mailbox}</span><button onClick={() => beginCompose()} disabled={!account || busy} className={button}><Plus className="h-4 w-4" /> Compose</button><button onClick={checkInbox} disabled={loading || busy || !account} className={button} aria-label="Check inbox from the newest messages"><RefreshCw className="h-4 w-4" /> Check inbox</button><a href={status.mailUrl} target="_blank" rel="noreferrer" className={button}>Open Outlook</a>{mailboxMode==='/personal'&&<button type="button" disabled={busy} onClick={() => void disconnectPersonalMailbox()} className={`${button} text-rose-200`}>Disconnect my inbox</button>}</div>
       {composeOpen && <section aria-label="Email composer" className="mt-5 rounded-2xl border border-purple-400/30 bg-purple-500/5 p-4 sm:p-5"><div className="flex items-center justify-between"><h2 className="font-bold">{composer.replyTo ? 'Reply' : 'New email'}</h2><button aria-label="Discard unsaved email" disabled={busy} onClick={() => { if ((!composer.subject && !composer.content) || window.confirm('Discard this unsaved email?')) { setComposeOpen(false); setComposer(emptyComposer); setUploads([]); } }} className={button}><X className="h-4 w-4" /></button></div><p className="mt-2 text-xs text-slate-400">From {accounts.find(a => a.accountId === account)?.email}. Unsaved text is temporarily saved in this browser tab and restored after a refresh. Sending, saving in Microsoft 365, or discarding clears this draft.</p>
         <fieldset disabled={busy} className="mt-4 grid gap-3 sm:grid-cols-2">{(['to', 'cc', 'bcc', 'subject'] as const).map(key => <label key={key} className={`text-xs text-slate-300 ${key === 'subject' ? 'sm:col-span-2' : ''}`}><span className="mb-1 block">{({ to: 'To', cc: 'Cc', bcc: 'Bcc', subject: 'Subject' })[key]}</span><input value={composer[key]} maxLength={key === 'subject' ? 300 : 3000} onChange={e => setComposer({ ...composer, [key]: e.target.value })} placeholder={key === 'subject' ? 'Email subject' : 'Email addresses, separated by commas'} className={`${control} w-full`} /></label>)}<label className="text-xs text-slate-300 sm:col-span-2"><span className="mb-1 block">Message</span><textarea value={composer.content} maxLength={50000} onChange={e => setComposer({ ...composer, content: e.target.value })} rows={12} className={`${control} w-full resize-y leading-relaxed`} /></label></fieldset>
         <div className="mt-3 flex flex-wrap gap-2">{uploads.map((a, i) => <span key={a.proof} className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs">{a.name}<button disabled={busy} aria-label={`Remove ${a.name}`} onClick={() => setUploads(items => items.filter((_, index) => index !== i))}><X className="h-3 w-3" /></button></span>)}</div>
