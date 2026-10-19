@@ -16,9 +16,13 @@ export function CrmAccessPage({ onUserSignedIn }: { onUserSignedIn: (user: AuthU
       return 'This Microsoft account does not have an authorised Staff or Admin role for the CRM.';
     }
     const params = new URLSearchParams(window.location.search);
-    if (params.has('error') || params.has('error_description')) {
+    if (params.has('error') || params.has('error_description') || params.has('error_code')) {
+      const errorCode = params.get('error_code');
       window.sessionStorage.removeItem(crmMicrosoftSsoPendingKey);
       window.history.replaceState({}, '', window.location.pathname);
+      if (errorCode === 'validation_failed') {
+        return 'Microsoft signed in, but Q could not validate the SAML response. Ask an administrator to check the Entra signing certificate and SAML configuration.';
+      }
       return 'Microsoft sign-in was cancelled or could not be completed.';
     }
     return null;
