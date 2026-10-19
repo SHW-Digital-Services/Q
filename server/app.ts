@@ -245,7 +245,7 @@ if (process.env.VERCEL !== '1' && process.env.NODE_ENV === 'production') {
   app.use(express.static(clientDirectory));
   app.get(['/app', '/app/*'], (_req, res) => res.sendFile(path.join(clientDirectory, 'index.html')));
   app.get('*', (req, res) => {
-    if (['/', '/news', '/updates', '/developer', '/support', '/help', '/roadmap', '/crm', '/admin/crm'].includes(req.path) || /^\/(?:crm|admin\/crm)\//.test(req.path)) return res.sendFile(path.join(clientDirectory, 'index.html'));
+    if (['/', '/news', '/updates', '/developer', '/support', '/training', '/help', '/roadmap', '/crm', '/admin/crm'].includes(req.path) || /^\/(?:crm|admin\/crm)\//.test(req.path)) return res.sendFile(path.join(clientDirectory, 'index.html'));
     res.setHeader('X-Robots-Tag', 'noindex');
     return res.status(404).type('html').send('<!doctype html><html lang="en"><head><title>Page not found — Q Intelligence</title></head><body><h1>Page not found</h1><a href="/">Return to Q</a></body></html>');
   });
