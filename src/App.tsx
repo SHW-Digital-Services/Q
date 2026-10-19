@@ -430,7 +430,7 @@ export default function App() {
   if (isMasked) return <FakeNotesApp onUnlock={disableCamouflage} requiredPin={securitySettings.enabled && securitySettings.lockType === 'pin' ? securitySettings.pinCode : undefined} />;
 
   if (window.location.pathname === '/support') return <Suspense fallback={<LoadingView label="Loading support..." />}><SupportAccessPage /></Suspense>;
-  if (window.location.pathname === '/training') return <Suspense fallback={<LoadingView label="Loading training..." />}><TrainingPage /></Suspense>;
+  if (window.location.pathname === '/training') return <Suspense fallback={<LoadingView label="Loading training..." />}><TrainingPage currentUser={currentUser} /></Suspense>;
   if (window.location.pathname === '/help') return <Suspense fallback={<LoadingView label="Loading help centre..." />}><HelpCentrePage /></Suspense>;
   if (window.location.pathname === '/roadmap') return <Suspense fallback={<LoadingView label="Loading roadmap..." />}><RoadmapPage /></Suspense>;
   if (isNewsRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
