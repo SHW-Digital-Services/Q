@@ -46,6 +46,8 @@ const GuidedProgrammes = lazy(() => import('./components/GuidedProgrammes').then
 const PremiumWorkspace = lazy(() => import('./components/PremiumWorkspace'));
 const TrainingPage = lazy(() => import('./components/TrainingPage'));
 
+const previewSignInUserIdKey = 'q.crm.preview-sign-in-user-id';
+
 function isViewAppRequest() {
   if (typeof window === 'undefined') return false;
 
@@ -104,7 +106,10 @@ export default function App() {
   const [isProgrammeCourseOpen, setIsProgrammeCourseOpen] = useState(false);
   const [launchEnabled, setLaunchEnabled] = useState(false);
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
-  const [previewSignInUserId, setPreviewSignInUserId] = useState<string | null>(null);
+  const [previewSignInUserId, setPreviewSignInUserId] = useState<string | null>(() => {
+    try { return window.sessionStorage.getItem(previewSignInUserIdKey); }
+    catch { return null; }
+  });
   const [previewSignInMessage, setPreviewSignInMessage] = useState<string | null>(null);
 
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'signup'>('login');
@@ -151,6 +156,7 @@ export default function App() {
     if (latest.session?.user.id !== staff.user.id) throw new Error('Your session changed. Please try again.');
     const { error } = await supabase!.auth.signOut({ scope: 'local' });
     if (error) throw error;
+    window.sessionStorage.setItem(previewSignInUserIdKey, staff.user.id);
     setCurrentUser(null);
     setPreviewUserId(null);
     setPreviewSignInUserId(staff.user.id);
@@ -165,6 +171,7 @@ export default function App() {
       const response = await fetch('/api/v1/admin/me', { headers: { Authorization: `Bearer ${data.session?.access_token}` }, cache: 'no-store' });
       const staff = response.ok ? await response.json() : null;
       if (!['staff', 'partner_admin'].includes(staff?.role) || staff.user.id !== previewSignInUserId) throw new Error('Only your CRM Staff or Admin account can enter this preview.');
+      window.sessionStorage.removeItem(previewSignInUserIdKey);
       setStorageUser(user.id);
       setCurrentUser(user);
       setPreviewUserId(user.id);
@@ -246,6 +253,17 @@ export default function App() {
         const staff = await response.json();
         const allowed = staff.role === 'staff' || staff.role === 'partner_admin';
         if (cancelled) return;
+        if (previewSignInUserId) {
+          if (!allowed || currentUser.id !== previewSignInUserId || staff.user?.id !== previewSignInUserId) {
+            await supabase?.auth.signOut({ scope: 'local' });
+            if (!cancelled) setPreviewSignInMessage('Sign in with the same Staff or Admin account you used for the CRM.');
+            return;
+          }
+          window.sessionStorage.removeItem(previewSignInUserIdKey);
+          setPreviewUserId(currentUser.id);
+          setPreviewSignInUserId(null);
+          setPreviewSignInMessage(null);
+        }
         if (microsoftSsoPending) window.sessionStorage.removeItem(crmMicrosoftSsoPendingKey);
         window.sessionStorage.removeItem(crmMicrosoftSsoDeniedKey);
         setCanAccessCrm(allowed);
