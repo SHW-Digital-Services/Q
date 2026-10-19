@@ -29,6 +29,7 @@ assert.equal((await db.query('select * from support_notifications')).rows.length
 await db.exec(`create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text);alter table storage.objects enable row level security;grant usage on schema storage to anon,authenticated;grant all on storage.objects to anon,authenticated;create policy fixture_open on storage.objects for all to anon,authenticated using(true) with check(true);`);
 await db.exec(await readFile('supabase/migrations/20261008125504_help_centre_support_attachments.sql','utf8'));
 await db.exec(await readFile('supabase/migrations/20261008131436_crm_ticket_workspace.sql','utf8'));
+await db.exec(await readFile('supabase/migrations/20261019153500_allow_slashes_in_microsoft_mail_ids.sql','utf8'));
 const userA: string = randomUUID(), userB: string = randomUUID(), staffId: string = randomUUID(), noAccessStaff: string = randomUUID();
 for (const id of [userA,userB,staffId,noAccessStaff]) await db.query('insert into auth.users(id) values($1)',[id]);
 await db.query(`insert into profiles(id,role,staff_permissions) values($1,'staff',array['support.read','support.write']),($2,'staff',array['crm.read'])`,[staffId,noAccessStaff]);
@@ -198,7 +199,7 @@ try {
   assert.equal((await db.query('select * from crm_communications where contact_request_id=$1',[guestId])).rows.length,0);
   assert.equal((await db.query('select * from contact_requests where id=$1',[id])).rows.length,1);
   // Exercise the real office notification transport against fake Microsoft Graph endpoints.
-  const mailEnv={M365_MAIL_CLIENT_ID:'fixture-client',M365_MAIL_TENANT_ID:'fixture-tenant',M365_MAIL_REFRESH_TOKEN:'fixture-refresh',M365_MAIL_COOKIE_KEY:'a'.repeat(64),M365_MAIL_MAILBOX_ID:'office@q-ai.online',APP_URL:'https://www.q-ai.online'};
+  const mailEnv={M365_MAIL_CLIENT_ID:'fixture-client',M365_MAIL_TENANT_ID:'fixture-tenant',M365_MAIL_REFRESH_TOKEN:'fixture-refresh',M365_MAIL_COOKIE_KEY:'a'.repeat(64),M365_MAIL_MAILBOX_ID:'cs@q-ai.online',APP_URL:'https://www.q-ai.online'};
   const previousEnv=Object.fromEntries(Object.keys(mailEnv).map(key=>[key,process.env[key]]));
   Object.assign(process.env,mailEnv);
   let mailPayload:any;
@@ -206,8 +207,8 @@ try {
     const fetcher:typeof fetch=async(input,init)=>{
       const url=String(input);
       if(url==='https://login.microsoftonline.com/fixture-tenant/oauth2/v2.0/token')return new Response(JSON.stringify({access_token:'fixture-access',expires_in:3600}),{status:200});
-      if(url==='https://graph.microsoft.com/v1.0/users/office%40q-ai.online/mailFolders?$top=1&$select=id')return new Response(JSON.stringify({value:[{id:'inbox'}]}),{status:200});
-      assert.equal(url,'https://graph.microsoft.com/v1.0/users/office%40q-ai.online/sendMail');
+      if(url==='https://graph.microsoft.com/v1.0/users/cs%40q-ai.online/mailFolders?$top=1&$select=id')return new Response(JSON.stringify({value:[{id:'inbox'}]}),{status:200});
+      assert.equal(url,'https://graph.microsoft.com/v1.0/users/cs%40q-ai.online/sendMail');
       assert.equal(init?.method,'POST');mailPayload=JSON.parse(String(init?.body));
       return new Response(null,{status:202});
     };
@@ -249,11 +250,15 @@ try {
   assert.equal((await request(`/staff/requests/${id}`,{actor:staffId,method:'PATCH',body:{action:'priority',priority:'danger'}})).status,400);
   assert.equal((await request(`/staff/requests/${id}`,{actor:noAccessStaff,method:'PATCH',body:{action:'due',dueAt:null}})).status,403);
   const user={id:userA,email:'user-a@example.test'};
-  const inbound={messageId:'80001',folderId:'20001',fromAddress:user.email,toAddress:'office@q-ai.online',subject:'Question',receivedTime:Date.now(),summary:'PRIVATE_EMAIL_BODY'};
+  const inbound={messageId:'80001',folderId:'20001',fromAddress:user.email,toAddress:'cs@q-ai.online',subject:'Question',receivedTime:Date.now(),summary:'PRIVATE_EMAIL_BODY'};
   await logCustomerOfficeEmail(service,user,'10001',inbound,true);await logCustomerOfficeEmail(service,user,'10001',inbound,true);
   assert.equal((await db.query("select * from contact_requests where email_key='10001:80001'")).rows.length,1);
   const linked=(await db.query<any>("select * from crm_communications where external_id='10001:80001'")).rows;assert.equal(linked.length,1);assert.equal(linked[0].user_id,userA);assert(!JSON.stringify(linked).includes('PRIVATE_EMAIL_BODY'));
+  const graphOpaque={...inbound,folderId:'AQMk/Folder+Id==',messageId:'AAMk/Message+Id=='};
+  await logCustomerOfficeEmail(service,user,'10001',graphOpaque,true);
+  assert.equal((await db.query("select * from contact_requests where email_key='10001:AAMk/Message+Id==' and email_folder_id='AQMk/Folder+Id=='")).rows.length,1);
   await logCustomerOfficeEmail(service,user,'10001',{...inbound,messageId:'80002'},false);assert.equal((await db.query("select * from contact_requests where email_key='10001:80002'")).rows.length,0);
+  assert.equal((await db.query("select * from crm_communications where external_id='10001:80002' and direction='outbound'")).rows.length,1);
   const fakeDb={...service,auth:{admin:{listUsers:async()=>({data:{users:[{...user,email_confirmed_at:'2026-01-01'},{id:userB,email:'unknown@example.test',email_confirmed_at:null}]}})}}};
   const fakeClient={json:async(path:string)=>path.endsWith('/folders')?[{folderId:'20001',folderType:'Inbox',folderName:'Inbox'},{folderId:'20002',folderType:'Drafts',folderName:'Drafts'}]:[inbound,{...inbound,messageId:'80003',fromAddress:'unknown@example.test'}]} as any;
   const synced=await syncOfficeEmailTickets(fakeDb,fakeClient,'10001');assert.equal(synced.logged,1);assert.equal(synced.hasMore,false);assert.equal((await db.query("select * from contact_requests where email_key='10001:80003'")).rows.length,0);

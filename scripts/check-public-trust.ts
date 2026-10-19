@@ -13,7 +13,7 @@ try {
     const response=await fetch(`${origin}/${page}`); assert.equal(response.status,200);
     const html=await response.text(); assert.match(html,/<h1>/); assert.ok(html.includes(businessIdentity.operator));
     assert.ok(html.includes(`href="${businessIdentity.website}/${page}"`));
-    assert.ok(html.includes('office@q-ai.online')); assert.doesNotMatch(html,/<iframe|script src=/);
+    assert.ok(html.includes('cs@q-ai.online')); assert.doesNotMatch(html,/<iframe|script src=/);
     assert.doesNotMatch(html,/AggregateRating|ReviewAction|ratingValue|MedicalOrganization/);
     const schema=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)![1]);
     assert.equal(schema.url,`${businessIdentity.website}/${page}`);

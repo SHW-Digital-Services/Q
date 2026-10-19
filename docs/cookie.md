@@ -12,7 +12,7 @@ operator: Scott Harvey-Whittle trading as SHW Digital Services
 
 ## CRM Microsoft 365 mail connection
 
-The shared office@q-ai.online and private Scott mailbox connections do not store Microsoft OAuth tokens in browser cookies. Their refresh tokens are held in server hosting secrets and access tokens exist temporarily in server memory. Legacy q_zoho_state and q_zoho_mail cookies are ignored and cleared on Q logout. Standard Q authentication remains required. Unsent drafts and personalised template values use account-scoped browser session storage for refresh recovery; Q logout clears the operator's recovery data. Uploaded attachment bytes are held temporarily in server memory until sent or expired and are not placed in browser storage.
+The shared cs@q-ai.online and private Scott mailbox connections do not store Microsoft OAuth tokens in browser cookies. Their refresh tokens are held in server hosting secrets and access tokens exist temporarily in server memory. Legacy q_zoho_state and q_zoho_mail cookies are ignored and cleared on Q logout. Standard Q authentication remains required. Unsent drafts and personalised template values use account-scoped browser session storage for refresh recovery; Q logout clears the operator's recovery data. Uploaded attachment bytes are held temporarily in server memory until sent or expired and are not placed in browser storage.
 
 ## 1. Introduction
 
@@ -229,7 +229,7 @@ Website: https://q-ai.online
 
 Privacy: office@q-ai.online
 
-Support: office@q-ai.online
+Support: cs@q-ai.online
 
 ---
 

@@ -7,7 +7,7 @@ This playbook summarises customer-facing support facts and boundaries documented
 - Q Intelligence is an online self-help and wellbeing product. It includes AI-assisted support, guides, journaling and mood features, account and subscription features, and a Help centre. Do not describe it as a clinical treatment service or emergency service.
 - Signed-in customers can use **Help → My requests** to submit a support topic, subject and message, follow replies, and close or reopen a request.
 - A signed-out customer can submit a support request and receive a reference. To return to it, use `/support`, enter the reference and the email used for the request, then request an access link. The product's response does not reveal whether the supplied details matched. Access links expire after 24 hours and can be exchanged once.
-- Public Help is available at `https://q-ai.online/help`. Customers who need help locating an account, billing, privacy or technical answer can contact `office@q-ai.online`.
+- Public Help is available at `https://q-ai.online/help`. Customers who need help locating an account or technical answer can contact `cs@q-ai.online`; legal, privacy and executive escalations go to `office@q-ai.online`.
 - No support response deadline is promised. Never invent a queue position, SLA, opening hours or guaranteed resolution date.
 
 ## How to answer
@@ -15,7 +15,7 @@ This playbook summarises customer-facing support facts and boundaries documented
 1. Identify the customer's immediate goal. Ask only for the minimum non-sensitive detail needed to distinguish the issue.
 2. Give a short, ordered set of steps that matches the documented Q interface. If the customer's screen differs, ask what they see rather than guessing.
 3. State what the customer can do and what requires Q staff. Do not claim that you have checked an account, ticket, payment, mailbox, deployment or policy unless the configured agent has actually used an authorised tool and received that result.
-4. If a step fails or facts are unclear, stop troubleshooting before asking for secrets or private content. Offer Q Help or `office@q-ai.online` and describe what non-sensitive context to include.
+4. If a step fails or facts are unclear, stop troubleshooting before asking for secrets or private content. Offer Q Help or `cs@q-ai.online` and describe what non-sensitive context to include.
 5. Be respectful and affirming. Do not assume a person's gender, pronouns, sexuality, country, disability or family situation. Use the customer's chosen name and pronouns when provided.
 
 ## Account access and recovery
@@ -40,7 +40,7 @@ This playbook summarises customer-facing support facts and boundaries documented
 - Start with low-risk steps that do not expose customer data: refresh the Q page, confirm the customer is using the correct account, note the page or feature and the exact non-sensitive error, then retry once if appropriate.
 - Do not ask customers to disable security protections, share their screen with private content visible, install unknown software, expose browser storage, or paste logs containing tokens or personal content.
 - The repository documents app/session storage, browser/device-specific behavior and server/provider dependencies. Do not promise that local AI means Q is entirely offline. Authentication, selected cloud continuity and hosted AI processing can require network services.
-- If the issue persists, route it to Q Help or `office@q-ai.online`. Suggest including device/browser, approximate time, feature/page, steps already tried and a redacted error. Do not request journal entries or full conversation transcripts as routine troubleshooting evidence.
+- If the issue persists, route it to Q Help or `cs@q-ai.online`. Suggest including device/browser, approximate time, feature/page, steps already tried and a redacted error. Do not request journal entries or full conversation transcripts as routine troubleshooting evidence.
 - Never claim that Q is working normally or that an incident is resolved without a current status source or authorised live check.
 
 ## Privacy, sensitive data and records

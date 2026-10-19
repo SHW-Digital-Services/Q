@@ -13,7 +13,7 @@ product: Q Intelligence
 
 ## Staff communications and incoming service events
 
-Authorised Staff and Admins can access the shared office@q-ai.online Microsoft 365 mailbox. Microsoft 365 holds the mailbox data. Q temporarily relays email content, addresses, folders and attachments between the browser and Microsoft Graph to display mail and perform the operator's selected action. This portal does not save mailbox content or attachments to Supabase or application logs. Composer text is temporarily recoverable in account-scoped browser session storage. Uploaded attachment bytes are held temporarily in server memory until sent or expired; they are not persisted. An explicit draft-save action writes a draft to Microsoft 365. Downloaded attachments are saved on the operator's device.
+Authorised Staff and Admins can access the shared cs@q-ai.online Microsoft 365 mailbox. Microsoft 365 holds the mailbox data. Q temporarily relays email content, addresses, folders and attachments between the browser and Microsoft Graph to display mail and perform the operator's selected action. This portal does not save mailbox content or attachments to Supabase or application logs. Composer text is temporarily recoverable in account-scoped browser session storage. Uploaded attachment bytes are held temporarily in server memory until sent or expired; they are not persisted. An explicit draft-save action writes a draft to Microsoft 365. Downloaded attachments are saved on the operator's device.
 
 The shared office and private Scott mailboxes use separate Microsoft refresh tokens held only in server hosting secrets and access tokens cached in server memory. Mail operations recheck each Q user's Staff/Admin role, verify the configured Microsoft mailbox, and reject other mailbox IDs. Only Scott can access his private mailbox. Logging out does not disconnect other operators. The platform connection is revoked in Microsoft Entra/Exchange and by removing the hosting token. Mailbox content and attachments are not stored in Supabase; HTML is sanitised and attachments are served as downloads.
 
@@ -61,7 +61,7 @@ office@q-ai.online
 
 General Contact:
 
-office@q-ai.online
+cs@q-ai.online
 
 Where required by applicable law, SHW Digital Services acts as the Data Controller for personal information processed through Q Intelligence.
 
@@ -305,7 +305,7 @@ Emails sent to our office support mailbox may be matched to your verified Q acco
 
 ### Previous Brevo support chat
 
-The Brevo Conversations widget has been removed from Q. Q no longer loads it for new website support conversations. Use Q Help, the support page or **office@q-ai.online** for support.
+The Brevo Conversations widget has been removed from Q. Q no longer loads it for new website support conversations. Use Q Help, the support page or **cs@q-ai.online** for support.
 
 Removing the widget does not itself delete earlier Brevo support records. For access, correction or deletion requests concerning previous conversations, contact **office@q-ai.online**. The separate retention information below continues to apply to those historical records. Brevo email and optional analytics features are separate from the removed chat widget.
 
@@ -951,7 +951,7 @@ Website: https://q-ai.online
 
 Privacy Email: office@q-ai.online
 
-Support Email: office@q-ai.online
+Support Email: cs@q-ai.online
 
 ---
 

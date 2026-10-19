@@ -5,7 +5,7 @@ export const businessIdentity = {
   operator: 'Scott Harvey-Whittle',
   tradingName: 'SHW Digital Services',
   country: 'United Kingdom',
-  email: 'office@q-ai.online',
+  email: 'cs@q-ai.online',
   website: 'https://www.q-ai.online',
   address: null as string | null,
   phone: null as string | null,

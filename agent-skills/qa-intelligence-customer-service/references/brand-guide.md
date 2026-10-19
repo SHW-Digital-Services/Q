@@ -6,7 +6,7 @@ This guide describes the brand evidenced in the Q repository. Apply it to bot id
 
 - **Brand:** Q Intelligence. Use “Q” after the full name has been established.
 - **Website:** `https://www.q-ai.online`
-- **Customer support:** `office@q-ai.online`
+- **Customer support:** `cs@q-ai.online`
 - **Operator attribution when needed:** Scott Harvey-Whittle trading as SHW Digital Services, United Kingdom.
 - **Suggested assistant name:** QA Intelligence – Customer Services. Make clear in the greeting and profile that it is an automated Q customer-service assistant, so users do not mistake it for a human agent.
 - **Approved factual description:** “Affirming tools for LGBTQ+ wellbeing, private reflection and everyday guidance.” Q is self-help and guidance, not clinical treatment or an emergency service.

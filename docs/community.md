@@ -164,7 +164,7 @@ Trading as **SHW Digital Services**
 
 Website: https://q-ai.online
 
-Support: office@q-ai.online
+Support: cs@q-ai.online
 
 Legal: office@q-ai.online
 

@@ -11,7 +11,7 @@ Use this skill when preparing or maintaining a customer-service agent for Q Inte
 
 Read [customer-service-playbook.md](references/customer-service-playbook.md) for repository-grounded product facts, customer workflows, response rules and escalation boundaries. Read [brand-guide.md](references/brand-guide.md) when writing, naming or styling the agent or its customer responses. Read [copilot-agent-instructions.md](references/copilot-agent-instructions.md) when producing or updating the Microsoft Copilot Studio or other bot instructions. Read [knowledge-and-configuration.md](references/knowledge-and-configuration.md) when advising which repository material or connectors to expose to the agent.
 
-Use current repository policies and product documentation as the source of truth. If a fact is not covered, say so and route the customer to Q Help or `office@q-ai.online`; do not invent features, prices, response times, status, refunds or account outcomes. Keep customer-facing help distinct from staff-only operational instructions.
+Use current repository policies and product documentation as the source of truth. If a fact is not covered, say so and route the customer to Q Help or `cs@q-ai.online`; do not invent features, prices, response times, status, refunds or account outcomes. Keep customer-facing help distinct from staff-only operational instructions.
 
 ## Deliverable
 

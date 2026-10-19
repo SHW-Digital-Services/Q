@@ -26,7 +26,7 @@ accessibility. We continue to review keyboard, screen-reader and mobile use.
 
 ## Report a barrier
 
-Email [office@q-ai.online](mailto:office@q-ai.online) with the page URL, what you
+Email [cs@q-ai.online](mailto:cs@q-ai.online) with the page URL, what you
 were trying to do, and your browser or assistive technology if relevant. Please
 do not include passwords or private journal content. Tell us the format or
 adjustment that would help; we will discuss a practical alternative.

@@ -10,7 +10,7 @@ a specific score, a response time or removal.
 
 **First name:** Scott  
 **Surname:** Harvey-Whittle  
-**Email:** office@q-ai.online  
+**Email:** cs@q-ai.online  
 **Website:** https://www.q-ai.online  
 **Subject:** Request for free manual reassessment and refreshed data — q-ai.online
 
@@ -61,4 +61,4 @@ you for reviewing the current evidence.
 
 Scott Harvey-Whittle  
 Trading as SHW Digital Services  
-office@q-ai.online
+cs@q-ai.online

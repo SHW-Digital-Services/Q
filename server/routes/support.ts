@@ -108,7 +108,7 @@ export function createSupportRouter(deps: Dependencies) {
     if (error) return failure(res, error);
     // Same response for a missing request, wrong email, and provider failure.
     if (data) { try { await deps.email(email, await accessLink(res.locals.db, data.id)); } catch { /* Never disclose request existence. */ } }
-    return res.status(202).json({ success: true, message: 'If those details match a signed-out request, an access link will be emailed. If it does not arrive, contact office@q-ai.online.' });
+    return res.status(202).json({ success: true, message: 'If those details match a signed-out request, an access link will be emailed. If it does not arrive, contact cs@q-ai.online.' });
   }));
   router.post('/access/exchange', asyncHandler(async (req, res) => {
     if (!requireExactObject(req.body, ['token']) || typeof req.body.token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(req.body.token)) return res.status(400).json({ error: 'Invalid access link.' });

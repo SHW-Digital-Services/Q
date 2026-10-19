@@ -202,13 +202,13 @@ try {
     const fetcher:typeof fetch=async(input,init)=>{
       const url=String(input);
       if(url.endsWith('/oauth/v2/token'))return new Response(JSON.stringify({access_token:'fixture-access',expires_in:3600}),{status:200});
-      if(url.endsWith('/api/accounts'))return new Response(JSON.stringify({status:{code:200},data:[{accountId:'123456789',primaryEmailAddress:'office@q-ai.online'}]}),{status:200});
+      if(url.endsWith('/api/accounts'))return new Response(JSON.stringify({status:{code:200},data:[{accountId:'123456789',primaryEmailAddress:'cs@q-ai.online'}]}),{status:200});
       assert.equal(url,'https://mail.zoho.eu/api/accounts/123456789/messages');mailPayload=JSON.parse(String(init?.body));
       return new Response(JSON.stringify({status:{code:200},data:{messageId:'987654321'}}),{status:200});
     };
     const link='https://www.q-ai.online/support#access=fixture-private-token';
     await sendSupportEmail('recipient@example.test',link,fetcher);
-    assert.equal(mailPayload.toAddress,'recipient@example.test');assert.equal(mailPayload.fromAddress,'office@q-ai.online');assert.equal(mailPayload.subject,'Your Q support request');assert.equal(mailPayload.mailFormat,'plaintext');assert.ok(mailPayload.content.includes(link));assert.ok(!mailPayload.content.includes('Customer-facing staff reply'));assert.equal(mailPayload.ccAddress,undefined);assert.equal(mailPayload.bccAddress,undefined);
+    assert.equal(mailPayload.toAddress,'recipient@example.test');assert.equal(mailPayload.fromAddress,'cs@q-ai.online');assert.equal(mailPayload.subject,'Your Q support request');assert.equal(mailPayload.mailFormat,'plaintext');assert.ok(mailPayload.content.includes(link));assert.ok(!mailPayload.content.includes('Customer-facing staff reply'));assert.equal(mailPayload.ccAddress,undefined);assert.equal(mailPayload.bccAddress,undefined);
     await assert.rejects(sendSupportEmail('recipient@example.test',link,async()=>new Response('{}',{status:403})));
   } finally {for(const [key,value] of Object.entries(previousEnv)){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
   const attachment=randomUUID(),internalFile=randomUUID();

@@ -10,26 +10,40 @@ import { combinedInboxFolders, visibleMailFolders, inboxFolder, trashFolder } fr
 const owner = '00000000-0000-4000-8000-000000000001';
 const target = '00000000-0000-4000-8000-000000000002';
 const key = randomBytes(32);
-const config: MailConfig = { clientId: 'fixture-client', tenantId: 'fixture-tenant', mailboxId: 'office@q-ai.online', useSignedInUser: false, refreshToken: 'fixture-refresh', key, accountsOrigin: 'https://login.microsoftonline.com/fixture-tenant/oauth2/v2.0', mailOrigin: 'https://graph.microsoft.com/v1.0', redirectUri: '', appOrigin: '', secure: false };
+const config: MailConfig = { clientId: 'fixture-client', tenantId: 'fixture-tenant', mailboxId: 'cs@q-ai.online', useSignedInUser: false, refreshToken: 'fixture-refresh', key, accountsOrigin: 'https://login.microsoftonline.com/fixture-tenant/oauth2/v2.0', mailOrigin: 'https://graph.microsoft.com/v1.0', redirectUri: '', appOrigin: '', secure: false };
 const session: MailSession = { owner, access: 'fixture-access', refresh: 'fixture-refresh', expires: Date.now() + 3600000, tokenExpires: Date.now() + 3600000 };
 const calls: { url: URL; init: RequestInit }[] = [];
-let providerStatus = 200; let mailboxEmail = 'office@q-ai.online'; let malformedMessages = false; let emptyView: 'none' | 'extended' | 'all' = 'none';
+let providerStatus = 200; let mailboxEmail = 'cs@q-ai.online'; let malformedMessages = false; let emptyView: 'none' | 'extended' | 'all' = 'none';
 const json = (data: unknown, status = 200) => new Response(JSON.stringify({ status: { code: status }, data }), { status, headers: { 'Content-Type': 'application/json' } });
 const fetcher = (async (url: any, init: RequestInit = {}) => {
   const parsed = new URL(String(url)); calls.push({ url: parsed, init });
-  if (parsed.pathname === '/oauth/v2/token') return new Response(JSON.stringify({ access_token: 'fixture-refreshed', refresh_token: 'fixture-refresh', expires_in: 3600 }));
-  if (parsed.pathname === '/oauth/v2/token/revoke') return new Response(JSON.stringify({ status: 'success' }));
+  if (parsed.pathname.endsWith('/oauth2/v2.0/token')) return new Response(JSON.stringify({ access_token: 'fixture-refreshed', refresh_token: 'fixture-refresh', expires_in: 3600 }));
+  if (parsed.pathname.endsWith('/oauth2/v2.0/token/revoke')) return new Response(JSON.stringify({ status: 'success' }));
   if (providerStatus !== 200) return json({ private: 'DO_NOT_LEAK_PROVIDER_BODY' }, providerStatus);
-  if (parsed.pathname === '/api/accounts') return json([{ accountId: '10001', primaryEmailAddress: mailboxEmail, displayName: 'Q Office' }, { accountId: '99999', primaryEmailAddress: 'other@example.test' }]);
-  if (parsed.pathname.endsWith('/folders')) return json([{ folderId: '20001', folderName: 'Inbox', folderType: 'Inbox', unreadCount: '7' }, { folderId: '20002', folderName: 'Sent', folderType: 'Sent' }, { folderId: '20003', folderName: 'Drafts', folderType: 'Drafts' }, { folderId: '20004', folderName: 'Archive', folderType: 'Archive' }, {folderId:'20006',folderName:'Notification',folderType:'Inbox',unreadCount:2}, {folderId:'20007',folderName:'Newsletter',folderType:'Inbox',unreadCount:3}]);
+  if (parsed.pathname.endsWith('/mailFolders')) return new Response(JSON.stringify({ value: [
+    { id: '20001', displayName: 'Inbox', unreadItemCount: 7 }, { id: '20002', displayName: 'Sent Items' }, { id: '20003', displayName: 'Drafts' },
+    { id: '20004', displayName: 'Archive' }, { id: '20006', displayName: 'Notification', unreadItemCount: 2 }, { id: '20007', displayName: 'Newsletter', unreadItemCount: 3 },
+  ] }), { status: 200 });
+  if (parsed.pathname.endsWith('/messages') && parsed.searchParams.has('$search')) return new Response(JSON.stringify({ value: [
+    { id: '601', parentFolderId: '20001', from: { emailAddress: { address: 'visitor@example.test' } }, toRecipients: [{ emailAddress: { address: 'cs@q-ai.online' } }], receivedDateTime: new Date().toISOString(), subject: 'Inbound', bodyPreview: 'PRIVATE_BODY_NOT_HISTORY' },
+    { id: '602', parentFolderId: '20002', from: { emailAddress: { address: 'cs@q-ai.online' } }, toRecipients: [{ emailAddress: { address: 'visitor@example.test' } }], receivedDateTime: new Date().toISOString(), subject: 'Sent' },
+    { id: '602', parentFolderId: '20002', from: { emailAddress: { address: 'cs@q-ai.online' } }, toRecipients: [{ emailAddress: { address: 'visitor@example.test' } }], receivedDateTime: new Date().toISOString(), subject: 'Sent' },
+    { id: '603', parentFolderId: '20003', from: { emailAddress: { address: 'cs@q-ai.online' } }, toRecipients: [{ emailAddress: { address: 'visitor@example.test' } }], subject: 'Unsent draft' },
+    { id: '604', parentFolderId: '20002', from: { emailAddress: { address: 'cs@q-ai.online' } }, toRecipients: [{ emailAddress: { address: 'othervisitor@example.test' } }], subject: 'Unrelated' },
+    { id: '605', parentFolderId: '20002', from: { emailAddress: { address: 'cs@q-ai.online' } }, ccRecipients: [{ emailAddress: { address: 'visitor@example.test' } }], subject: 'Cc' },
+  ] }), { status: 200 });
+  if (parsed.pathname.endsWith('/mailFolders/20001/messages')) return new Response(JSON.stringify({ value: [
+    { id: 'AAMk/30001==', parentFolderId: '20001', subject: 'Help getting started', from: { emailAddress: { address: 'visitor@example.test' } }, toRecipients: [{ emailAddress: { address: 'cs@q-ai.online' } }], receivedDateTime: new Date().toISOString(), isRead: false, hasAttachments: true, bodyPreview: 'PRIVATE_BODY_NOT_HISTORY' },
+  ] }), { status: 200 });
+  if (parsed.pathname.endsWith('/mailFolders/20001/messages') || /\/mailFolders\/(20002|20003|20004|20006|20007)\/messages$/.test(parsed.pathname)) return new Response(JSON.stringify({ value: [] }), { status: 200 });
   if (parsed.pathname.endsWith('/view') && (emptyView === 'all' || emptyView === 'extended' && parsed.searchParams.has('includearchive'))) return json([]);
   if (parsed.pathname.endsWith('/search') && parsed.searchParams.get('searchKey')?.startsWith('sender:')) return json([
-    { messageId: '601', folderId: '20001', fromAddress: 'Visitor <visitor@example.test>', toAddress: 'office@q-ai.online', receivedTime: Date.now(), subject: 'Inbound', summary: 'PRIVATE_BODY_NOT_HISTORY' },
-    { messageId: '602', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Sent' },
-    { messageId: '602', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Sent' },
-    { messageId: '603', folderId: '20003', fromAddress: 'office@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Unsent draft' },
-    { messageId: '604', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'othervisitor@example.test', receivedTime: Date.now(), subject: 'Unrelated' },
-    { messageId: '605', folderId: '20002', fromAddress: 'office@q-ai.online', toAddress: 'other@example.test', ccAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Cc' }
+    { messageId: '601', folderId: '20001', fromAddress: 'Visitor <visitor@example.test>', toAddress: 'cs@q-ai.online', receivedTime: Date.now(), subject: 'Inbound', summary: 'PRIVATE_BODY_NOT_HISTORY' },
+    { messageId: '602', folderId: '20002', fromAddress: 'cs@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Sent' },
+    { messageId: '602', folderId: '20002', fromAddress: 'cs@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Sent' },
+    { messageId: '603', folderId: '20003', fromAddress: 'cs@q-ai.online', toAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Unsent draft' },
+    { messageId: '604', folderId: '20002', fromAddress: 'cs@q-ai.online', toAddress: 'othervisitor@example.test', receivedTime: Date.now(), subject: 'Unrelated' },
+    { messageId: '605', folderId: '20002', fromAddress: 'cs@q-ai.online', toAddress: 'other@example.test', ccAddress: 'visitor@example.test', receivedTime: Date.now(), subject: 'Cc' }
   ]);
   if (parsed.pathname.endsWith('/search') && parsed.searchParams.get('searchKey')?.includes('::or:in:')) return json([
     {messageId:'701',folderId:'20007',subject:'Newsletter',receivedTime:'3000'},
@@ -38,7 +52,7 @@ const fetcher = (async (url: any, init: RequestInit = {}) => {
     {messageId:'703',folderId:'20001',subject:'Duplicate'},
     {messageId:'704',folderId:'20002',subject:'Excluded sent message'},
   ]);
-  if (/\/messages\/(view|search)$/.test(parsed.pathname)) return json(malformedMessages ? {} : [{ messageId: '30001', folderId: '20001', subject: 'Help getting started', fromAddress: 'visitor@example.test', toAddress: 'office@q-ai.online', receivedTime: String(Date.now()), status: '0', hasAttachment: '1' }]);
+  if (/\/messages\/(view|search)$/.test(parsed.pathname)) return json(malformedMessages ? {} : [{ messageId: '30001', folderId: '20001', subject: 'Help getting started', fromAddress: 'visitor@example.test', toAddress: 'cs@q-ai.online', receivedTime: String(Date.now()), status: '0', hasAttachment: '1' }]);
   if (parsed.pathname.endsWith('/content')) return json({ content: '<p>Hello Q team,</p><p>Could you help me get started?</p><img src="https://tracking.example.test/pixel" onerror="alert(1)"><script>window.BAD_MAIL=true</script><form action="https://example.test"><input name="password"></form><p><strong>Thank you.</strong></p>' });
   if (parsed.pathname.endsWith('/attachmentinfo')) return json({ attachments: [{ attachmentId: '40001', attachmentName: 'example.txt', attachmentSize: 7 }], inline: [{ cid: 'fixture-image', attachmentName: 'logo.png', attachmentSize: 8 }, { cid: 'unsafe-image', attachmentName: 'bad.svg', attachmentSize: 20 }] });
   if (parsed.pathname.endsWith('/inline')) return new Response(parsed.searchParams.get('contentId') === 'fixture-image' ? Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]) : Buffer.from('<svg onload="alert(1)"/>'));
@@ -112,10 +126,10 @@ try {
   assert.equal((await request('/accounts', {}, 'fixture-user')).status, 403);
   assert.equal((await request('/accounts', {}, 'fixture-other', '')).status, 200);
   assert.equal((await request('/accounts', {}, 'fixture-staff', '')).status, 200);
-  const status = await (await request('/status')).json(); assert.equal(status.connected, true); assert.equal(status.mailbox, 'office@q-ai.online'); assert(!JSON.stringify(status).includes('fixture-refresh'));
+  const status = await (await request('/status')).json(); assert.equal(status.connected, true); assert.equal(status.mailbox, 'cs@q-ai.online'); assert(!JSON.stringify(status).includes('fixture-refresh'));
   assert.equal((await request('/oauth/start', { method: 'POST' })).status, 409);
   assert.equal((await request('/disconnect', { method: 'POST', headers: { Origin: 'https://evil.example.test' } })).status, 403);
-  const mailboxList = await (await request('/accounts')).json(); assert.equal(mailboxList.accounts.length, 1); assert.equal(mailboxList.accounts[0].email, 'office@q-ai.online');
+  const mailboxList = await (await request('/accounts')).json(); assert.equal(mailboxList.accounts.length, 1); assert.equal(mailboxList.accounts[0].email, 'cs@q-ai.online');
   const history = await (await request(`/customers/${target}/history`)).json();
   assert.equal(history.communications.length, 3);
   assert.deepEqual(history.communications.map((item: any) => item.direction), ['inbound', 'outbound', 'outbound']);
@@ -125,7 +139,7 @@ try {
   assert.equal((await request(`/customers/${target}/history?start=-1`)).status, 400);
   assert.equal((await request(`/customers/${target}/history`, {}, 'fixture-user')).status, 403);
   for (const path of ['/accounts/99999/folders', '/accounts/99999/messages?folder=20001', '/accounts/99999/folders/20001/messages/30001', '/accounts/99999/folders/20001/messages/30001/attachments/40001']) assert.equal((await request(path)).status, 403);
-  mailboxEmail = 'personal@example.test'; assert.equal((await request('/accounts')).status, 403); mailboxEmail = 'office@q-ai.online';
+  mailboxEmail = 'personal@example.test'; assert.equal((await request('/accounts')).status, 403); mailboxEmail = 'cs@q-ai.online';
   assert.equal((await request('/accounts')).status, 200);
   const folderList = await (await request('/accounts/10001/folders')).json();
   assert.equal(folderList.folders[0].unreadCount, 7);
@@ -171,7 +185,7 @@ try {
   assert.equal((await request('/accounts/99999/attachments?name=test.txt', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: Buffer.from('test') })).status, 403);
   assert.equal((await request('/accounts/99999/messages/30001', { method: 'PATCH', body: JSON.stringify({ action: 'read' }) })).status, 403);
   assert.equal((await request('/accounts/10001/send', post(payload))).status, 200);
-  const sendBody = JSON.parse(calls.at(-1)!.init.body as string); assert.equal(sendBody.fromAddress, 'office@q-ai.online'); assert.equal(sendBody.mailFormat, 'plaintext');
+  const sendBody = JSON.parse(calls.at(-1)!.init.body as string); assert.equal(sendBody.fromAddress, 'cs@q-ai.online'); assert.equal(sendBody.mailFormat, 'plaintext');
   assert.equal((await request('/accounts/10001/send', post({ ...payload, replyTo: '30001' }))).status, 200); assert.equal(calls.at(-1)!.url.pathname, '/api/accounts/10001/messages/30001'); assert.equal(JSON.parse(calls.at(-1)!.init.body as string).action, 'reply');
   const previousOrigin = config.appOrigin;
   config.appOrigin = 'https://q-ai.online';

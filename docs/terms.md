@@ -12,7 +12,7 @@ operator: Scott Harvey-Whittle trading as SHW Digital Services
 
 ## CRM communications and administration
 
-Staff and Admins may access the shared office@q-ai.online Microsoft 365 mailbox through the CRM. Actions operate under the mailbox's delegated permissions and Microsoft's service limits. Q temporarily relays message content and attachments; it does not save them in Supabase. Draft text may be recovered in the current browser session until explicitly saved to Microsoft 365 or sent. Operators should verify recipients, placeholders, facts and links before sending, and check Outlook Sent Items before repeating an uncertain send. Generic templates do not authorise marketing or replace required consent.
+Staff and Admins may access the shared cs@q-ai.online Microsoft 365 mailbox through the CRM. Actions operate under the mailbox's delegated permissions and Microsoft's service limits. Q temporarily relays message content and attachments; it does not save them in Supabase. Draft text may be recovered in the current browser session until explicitly saved to Microsoft 365 or sent. Operators should verify recipients, placeholders, facts and links before sending, and check Outlook Sent Items before repeating an uncertain send. Generic templates do not authorise marketing or replace required consent.
 
 Admin webhook integrations retain provider event records for review. Generated address-shaped identifiers are not mailboxes. Admin user deletion is irreversible through the CRM and does not cancel external payments or erase Microsoft 365 mail; existing constraints and retained operational records may apply. Staff cannot delete users or change public launch status.
 
@@ -438,7 +438,7 @@ The Service integrates with third-party providers including, but not limited to:
 
 Those services are governed by their own terms and privacy policies.
 
-The Brevo Conversations widget has been removed. For product support, use Q Help, the support page or office@q-ai.online. Historical support-chat records remain subject to the Privacy Policy and provider arrangements.
+The Brevo Conversations widget has been removed. For product support, use Q Help, the support page or cs@q-ai.online. Historical support-chat records remain subject to the Privacy Policy and provider arrangements. For legal, privacy or executive escalation, contact office@q-ai.online.
 
 SHW Digital Services is not responsible for the acts or omissions of independent third-party providers beyond our legal responsibilities.
 
@@ -525,7 +525,7 @@ We communicate electronically with you where necessary to administer the Service
 
 Optional marketing, newsletters and community-update emails are managed through Brevo (formerly Sendinblue) and sent where you have opted in or specifically requested them. Accepting these Terms, creating an account or purchasing a subscription does not by itself constitute marketing consent. Permission for launch or waitlist updates is limited to the communications described when it was collected.
 
-You can stop optional emails through their unsubscribe link or by contacting office@q-ai.online, without closing your account. Necessary security, billing and service notices may still be sent. Marketing consent is separate from any required consent to non-essential email tracking. The Privacy Policy, Cookie Policy and Processor Register explain the relevant processing and choices.
+You can stop optional emails through their unsubscribe link or by contacting cs@q-ai.online, without closing your account. Necessary security, billing and service notices may still be sent. Marketing consent is separate from any required consent to non-essential email tracking. The Privacy Policy, Cookie Policy and Processor Register explain the relevant processing and choices.
 
 ---
 
@@ -570,7 +570,7 @@ Trading as **SHW Digital Services**
 
 Website: https://q-ai.online
 
-General Support: office@q-ai.online
+General Support: cs@q-ai.online
 
 Legal Enquiries: office@q-ai.online
 

@@ -10,7 +10,7 @@ score measurement. No increase in a third-party score is claimed.
 | Order | Report task | Evidence and work completed | Remaining work |
 | --- | --- | --- | --- |
 | 1 | WHOIS transparency | Queried IANA's RDAP bootstrap and authoritative registry; registrar is Mesh Digital Limited, IANA 1390. Registrant data is redacted. | Owner must update and consent to publication through the actual registrar account. No registry settings were changed. |
-| 2 | Address and phone | Reviewed existing legal documents; they name Scott Harvey-Whittle trading as SHW Digital Services, United Kingdom, with office@q-ai.online. Added this identity to the global footer, About, Contact and legal-page footer. | No business address or phone is supplied in those documents. Supply verified public details; do not use the registrar's address or phone. |
+| 2 | Address and phone | Reviewed existing legal documents; they name Scott Harvey-Whittle trading as SHW Digital Services, United Kingdom, with office@q-ai.online. Added this identity to the global footer, About, Contact and legal-page footer, with CS as the general public contact and office for legal/privacy escalation. | No business address or phone is supplied in those documents. Supply verified public details; do not use the registrar's address or phone. |
 | 3 | About/team/registration | Implemented server-rendered `/about`, operator identity, service scope and accountability links. Shared identity data supports team bios, credentials, registration and social links. | Verify team details and applicable business registration. Do not invent qualifications, corporate status or a company number. |
 | 4 | HTTPS | Live TLS verification succeeded for apex and www. Let's Encrypt YR1 certificate covers both, valid 20 August–18 November 2026. HTTP apex → HTTPS apex → HTTPS www; HTTP www → HTTPS www. No redirect loop or downgrade was observed. | Hosting controls certificate renewal. Daily monitor checks verification and alerts below 15 days remaining. This does not establish end-to-end encryption of stored customer data. |
 | 5 | Compliance URLs | Existing `/legal/terms` and `/legal/privacy` returned readable HTML. Added `/legal/refund` and linked it from Terms and footers. Separated Subscription Terms from the incorrectly labelled Accessibility page. | New code/policies need deployment and operator review against the actual business/checkout practices. Statutory rights are not waived by using Q. |
@@ -75,7 +75,7 @@ privacy choices and contact/accountability. Complete these sections only from ev
 ## Social profiles: consistent publication pack
 
 Use **Q Intelligence** as the brand, **https://www.q-ai.online** as the website,
-and **office@q-ai.online** as the contact. Legal operator attribution must remain
+and **cs@q-ai.online** as the general contact. Legal operator attribution must remain
 **Scott Harvey-Whittle trading as SHW Digital Services**.
 
 Suggested factual short bio:

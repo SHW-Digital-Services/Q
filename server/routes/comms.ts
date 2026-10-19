@@ -275,7 +275,7 @@ export function createCommsRouter(dependencies: Dependencies) {
     }
     return res.json({ ...mailMessagePage(messages, messages.length === 30), source });
   }));
-  const messagePath = (req: express.Request) => `/accounts/${mailId(req.params.account)}/folders/${mailId(req.params.folder)}/messages/${mailId(req.params.message)}`;
+  const messagePath = (req: express.Request) => `/accounts/${encodeURIComponent(mailId(req.params.account))}/folders/${encodeURIComponent(mailId(req.params.folder))}/messages/${encodeURIComponent(mailId(req.params.message))}`;
   router.get('/accounts/:account/folders/:folder/messages/:message', asyncHandler(async (req, res) => {
     const client = res.locals.mailClient as Microsoft365MailClient;
     const [content, info] = await Promise.all([client.json(`${messagePath(req)}/content?includeBlockContent=true`), client.json(`${messagePath(req)}/attachmentinfo?includeInline=true`)]);
@@ -297,7 +297,7 @@ export function createCommsRouter(dependencies: Dependencies) {
     return res.json({ content: content?.content || '', images, attachments: (info?.attachments || []).map(a => ({ id: String(a.attachmentId), name: a.attachmentName, size: a.attachmentSize })) });
   }));
   router.get('/accounts/:account/folders/:folder/messages/:message/attachments/:attachment', asyncHandler(async (req, res) => {
-    const response = await (res.locals.mailClient as Microsoft365MailClient).response(`${messagePath(req)}/attachments/${mailId(req.params.attachment)}`);
+    const response = await (res.locals.mailClient as Microsoft365MailClient).response(`${messagePath(req)}/attachments/${encodeURIComponent(mailId(req.params.attachment))}`);
     const bytes = await boundedResponse(response, 20 * 1024 * 1024);
     res.setHeader('Content-Type', 'application/octet-stream');
     // Force a download; never serve potentially active mail attachments inline.
@@ -334,7 +334,7 @@ export function createCommsRouter(dependencies: Dependencies) {
     if (!payload.attachments.length) delete payload.attachments;
     if (draft) payload.mode = 'draft';
     if (replyTo) payload.action = 'reply';
-    await client.json(`/accounts/${account}/messages${replyTo ? `/${mailId(replyTo)}` : ''}`, jsonBody(payload));
+    await client.json(`/accounts/${encodeURIComponent(account)}/messages${replyTo ? `/${encodeURIComponent(mailId(replyTo))}` : ''}`, jsonBody(payload));
     return res.json({ success: true, draft });
   }));
   router.patch('/accounts/:account/messages', asyncHandler(async (req, res) => {
