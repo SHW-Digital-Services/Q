@@ -108,6 +108,7 @@ export const WaitlistLandingPage: React.FC = () => {
   const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [adultConfirmed, setAdultConfirmed] = useState(false);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'joined' | 'already_joined' | 'error'>('idle');
 
   const handleWaitlistSubmit = async (event: FormEvent) => {
@@ -164,6 +165,8 @@ export const WaitlistLandingPage: React.FC = () => {
           <div className="mt-8 flex flex-wrap gap-3 text-sm font-semibold">
             <span className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/15">{t('waitlistPrivateByDesign')}</span>
             <span className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/15">{t('waitlistAffirmingDefault')}</span>
+            <span className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/15">Disguise Mode · Alt+M</span>
+            <span className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/15">App lock with PIN</span>
           </div>
         </div>
 
@@ -216,6 +219,16 @@ export const WaitlistLandingPage: React.FC = () => {
                 placeholder={t('waitlistEmailPlaceholder')}
                 className="w-full rounded-xl bg-white/10 border border-white/15 text-white placeholder-purple-100/50 pl-10 pr-3 py-3 text-sm outline-none focus:border-purple-300"
               />
+            </label>
+            <label className="flex items-start gap-2 px-1 text-xs leading-5 text-purple-100/80">
+              <input
+                required
+                type="checkbox"
+                checked={adultConfirmed}
+                onChange={(event) => setAdultConfirmed(event.target.checked)}
+                className="mt-1 accent-purple-400"
+              />
+              <span>{t('waitlistAdultConfirm')}</span>
             </label>
             <button
               type="submit"
