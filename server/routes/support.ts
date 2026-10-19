@@ -166,7 +166,19 @@ export function createSupportRouter(deps: Dependencies) {
     const { data, error } = await res.locals.db.from('profiles').select('id,role,staff_permissions,preferred_name').in('role', ['staff','partner_admin']);
     if (error) return failure(res, error);
     // No private profile context or personal mailbox information is returned.
-    return res.json((data || []).filter((profile: any) => profile.role === 'partner_admin' || !profile.staff_permissions?.length || profile.staff_permissions.includes('support.read')).map((profile: any) => ({ id: profile.id, label: profile.preferred_name?.trim() || `${profile.role === 'partner_admin' ? 'Admin' : 'Staff'} ${profile.id.slice(0,8)}` })));
+    const eligible = (data || []).filter((profile: any) => profile.role === 'partner_admin' || !profile.staff_permissions?.length || profile.staff_permissions.includes('support.read'));
+    const assignees = await Promise.all(eligible.map(async (profile: any) => {
+      const { data: identity } = await res.locals.db.auth.admin.getUserById(profile.id);
+      const user = identity?.user;
+      const microsoft = user?.identities?.find((entry: any) => String(entry.provider || '').toLowerCase().startsWith('sso:'));
+      const claims = { ...(user?.user_metadata || {}), ...(microsoft?.identity_data || {}) } as Record<string, unknown>;
+      const microsoftName = [
+        claims.full_name, claims.name, claims.display_name, claims.displayName,
+        [claims.given_name || claims.givenName, claims.family_name || claims.surname].filter(Boolean).join(' ')
+      ].find(value => typeof value === 'string' && value.trim());
+      return { id: profile.id, label: (microsoftName as string | undefined)?.trim() || profile.preferred_name?.trim() || `${profile.role === 'partner_admin' ? 'Admin' : 'Staff'} ${profile.id.slice(0,8)}` };
+    }));
+    return res.json(assignees);
   }));
   router.get('/staff/requests', asyncHandler(async (req, res) => {
     const status = String(req.query.status || ''), category = String(req.query.category || ''), assigned = String(req.query.assigned || '');
