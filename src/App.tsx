@@ -45,6 +45,7 @@ const NewsUpdatesPage = lazy(() => import('./components/NewsUpdatesPage').then((
 const GuidedProgrammes = lazy(() => import('./components/GuidedProgrammes').then(({ GuidedProgrammes }) => ({ default: GuidedProgrammes })));
 const PremiumWorkspace = lazy(() => import('./components/PremiumWorkspace'));
 const TrainingPage = lazy(() => import('./components/TrainingPage'));
+const CrmTraining = lazy(() => import('./components/CrmTraining'));
 
 const previewSignInUserIdKey = 'q.crm.preview-sign-in-user-id';
 
@@ -449,6 +450,7 @@ export default function App() {
 
   if (window.location.pathname === '/support') return <Suspense fallback={<LoadingView label="Loading support..." />}><SupportAccessPage /></Suspense>;
   if (window.location.pathname === '/training') return <Suspense fallback={<LoadingView label="Loading training..." />}><TrainingPage currentUser={currentUser} /></Suspense>;
+  if (window.location.pathname === '/crm-training') return <Suspense fallback={<LoadingView label="Loading CRM training..." />}><CrmTraining /></Suspense>;
   if (window.location.pathname === '/help') return <Suspense fallback={<LoadingView label="Loading help centre..." />}><HelpCentrePage /></Suspense>;
   if (window.location.pathname === '/roadmap') return <Suspense fallback={<LoadingView label="Loading roadmap..." />}><RoadmapPage /></Suspense>;
   if (isNewsRoute) return <><StatusPageButton placement="right" /><Suspense fallback={<LoadingView label="Loading news..." />}><NewsUpdatesPage /></Suspense></>;
