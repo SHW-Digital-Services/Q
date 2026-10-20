@@ -1,19 +1,17 @@
-import { getSupabaseClient } from './supabase';
-
 export type WaitlistResult = 'joined' | 'already_joined';
 
-export async function joinWaitlist(name: string, email: string): Promise<WaitlistResult> {
-  const supabase = getSupabaseClient();
-  if (!supabase) throw new Error('Waitlist is not configured yet.');
-
-  const normalizedName = name.trim();
-  const normalizedEmail = email.trim().toLowerCase();
-  const { error } = await supabase.from('waitlist').insert({
-    name: normalizedName,
-    email: normalizedEmail
+export async function joinWaitlist(name: string, email: string, adultConfirmed: boolean): Promise<WaitlistResult> {
+  const response = await fetch('/api/waitlist', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), adultConfirmed })
   });
-
-  if (!error) return 'joined';
-  if (error.code === '23505') return 'already_joined';
-  throw error;
+  let result: { status?: string; error?: string } = {};
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error('The waitlist is temporarily unavailable.');
+  }
+  if (response.ok && (result.status === 'joined' || result.status === 'already_joined')) return result.status;
+  throw new Error(result.error || 'The waitlist is temporarily unavailable.');
 }

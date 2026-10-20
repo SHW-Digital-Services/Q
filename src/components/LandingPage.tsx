@@ -115,7 +115,7 @@ export const WaitlistLandingPage: React.FC = () => {
     event.preventDefault();
     setStatus('submitting');
     try {
-      const result = await joinWaitlist(name, email);
+      const result = await joinWaitlist(name, email, adultConfirmed);
       setStatus(result);
       if (result === 'joined') {
         setName('');

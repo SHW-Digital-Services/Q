@@ -63,11 +63,12 @@ export function createRateLimitMiddleware(getServiceDb: () => any) {
     const routeClass = request.path.includes('password-reset') && request.method === 'POST' ? 'password-reset'
       : request.path.includes('contact-requests') || request.path === '/api/support/access' || request.path === '/api/support/access/exchange' ? 'contact'
       : request.path === '/api/feedback/suggestions' && request.method === 'POST' ? 'feedback'
+      : request.path === '/api/waitlist' && request.method === 'POST' ? 'waitlist'
       : request.path.includes('paypal') ? 'billing'
       : request.path.includes('referral') ? 'referral'
       : request.path.includes('admin') ? 'admin' : 'api';
     const limits: Record<string, [number, number]> = {
-      'password-reset': [5, 900], contact: [10, 900], feedback: [10, 900], billing: [30, 60], referral: [30, 60], admin: [120, 60], api: [120, 60]
+      'password-reset': [5, 900], contact: [10, 900], feedback: [10, 900], waitlist: [5, 900], billing: [30, 60], referral: [30, 60], admin: [120, 60], api: [120, 60]
     };
     try {
       const db = getServiceDb();

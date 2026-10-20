@@ -1,9 +1,9 @@
 ---
 title: Cookie Policy
 description: Cookie Policy for Q Intelligence
-version: 1.3.4
+version: 1.3.5
 effective_date: 02/08/2026
-last_updated: 14/10/2026
+last_updated: 19/10/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -13,6 +13,10 @@ operator: Scott Harvey-Whittle trading as SHW Digital Services
 ## CRM Microsoft 365 mail connection
 
 The shared cs@q-ai.online and private Scott mailbox connections do not store Microsoft OAuth tokens in browser cookies. Their refresh tokens are held in server hosting secrets and access tokens exist temporarily in server memory. Legacy q_zoho_state and q_zoho_mail cookies are ignored and cleared on Q logout. Standard Q authentication remains required. Unsent drafts and personalised template values use account-scoped browser session storage for refresh recovery; Q logout clears the operator's recovery data. Uploaded attachment bytes are held temporarily in server memory until sent or expired and are not placed in browser storage.
+
+## CRM training environment
+
+The public `/crm-training` demonstration does not require a CRM authentication session and does not set a separate training cookie. Its sample records and any text entered in the demo form exist in page memory for the current visit only. Site-wide cookies, security technologies, and optional analytics described in this Policy may still apply when the page is visited.
 
 ## 1. Introduction
 
@@ -237,6 +241,7 @@ Support: cs@q-ai.online
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.3.5 | 19/10/2026 | Clarified browser-state handling and site-wide technologies for CRM training. |
 | 1.3.4 | 14/10/2026 | Updated CRM mail token and temporary attachment disclosures for Microsoft 365. |
 | 1.2.0 | 28/09/2026 | Added Brevo Conversations loading, browser storage, consent boundaries and deletion disclosures. |
 | 1.3.0 | 28/09/2026 | Added opt-in Brevo website analytics tracker and cookie preference controls. |

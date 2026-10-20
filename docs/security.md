@@ -1,9 +1,9 @@
 ---
 title: Security Policy
 description: Security Policy for Q Intelligence
-version: 1.2.4
+version: 1.2.5
 effective_date: 26/08/2026
-last_updated: 14/10/2026
+last_updated: 19/10/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -18,6 +18,10 @@ The office@q-ai.online mailbox uses Microsoft Graph delegated access. Its refres
 Brevo endpoint management/event access requires Admin authorisation. Receiving checks the active state and bearer secret transactionally; only token hashes/prefixes are retained. Known credential fields are redacted and exact payload retries deduplicated. Direct Supabase client access to endpoint/event tables is revoked. Event review does not execute billing/customer actions.
 
 The Admin Only page groups privileged functions, with server checks independent of button visibility. Deletion requires Admin access and exact target-email confirmation, protects the current operator and Admin accounts, checks unresolved subscriptions and records security outcomes. Existing deletion/Storage constraints apply. Deletion does not cancel external payments or erase Microsoft 365 mail.
+
+## CRM training environment
+
+The public `/crm-training` page is separate from the authenticated CRM. It contains fictional records and has no CRM API integration; its add-demo form and sample actions update only in-memory page state. They cannot create or modify production customer, account, subscription, or support records. Staff must not enter real customer data in the training environment.
 
 ## 1. Purpose
 
@@ -303,6 +307,7 @@ Privacy enquiries: office@q-ai.online
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.2.5 | 19/10/2026 | Documented CRM training isolation from authenticated and production CRM operations. |
 | 1.2.4 | 14/10/2026 | Updated CRM mailbox authorization and token revocation controls for Microsoft 365. |
 | 1.0.0 | 26/08/2026 | Initial Security Policy. |
 | 1.0.1 | 26/08/2026 | Added native CRM roles, PayPal synchronisation, webhook verification, and staff-assisted payment safeguards. |

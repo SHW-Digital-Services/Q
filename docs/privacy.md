@@ -1,9 +1,9 @@
 ---
 title: Privacy Policy
 description: Privacy Policy for Q Intelligence
-version: 1.5.4
+version: 1.5.5
 effective_date: 02/08/2026
-last_updated: 14/10/2026
+last_updated: 19/10/2026
 applies_to: https://q-ai.online
 owner: Scott Harvey-Whittle trading as SHW Digital Services
 product: Q Intelligence
@@ -312,6 +312,10 @@ Removing the widget does not itself delete earlier Brevo support records. For ac
 ### Optional Brevo website analytics
 
 If you allow analytics through Q's cookie prompt, Q loads the Brevo website tracker to record page visits and associated browser activity for understanding site use. Brevo may use a browser identifier or cookies and process technical information such as your IP address, browser details, visit timing and the page path. Q does not send page query strings or private journal, AI conversation, mood, or profile content as tracker events. The tracker remains unloaded when analytics is rejected. You can change your choice at any time using **Cookie preferences** in the site footer. See the Cookie Policy for details.
+
+### CRM training environment
+
+The public `/crm-training` page is a client-side demonstration and is separate from the authenticated CRM. It displays fictional customer names, reserved `example.test` email addresses and invented support scenarios. Searching, opening a sample record, and adding a demo record do not call CRM APIs or create, change, or delete a live customer record. Text entered into the add-demo form is held in page memory for that visit; it is not submitted to Q's CRM or other Q application APIs and is not saved by Q. Do not enter real customer or other personal information. General website requests and any site-wide technical monitoring or analytics described in this Policy may still process ordinary visit and device information.
 
 ---
 
@@ -1001,6 +1005,7 @@ This Privacy Policy should be read together with the Terms of Service,Cookie Pol
 
 Version   Date         Summary
 
+1.5.5     19/10/2026  Described fictional CRM training data, local-only demo interactions and site-wide visit data boundaries.
 1.5.4     14/10/2026  Updated office mailbox, customer-history, support-notification and processor disclosures for Microsoft 365.
 1.5.0     28/09/2026   Added Groq hosted AI provider, retention, data-location and transfer disclosures.
 1.5.0     28/09/2026   Added opt-in Brevo website analytics tracker disclosures and cookie preference controls.

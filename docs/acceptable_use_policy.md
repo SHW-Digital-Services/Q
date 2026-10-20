@@ -1,9 +1,9 @@
 ---
 title: Acceptable Use Policy
 description: Acceptable Use Policy for Q Intelligence
-version: 1.0.1
+version: 1.0.2
 effective_date: 02/08/2026
-last_updated: 29/09/2026
+last_updated: 19/10/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -29,6 +29,8 @@ You may use Q Intelligence only for lawful purposes and in accordance with:
 - applicable local, national, and international laws;
 - intellectual property laws;
 - privacy and data protection laws.
+
+The `/crm-training` page is provided for staff familiarisation using fictional data. Do not enter real customer information, use its demo records to make decisions about real people, or represent sample activity as an action taken in the live CRM. Training interactions do not authorise access to customer accounts or systems.
 
 You are responsible for all activity carried out using your account.
 
@@ -186,6 +188,7 @@ This Policy should be read together with:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.0.2 | 19/10/2026 | Added boundaries for using fictional CRM training data and demo actions. |
 | 1.0.0 | 02/08/2026 | Initial release. |
 
 ---

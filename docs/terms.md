@@ -1,9 +1,9 @@
 ---
 title: Terms of Service
 description: Terms of Service for Q Intelligence
-version: 1.5.4
+version: 1.5.5
 effective_date: 02/08/2026
-last_updated: 14/10/2026
+last_updated: 19/10/2026
 website: https://q-ai.online
 operator: Scott Harvey-Whittle trading as SHW Digital Services
 ---
@@ -15,6 +15,10 @@ operator: Scott Harvey-Whittle trading as SHW Digital Services
 Staff and Admins may access the shared cs@q-ai.online Microsoft 365 mailbox through the CRM. Actions operate under the mailbox's delegated permissions and Microsoft's service limits. Q temporarily relays message content and attachments; it does not save them in Supabase. Draft text may be recovered in the current browser session until explicitly saved to Microsoft 365 or sent. Operators should verify recipients, placeholders, facts and links before sending, and check Outlook Sent Items before repeating an uncertain send. Generic templates do not authorise marketing or replace required consent.
 
 Admin webhook integrations retain provider event records for review. Generated address-shaped identifiers are not mailboxes. Admin user deletion is irreversible through the CRM and does not cancel external payments or erase Microsoft 365 mail; existing constraints and retained operational records may apply. Staff cannot delete users or change public launch status.
+
+## CRM training environment
+
+The `/crm-training` page is a demonstration for staff familiarisation. Its sample customers and scenarios are fictional. Demo interactions, including adding a sample customer, operate only in the current page and do not create, change, or delete live CRM data or trigger customer communications, account changes, billing, or other production actions. Do not enter real customer information into the training page. The training page does not grant access to the authenticated CRM or authorise staff to perform actions outside their role.
 
 ## 1. Introduction
 
@@ -605,6 +609,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.5.5 | 19/10/2026 | Described the fictional, client-side CRM training environment and its operational boundaries. |
 | 1.5.4 | 14/10/2026 | Updated CRM communications terms for the Microsoft 365 mail migration. |
 | 1.5.0 | 28/09/2026 | Added Groq hosted AI provider and provider-specific processing disclosures. |
 | 1.4.0 | 28/09/2026 | Added Brevo Conversations support-chat scope and privacy boundaries. |
@@ -624,7 +629,7 @@ Where there is any conflict between these Terms and a mandatory provision of app
 **Operator:** Scott Harvey-Whittle trading as SHW Digital Services  
 **Availability:** Worldwide  
 **Governing Law:** England & Wales  
-**Current Version:** 1.5.4
+**Current Version:** 1.5.5
 
 ---
 

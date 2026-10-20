@@ -29,6 +29,7 @@ import { supportRouter } from './routes/support.js';
 import { feedbackRouter } from './routes/feedback.js';
 import { userActivityRouter } from './routes/userActivity.js';
 import { itHubAdminRouter } from './routes/itHubAdmin.js';
+import { waitlistRouter } from './routes/waitlist.js';
 
 export const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -208,6 +209,7 @@ app.use('/api/crm/notifications', crmNotificationsRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/help-centre', helpCentreRouter);
 app.use('/api/feedback', feedbackRouter);
+app.use('/api/waitlist', waitlistRouter);
 app.use('/api/presence', onlinePresenceRouter);
 app.use('/api/activity', userActivityRouter);
 app.use('/api/v1/admin', userActivityRouter);

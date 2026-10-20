@@ -1,5 +1,9 @@
 Use this file to record legal reviews and approvals for the policies in docs/.
 
+## 19 October 2026: CRM training environment
+
+Updated the Privacy Policy, Terms, Cookie Policy, Acceptable Use Policy and Security Policy to describe the public `/crm-training` client-side demonstration. The disclosures state that demo records are fictional, demo edits stay in page memory, and the training page does not call CRM APIs or trigger live customer, account, billing or support actions. They also direct staff not to enter real customer information. Existing site-wide technical monitoring or analytics may still process ordinary visit/device data; demo form values are not submitted to Q's CRM or other Q application APIs. This records an implementation disclosure update only; it does not record legal approval or replace review of site-wide analytics configuration.
+
 ## 14 October 2026: Microsoft 365 Communications migration
 
 Updated Q's planned CRM mailbox provider from Zoho Mail to Microsoft Graph for the shared office and Scott private mailboxes, and updated the Privacy Policy, Terms, Cookie Policy, Security Policy, Processor Register, user/support guidance and third-party notices. Disclosures cover server-held delegated refresh tokens, temporary in-memory attachment handling, retained CRM email metadata, support notifications and Microsoft tenant-specific contract/location settings. Added a migration for opaque Graph IDs. The user confirms that the updated legal documentation was legally approved on 14 October 2026. This records that approval as reported by the user; it does not establish production deployment, Microsoft tenant consent, or verification of the operator's Microsoft agreement and data residency.
