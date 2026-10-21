@@ -19,7 +19,7 @@ export const crmViews: Record<string, { title: string; description: string; admi
   integrations: { title: 'Integrations', description: 'Manage connected services and event notifications.', admin: true },
   settings: { title: 'Site settings', description: 'Manage public availability and preview Q.', admin: true },
   'vercel-logs': { title: 'Vercel logs', description: 'Live runtime logs from the Q production project.', admin: true },
-  'it-hub': { title: 'IT Hub', description: 'Service health, incident management and IT Hub event history.', admin: true },
+  'it-hub': { title: 'IT Hub', description: 'Service health, incidents, Supabase and PayPal diagnostics, and IT Hub event history.', admin: true },
 };
 
 export default function CrmWorkspace({ children, view = 'customers', onSignOut, onBack, onPreview }: { children: React.ReactNode; view?: string; onSignOut: () => Promise<void>; onBack?: () => void; onPreview?: () => Promise<void> }) {

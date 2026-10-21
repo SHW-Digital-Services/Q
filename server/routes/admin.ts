@@ -1260,8 +1260,8 @@ adminRouter.patch('/peer-knowledge/:id', asyncHandler(async (req, res) => {
   const staffCtx = await requireStaff(req, res);
   if (!staffCtx) return;
   if (!requireExactObject(req.body, ['status', 'moderationNote'])) return res.status(400).json({ error: 'Unexpected request fields.' });
-  const status = ['pending', 'approved', 'rejected', 'archived'].includes(req.body?.status) ? req.body.status : null;
-  if (!status) return res.status(400).json({ error: 'Status must be pending, approved, rejected, or archived.' });
+  const status = ['pending', 'approved', 'rejected', 'changes_needed', 'escalated_for_advice', 'archived'].includes(req.body?.status) ? req.body.status : null;
+  if (!status) return res.status(400).json({ error: 'Choose a valid moderation outcome.' });
   const moderationNote = typeof req.body?.moderationNote === 'string' ? req.body.moderationNote.trim().slice(0, 1000) : null;
   const updates: Record<string, unknown> = {
     status,
@@ -1273,7 +1273,7 @@ adminRouter.patch('/peer-knowledge/:id', asyncHandler(async (req, res) => {
   const { data, error } = await staffCtx.serviceSupabase.from('peer_knowledge_posts').update(updates).eq('id', req.params.id).select('*').maybeSingle();
   if (error) return res.status(500).json({ error: 'Unable to moderate this Peer Knowledge submission.' });
   if (!data) return res.status(404).json({ error: 'Peer Knowledge submission not found.' });
-  if (data.user_id) await recordCrmActivity(staffCtx.serviceSupabase, data.user_id, staffCtx.identity.user.id, 'peer_knowledge_moderated', `Peer Knowledge submission ${status}`, { postId: data.id, status });
+  if (data.user_id) await recordCrmActivity(staffCtx.serviceSupabase, data.user_id, staffCtx.identity.user.id, 'peer_knowledge_moderated', `Peer Knowledge submission ${status.replace(/_/g, ' ')}`, { postId: data.id, status });
   return res.json(data);
 }));
 

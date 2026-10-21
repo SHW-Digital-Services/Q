@@ -612,7 +612,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     }
   };
 
-  const moderatePeerSubmission = async (submission: any, status: 'approved' | 'rejected' | 'archived') => {
+  const moderatePeerSubmission = async (submission: any, status: 'approved' | 'rejected' | 'changes_needed' | 'escalated_for_advice' | 'archived') => {
     setPeerMessage(null);
     try {
       const response = await fetch(`/api/v1/admin/peer-knowledge/${submission.id}`, {
@@ -623,7 +623,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       const updated = await parseJsonResponse(response);
       if (status === 'archived') setPeerSubmissions(current => current.filter(item => item.id !== submission.id));
       else setPeerSubmissions(current => current.map(item => item.id === updated.id ? updated : item));
-      setPeerMessage(`Peer Knowledge submission ${status}.`);
+      setPeerMessage(`Peer Knowledge submission ${status.replace(/_/g, ' ')}.`);
     } catch (error: any) {
       setPeerMessage(error.message || 'Unable to moderate submission.');
     }
@@ -851,15 +851,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
         </section>}</>}
 
         {view === "review" && <><section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
-          <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><Users className="h-4 w-4 text-emerald-300" /><p className="text-sm font-semibold">Peer Knowledge moderation</p></div><p className="mt-1 text-sm text-slate-400">Staff and Admins review user contributions before they appear in Peer Knowledge. Approved posts are public; rejected or archived posts remain out of the app.</p></div><button type="button" onClick={() => void loadPeerSubmissions()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh Peer Knowledge moderation"><RefreshCw className="h-4 w-4" /></button></div>
+          <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2 text-white"><Users className="h-4 w-4 text-emerald-300" /><p className="text-sm font-semibold">Peer Knowledge moderation</p></div><p className="mt-1 text-sm text-slate-400">Staff and Admins review user contributions before they appear in Peer Knowledge. Only approved posts are public; other outcomes stay out of the app.</p></div><button type="button" onClick={() => void loadPeerSubmissions()} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10" title="Refresh Peer Knowledge moderation"><RefreshCw className="h-4 w-4" /></button></div>
           {peerMessage && <p className="mt-3 rounded-xl bg-emerald-500/10 p-3 text-xs text-emerald-100">{peerMessage}</p>}
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {peerSubmissions.length === 0 ? <p className="text-xs text-slate-400">No Peer Knowledge submissions yet.</p> : peerSubmissions.map(submission => <article key={submission.id} className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-              <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${submission.status === 'approved' ? 'bg-emerald-500/15 text-emerald-200' : submission.status === 'rejected' ? 'bg-rose-500/15 text-rose-200' : 'bg-amber-500/15 text-amber-200'}`}>{submission.status}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{submission.category}</span></div>
+              <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${submission.status === 'approved' ? 'bg-emerald-500/15 text-emerald-200' : submission.status === 'rejected' ? 'bg-rose-500/15 text-rose-200' : submission.status === 'escalated_for_advice' ? 'bg-violet-500/15 text-violet-200' : 'bg-amber-500/15 text-amber-200'}`}>{String(submission.status).replace(/_/g, ' ')}</span><span className="text-[10px] uppercase tracking-wider text-slate-500">{submission.category}</span></div>
               <h3 className="mt-2 text-sm font-bold text-white">{submission.title}</h3>
               <p className="mt-1 text-xs text-slate-400">{submission.author_alias || 'Community Peer'} · {new Date(submission.created_at).toLocaleString()}</p>
               <p className="mt-3 line-clamp-4 whitespace-pre-wrap rounded-xl bg-slate-950/70 p-3 text-xs leading-relaxed text-slate-200">{submission.content}</p>
-              <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => void moderatePeerSubmission(submission, 'approved')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Approve</button><button type="button" onClick={() => void moderatePeerSubmission(submission, 'rejected')} className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white">Reject</button><button type="button" onClick={() => void moderatePeerSubmission(submission, 'archived')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Archive</button></div>
+              <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => void moderatePeerSubmission(submission, 'approved')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Approve</button><button type="button" onClick={() => void moderatePeerSubmission(submission, 'rejected')} className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white">Reject</button><button type="button" onClick={() => void moderatePeerSubmission(submission, 'changes_needed')} className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-100">Changes needed</button><button type="button" onClick={() => void moderatePeerSubmission(submission, 'escalated_for_advice')} className="rounded-xl border border-violet-400/30 bg-violet-500/10 px-3 py-2 text-xs font-bold text-violet-100">Escalate for advice</button><button type="button" onClick={() => void moderatePeerSubmission(submission, 'archived')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Archive</button></div>
             </article>)}
           </div>
         </section></>}
