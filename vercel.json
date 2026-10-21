@@ -62,6 +62,7 @@
     { "source": "/developer", "destination": "/index.html" },
     { "source": "/support", "destination": "/index.html" },
     { "source": "/training", "destination": "/index.html" },
+    { "source": "/crm-training", "destination": "/index.html" },
     { "source": "/help", "destination": "/index.html" },
     { "source": "/roadmap", "destination": "/index.html" },
     { "source": "/app/:path*", "destination": "/index.html" },
