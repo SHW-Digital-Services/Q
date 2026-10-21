@@ -16,4 +16,4 @@ export const businessIdentity = {
 
 export const publicLegalPages = ['terms', 'privacy', 'refund', 'cookie', 'accessibility',
   'subscription_terms', 'acceptable_use_policy', 'ai_disclaimer', 'dpa', 'PROCESSORS',
-  'security', 'third_party_notices', 'community'] as const;
+  'security', 'third_party_notices', 'community', 'sla'] as const;

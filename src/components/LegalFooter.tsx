@@ -15,6 +15,7 @@ const legalLinks = [
   { name: 'Subscription Terms', path: '/legal/subscription_terms' },
   { name: 'Processor Register', path: '/legal/PROCESSORS' },
   { name: 'Security Policy', path: '/legal/security' },
+  { name: 'Service Level Agreement', path: '/legal/sla' },
   { name: 'Terms of Service', path: '/legal/terms' },
   { name: 'Third-Party Notices', path: '/legal/third_party_notices' },
 ];
