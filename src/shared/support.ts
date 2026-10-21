@@ -10,6 +10,7 @@ export interface SupportRequest {
 }
 export interface SupportMessage {
   id: string; author_kind: 'user' | 'staff'; internal: boolean; body: string; created_at: string;
+  author_name?: string | null;
   notification_status?: 'pending' | 'sending' | 'sent' | 'failed' | 'unavailable' | null;
 }
 export interface SupportEvent { id: string; action: string; status: string; created_at: string; actor_id?: string | null; assigned_to?: string | null }

@@ -11,7 +11,7 @@ import { allowedMailOrigin } from '../microsoft365Mail.js';
 const hash = (token: string | Buffer) => createHash('sha256').update(token).digest('hex');
 const cookieName = 'q_support_session';
 const publicColumns = 'id,category,subject,message,status,created_at,updated_at';
-const messageColumns = 'id,author_kind,internal,body,created_at';
+const messageColumns = 'id,author_id,author_kind,internal,body,created_at';
 type Dependencies = { db: () => any; authenticate: typeof getAuthenticatedUser; staff: typeof requireStaff; email: typeof sendSupportEmail; origin: typeof getCanonicalAppUrl };
 
 export function createSupportRouter(deps: Dependencies) {
@@ -92,6 +92,23 @@ export function createSupportRouter(deps: Dependencies) {
     ]);
     if (messageResult.error || events.error) return failure(res, messageResult.error || events.error);
     let result = messageResult.data ?? [];
+    if (staff && result.length) {
+      const staffIds = [...new Set(result.filter((message: any) => message.author_kind === 'staff' && message.author_id).map((message: any) => message.author_id))];
+      const profiles = staffIds.length ? await res.locals.db.from('profiles').select('id,preferred_name,role').in('id', staffIds) : { data: [], error: null };
+      if (profiles.error) return failure(res, profiles.error);
+      const names = new Map<string, string>();
+      await Promise.all((profiles.data || []).map(async (profile: any) => {
+        const { data: identity } = await res.locals.db.auth.admin.getUserById(profile.id);
+        const user = identity?.user;
+        const microsoft = user?.identities?.find((entry: any) => String(entry.provider || '').toLowerCase().startsWith('sso:'));
+        const claims = { ...(user?.user_metadata || {}), ...(microsoft?.identity_data || {}) } as Record<string, unknown>;
+        const microsoftName = [claims.full_name, claims.name, claims.display_name, claims.displayName,
+          [claims.given_name || claims.givenName, claims.family_name || claims.surname].filter(Boolean).join(' ')]
+          .find(value => typeof value === 'string' && value.trim());
+        names.set(profile.id, (microsoftName as string | undefined)?.trim() || profile.preferred_name?.trim() || 'Team member');
+      }));
+      result = result.map((message: any) => ({ ...message, author_name: message.author_id ? names.get(message.author_id) || null : null }));
+    }
     if (staff && result.length) {
       const notices = await res.locals.db.from('support_notifications').select('message_id,status').in('message_id', result.map((message: any) => message.id));
       if (notices.error) return failure(res, notices.error);

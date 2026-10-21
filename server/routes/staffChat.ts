@@ -36,7 +36,10 @@ export function createStaffChatRouter(authorise = requireStaff) {
       const profile = row.profiles as any;
       users.set(row.user_id, { id: row.user_id, name: staffChatName(profile.preferred_name, profile.role), role: profile.role });
     }
-    res.json({ messages: cursor === undefined ? (messages.data || []).reverse() : messages.data || [], publicMessages: (publicHistory.data || []).reverse(), users: [...users.values()], team: (team.data || []).map(profile => ({ id: profile.id, name: staffChatName(profile.preferred_name, profile.role), role: profile.role })), userId: staff.identity.user.id });
+    const teamMembers = (team.data || []).map(profile => ({ id: profile.id, name: staffChatName(profile.preferred_name, profile.role), role: profile.role }));
+    const names = new Map(teamMembers.map(member => [member.id, member.name]));
+    const namedMessages = (rows: any[]) => rows.map(message => ({ ...message, display_name: names.get(message.user_id) || staffChatName(message.display_name, message.role) }));
+    res.json({ messages: namedMessages(cursor === undefined ? (messages.data || []).reverse() : messages.data || []), publicMessages: namedMessages((publicHistory.data || []).reverse()), users: [...users.values()], team: teamMembers, userId: staff.identity.user.id });
   }));
   router.post('/purge-public', asyncHandler(async (req, res) => {
     const staff = await authorise(req, res); if (!staff) return;
@@ -53,7 +56,11 @@ export function createStaffChatRouter(authorise = requireStaff) {
     query = recipient === null ? query.is('recipient_id', null) : query.or(`and(user_id.eq.${staff.identity.user.id},recipient_id.eq.${recipient}),and(user_id.eq.${recipient},recipient_id.eq.${staff.identity.user.id})`);
     const result = await query.order('id', { ascending: false }).limit(100);
     if (result.error) { res.status(503).json({ error: 'Unable to load this conversation.' }); return; }
-    res.json({ messages: (result.data || []).reverse() });
+    const ids = [...new Set((result.data || []).map((message: any) => message.user_id))];
+    const profiles = ids.length ? await staff.serviceSupabase.from('profiles').select('id,preferred_name,role').in('id', ids) : { data: [], error: null };
+    if (profiles.error) { res.status(503).json({ error: 'Unable to load this conversation.' }); return; }
+    const names = new Map((profiles.data || []).map((profile: any) => [profile.id, staffChatName(profile.preferred_name, profile.role)]));
+    res.json({ messages: (result.data || []).reverse().map((message: any) => ({ ...message, display_name: names.get(message.user_id) || staffChatName(message.display_name, message.role) })) });
   }));
   router.post('/messages', asyncHandler(async (req, res) => {
     const staff = await authorise(req, res); if (!staff) return;
