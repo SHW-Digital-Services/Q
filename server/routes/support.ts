@@ -7,6 +7,7 @@ import { boundedString, isUuid, requireExactObject } from '../security.js';
 import { supportCategories, supportStatuses } from '../../src/shared/support.js';
 import { sendSupportEmail } from '../supportMail.js';
 import { allowedMailOrigin } from '../microsoft365Mail.js';
+import { staffIdentityName } from '../staffIdentityName.js';
 
 const hash = (token: string | Buffer) => createHash('sha256').update(token).digest('hex');
 const cookieName = 'q_support_session';
@@ -97,16 +98,7 @@ export function createSupportRouter(deps: Dependencies) {
       const profiles = staffIds.length ? await res.locals.db.from('profiles').select('id,preferred_name,role').in('id', staffIds) : { data: [], error: null };
       if (profiles.error) return failure(res, profiles.error);
       const names = new Map<string, string>();
-      await Promise.all((profiles.data || []).map(async (profile: any) => {
-        const { data: identity } = await res.locals.db.auth.admin.getUserById(profile.id);
-        const user = identity?.user;
-        const microsoft = user?.identities?.find((entry: any) => String(entry.provider || '').toLowerCase().startsWith('sso:'));
-        const claims = { ...(user?.user_metadata || {}), ...(microsoft?.identity_data || {}) } as Record<string, unknown>;
-        const microsoftName = [claims.full_name, claims.name, claims.display_name, claims.displayName,
-          [claims.given_name || claims.givenName, claims.family_name || claims.surname].filter(Boolean).join(' ')]
-          .find(value => typeof value === 'string' && value.trim());
-        names.set(profile.id, (microsoftName as string | undefined)?.trim() || profile.preferred_name?.trim() || 'Team member');
-      }));
+      await Promise.all((profiles.data || []).map(async (profile: any) => names.set(profile.id, await staffIdentityName(res.locals.db, profile))));
       result = result.map((message: any) => ({ ...message, author_name: message.author_id ? names.get(message.author_id) || null : null }));
     }
     if (staff && result.length) {
@@ -185,15 +177,7 @@ export function createSupportRouter(deps: Dependencies) {
     // No private profile context or personal mailbox information is returned.
     const eligible = (data || []).filter((profile: any) => profile.role === 'partner_admin' || !profile.staff_permissions?.length || profile.staff_permissions.includes('support.read'));
     const assignees = await Promise.all(eligible.map(async (profile: any) => {
-      const { data: identity } = await res.locals.db.auth.admin.getUserById(profile.id);
-      const user = identity?.user;
-      const microsoft = user?.identities?.find((entry: any) => String(entry.provider || '').toLowerCase().startsWith('sso:'));
-      const claims = { ...(user?.user_metadata || {}), ...(microsoft?.identity_data || {}) } as Record<string, unknown>;
-      const microsoftName = [
-        claims.full_name, claims.name, claims.display_name, claims.displayName,
-        [claims.given_name || claims.givenName, claims.family_name || claims.surname].filter(Boolean).join(' ')
-      ].find(value => typeof value === 'string' && value.trim());
-      return { id: profile.id, label: (microsoftName as string | undefined)?.trim() || profile.preferred_name?.trim() || `${profile.role === 'partner_admin' ? 'Admin' : 'Staff'} ${profile.id.slice(0,8)}` };
+      return { id: profile.id, label: await staffIdentityName(res.locals.db, profile) };
     }));
     return res.json(assignees);
   }));

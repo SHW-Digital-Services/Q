@@ -2,6 +2,7 @@ import express from 'express';
 import { requireStaff } from './admin.js';
 import { asyncHandler } from '../middleware.js';
 import { staffChatName } from '../../src/shared/staffChatName.js';
+import { staffIdentityName } from '../staffIdentityName.js';
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const fields = 'id,user_id,recipient_id,display_name,role,body,created_at';
@@ -32,11 +33,12 @@ export function createStaffChatRouter(authorise = requireStaff) {
     const publicHistory = await db.from('staff_chat_messages').select(fields).is('recipient_id', null).order('id', { ascending: false }).limit(100);
     if (publicHistory.error) { res.status(503).json({ error: 'Unable to load team chat.' }); return; }
     const users = new Map<string, { id: string; name: string; role: string }>();
+    const profileById = new Map((team.data || []).map((profile: any) => [profile.id, profile]));
     for (const row of presence.data || []) {
       const profile = row.profiles as any;
-      users.set(row.user_id, { id: row.user_id, name: staffChatName(profile.preferred_name, profile.role), role: profile.role });
+      users.set(row.user_id, { id: row.user_id, name: staffChatName(await staffIdentityName(db, profileById.get(row.user_id) || { id: row.user_id, ...profile }), profile.role), role: profile.role });
     }
-    const teamMembers = (team.data || []).map(profile => ({ id: profile.id, name: staffChatName(profile.preferred_name, profile.role), role: profile.role }));
+    const teamMembers = await Promise.all((team.data || []).map(async profile => ({ id: profile.id, name: staffChatName(await staffIdentityName(db, profile), profile.role), role: profile.role })));
     const names = new Map(teamMembers.map(member => [member.id, member.name]));
     const namedMessages = (rows: any[]) => rows.map(message => ({ ...message, display_name: names.get(message.user_id) || staffChatName(message.display_name, message.role) }));
     res.json({ messages: namedMessages(cursor === undefined ? (messages.data || []).reverse() : messages.data || []), publicMessages: namedMessages((publicHistory.data || []).reverse()), users: [...users.values()], team: teamMembers, userId: staff.identity.user.id });
@@ -59,7 +61,7 @@ export function createStaffChatRouter(authorise = requireStaff) {
     const ids = [...new Set((result.data || []).map((message: any) => message.user_id))];
     const profiles = ids.length ? await staff.serviceSupabase.from('profiles').select('id,preferred_name,role').in('id', ids) : { data: [], error: null };
     if (profiles.error) { res.status(503).json({ error: 'Unable to load this conversation.' }); return; }
-    const names = new Map((profiles.data || []).map((profile: any) => [profile.id, staffChatName(profile.preferred_name, profile.role)]));
+    const names = new Map(await Promise.all((profiles.data || []).map(async (profile: any) => [profile.id, staffChatName(await staffIdentityName(staff.serviceSupabase, profile), profile.role)] as const)));
     res.json({ messages: (result.data || []).reverse().map((message: any) => ({ ...message, display_name: names.get(message.user_id) || staffChatName(message.display_name, message.role) })) });
   }));
   router.post('/messages', asyncHandler(async (req, res) => {
@@ -75,10 +77,10 @@ export function createStaffChatRouter(authorise = requireStaff) {
       if (target.error) { res.status(503).json({ error: 'Unable to check the recipient.' }); return; }
       if (!['staff', 'partner_admin'].includes(target.data?.role || '')) { res.status(400).json({ error: 'Private messages can only be sent to Staff and Admins.' }); return; }
     }
-    const profile = await db.from('profiles').select('preferred_name').eq('id', staff.identity.user.id).single();
+    const profile = await db.from('profiles').select('id,preferred_name,role').eq('id', staff.identity.user.id).single();
     if (profile.error) { res.status(503).json({ error: 'Unable to check your chat profile.' }); return; }
     // A client request ID makes retrying a failed response safe without duplicating messages.
-    const result = await db.from('staff_chat_messages').insert({ request_id: id, user_id: staff.identity.user.id, recipient_id: recipient, display_name: staffChatName(profile.data.preferred_name, staff.role), role: staff.role, body });
+    const result = await db.from('staff_chat_messages').insert({ request_id: id, user_id: staff.identity.user.id, recipient_id: recipient, display_name: staffChatName(await staffIdentityName(db, profile.data), staff.role), role: staff.role, body });
     if (result.error && result.error.code !== '23505') { res.status(503).json({ error: 'Message could not be sent. Your draft has been kept.' }); return; }
     res.status(201).json({ success: true });
   }));
