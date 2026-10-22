@@ -63,6 +63,10 @@ const emptyContentForm = {
   heroImageUrl: ''
 };
 
+function localDateTimeValue(date: Date) {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 type ContentFormState = typeof emptyContentForm;
 
 function hasContentDraft(form: ContentFormState) {
@@ -119,6 +123,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
   const [contentRelationshipsAvailable, setContentRelationshipsAvailable] = useState(true);
   const contentRequestId = useRef(0);
   const [contentMessage, setContentMessage] = useState<string | null>(null);
+  const [contentScheduleTimes, setContentScheduleTimes] = useState<Record<string, string>>({});
   const [contentSaving, setContentSaving] = useState(false);
   const [apiClients, setApiClients] = useState<any[]>([]);
   const [apiClientName, setApiClientName] = useCrmDraftState('apiClientName', '');
@@ -582,13 +587,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
     } catch (error: any) { setContentMessage(error.message || 'Unable to link update.'); }
   };
 
-  const contentAction = async (post: ContentPost, action: 'publish' | 'unpublish' | 'archive') => {
+  const contentAction = async (post: ContentPost, action: 'publish' | 'unpublish' | 'archive' | 'schedule') => {
     setContentMessage(null);
     try {
-      const response = await fetch(`/api/v1/admin/content/${post.id}${action === 'archive' ? '' : `/${action}`}`, {
+      const response = await fetch(`/api/v1/admin/content/${post.id}${action === 'archive' ? '' : `/${action === 'schedule' ? 'publish' : action}`}`, {
         method: action === 'archive' ? 'DELETE' : 'POST',
         headers: await getAuthHeaders(),
-        body: action === 'archive' ? undefined : JSON.stringify({})
+        body: action === 'archive' ? undefined : JSON.stringify(action === 'schedule' ? { scheduledAt: new Date(contentScheduleTimes[post.id]).toISOString() } : {})
       });
       const payload = await parseJsonResponse(response);
       if (action === 'archive') {
@@ -597,7 +602,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
       } else {
         setContentPosts((current) => current.map((item) => item.id === post.id ? payload : item));
       }
-      setContentMessage(action === 'publish' ? 'Post published.' : action === 'unpublish' ? 'Post returned to draft.' : 'Post archived.');
+      setContentMessage(action === 'publish' ? 'Post published.' : action === 'schedule' ? 'Post scheduled.' : action === 'unpublish' ? 'Post returned to draft.' : 'Post archived.');
     } catch (error: any) {
       setContentMessage(error.message || `Unable to ${action} content post.`);
     }
@@ -827,11 +832,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-black uppercase text-slate-200">{post.content_type}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${post.status === 'published' ? 'bg-emerald-500/15 text-emerald-200' : 'bg-amber-500/15 text-amber-200'}`}>{post.status}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${post.status === 'published' ? 'bg-emerald-500/15 text-emerald-200' : 'bg-amber-500/15 text-amber-200'}`}>{post.status === 'published' && post.published_at && new Date(post.published_at) > new Date() ? 'scheduled' : post.status}</span>
                     </div>
                     <h3 className="mt-2 truncate text-sm font-bold text-white">{post.title}</h3>
                     <p className="mt-1 line-clamp-2 text-xs text-slate-400">{post.summary}</p>
                     <p className="mt-2 text-[10px] text-slate-500">/{post.slug}</p>
+                    {post.status !== 'archived' && post.status !== 'published' && <label className="mt-3 block text-xs text-slate-200">Post date and time
+                      <input type="datetime-local" min={localDateTimeValue(new Date(Date.now() + 60000))} value={contentScheduleTimes[post.id] ?? ''} onChange={(event) => setContentScheduleTimes((current) => ({ ...current, [post.id]: event.target.value }))} className="mt-1 w-full rounded-lg bg-slate-950 p-2 text-white" />
+                    </label>}
+                    {post.status === 'published' && post.published_at && new Date(post.published_at) > new Date() && <p className="mt-2 text-xs text-amber-200">Scheduled for {new Date(post.published_at).toLocaleString()}</p>}
                     {post.content_type === 'update' && !showArchivedContent && contentRelationshipsAvailable && <label className="mt-3 block text-xs text-slate-200">Related news
                       <select aria-label={`Related news for ${post.title}`} value={post.parent_news_id ?? ''} onChange={(event) => void linkContentUpdate(post, event.target.value)} className="mt-1 w-full rounded-lg bg-slate-950 p-2 text-white">
                         <option value="" disabled>Choose a news item before publishing</option>
@@ -841,7 +850,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ enabled, onToggle, onClo
                   </div>
                 </div>
                 {!showArchivedContent && <div className="mt-3 flex flex-wrap gap-2">
-                  {post.status === 'published' ? <button type="button" onClick={() => void contentAction(post, 'unpublish')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Unpublish</button> : <button type="button" onClick={() => void contentAction(post, 'publish')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Publish</button>}
+                  {post.status === 'published' ? <button type="button" onClick={() => void contentAction(post, 'unpublish')} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">Unpublish</button> : <><button type="button" onClick={() => void contentAction(post, 'publish')} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Publish now</button><button type="button" disabled={!contentScheduleTimes[post.id]} onClick={() => void contentAction(post, 'schedule')} className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Schedule</button></>}
                   <button type="button" onClick={() => void contentAction(post, 'archive')} className="rounded-xl bg-rose-600/80 px-3 py-2 text-xs font-bold text-white">Archive</button>
                 </div>}
               </article>

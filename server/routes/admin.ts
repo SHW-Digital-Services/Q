@@ -665,10 +665,16 @@ adminRouter.patch('/content/:id', asyncHandler(async (req, res) => {
 
 adminRouter.post('/content/:id/publish', asyncHandler(async (req, res) => {
   const adminCtx = await requireAdmin(req, res); if (!adminCtx) return;
-  if (!requireExactObject(req.body ?? {}, [])) return res.status(400).json({ error: 'Unexpected request fields.' });
+  if (!requireExactObject(req.body ?? {}, ['scheduledAt'])) return res.status(400).json({ error: 'Unexpected request fields.' });
+  let publishedAt = new Date().toISOString();
+  if (req.body?.scheduledAt !== undefined) {
+    const scheduledAt = new Date(req.body.scheduledAt);
+    if (typeof req.body.scheduledAt !== 'string' || !Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now() + 60000) return res.status(400).json({ error: 'Choose a schedule at least one minute in the future.' });
+    publishedAt = scheduledAt.toISOString();
+  }
   const { data, error } = await adminCtx.serviceSupabase
     .from('content_posts')
-    .update({ status: 'published', published_at: new Date().toISOString(), updated_by: adminCtx.identity.user.id })
+    .update({ status: 'published', published_at: publishedAt, updated_by: adminCtx.identity.user.id })
     .eq('id', req.params.id)
     .select('id,slug,title,summary,body,content_type,parent_news_id,status,tags,hero_image_url,published_at,updated_at,created_at')
     .maybeSingle();
