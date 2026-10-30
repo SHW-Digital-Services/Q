@@ -40,7 +40,7 @@
     "@tailwindcss/vite": "^4.1.14",
     "@vercel/analytics": "^2.0.1",
     "@vitejs/plugin-react": "^5.0.4",
-    "dompurify": "^3.4.16",
+    "dompurify": "^3.4.17",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "fflate": "0.8.3",
@@ -54,7 +54,7 @@
     "recharts": "^3.10.1",
     "remark-gfm": "^4.0.1",
     "tus-js-client": "4.3.1",
-    "vite": "^6.2.3"
+    "vite": "^6.4.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
@@ -69,6 +69,6 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.4.5"
   }
 }
