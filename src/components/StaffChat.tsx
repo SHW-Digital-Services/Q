@@ -104,7 +104,6 @@ export default function StaffChat({ page = true }: { page?: boolean }) {
       audio.current ||= new AudioContext();
       void audio.current.resume().then(() => { if (active) setSound(true); }).catch(() => {});
     };
-    unlock();
     document.addEventListener('pointerdown', unlock); document.addEventListener('keydown', unlock);
     return () => { active = false; document.removeEventListener('pointerdown', unlock); document.removeEventListener('keydown', unlock); };
   }, [userId]);

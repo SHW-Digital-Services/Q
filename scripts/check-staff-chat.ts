@@ -23,13 +23,13 @@ const app = express(); app.use(express.json());
 app.use('/chat', createStaffChatRouter((async (req: any, res: any) => {
   if (!req.headers.authorization) { res.status(401).json({error:'Sign in'}); return null; }
   if (req.headers.authorization === 'Bearer customer') { res.status(403).json({error:'Staff required'}); return null; }
-  return { identity: {user:{id}}, role: req.headers.authorization === 'Bearer admin' ? 'partner_admin' : 'staff', serviceSupabase: { from(table: string) {
+  return { identity: {user:{id}}, role: req.headers.authorization === 'Bearer admin' ? 'partner_admin' : 'staff', serviceSupabase: { auth: { admin: { getUserById: async (userId: string) => ({ data: { user: { user_metadata: { full_name: userId === id ? 'Scott Example' : 'Alex Example' } } }, error: null }) } }, from(table: string) {
     const q: any = { select(){return q;},eq(){return q;},gt(){return q;},gte(){return q;},in(){return q;},order(){return q;},limit(){return q;},is(field: string, value: unknown){filters.push(`${field}.is.${value}`);return q;},or(value: string){filters.push(value);return q;},
       maybeSingle(){return Promise.resolve({data:{role:targetRole}});},
       single(){return Promise.resolve({data:{preferred_name:'Scott'}});},
       upsert(value: any){ writes.push(value);return Promise.resolve({error:null}); },
       insert(value: any){writes.push(value);return Promise.resolve({error:null});},
-      then(resolve: any){resolve({data:table==='staff_chat_presence'?[{user_id:id,profiles:{preferred_name:'Scott',role:'staff'}}]:[],error:null});} };
+      then(resolve: any){resolve({data:table==='staff_chat_presence'?[{user_id:id,profiles:{preferred_name:'Scott',role:'staff'}}]:table==='profiles'?[{id,preferred_name:'Scott',role:'staff'},{id:recipient,preferred_name:null,role:'partner_admin'}]:[],error:null});} };
     return q;
   } } };
 }) as any));
@@ -47,8 +47,10 @@ try {
   assert.equal((await post('/messages',{id,body:'x'.repeat(2001)})).status,400);
   const sync=await post('/sync',{session:id}); assert.equal(sync.status,200);
   assert.match(sync.headers.get('cache-control') || '', /no-store/);
-  assert.equal((await sync.json()).users.length,1);
-  assert.equal(filters.at(-1), chatVisibility(id));
+  const syncData = await sync.json();
+  assert.equal(syncData.users.length,1);
+  assert.deepEqual(syncData.team.map((member: any) => member.name), ['Scott', 'Alex Example']);
+  assert.ok(filters.includes(chatVisibility(id)));
   assert.equal(chatVisibility(id),`recipient_id.is.null,user_id.eq.${id},recipient_id.eq.${id}`);
   assert.equal((await post('/messages',{id,body:'Hello',user_id:'forged',role:'partner_admin'})).status,201);
   assert.equal(writes.at(-1).user_id,id); assert.equal(writes.at(-1).role,'staff');
@@ -62,7 +64,7 @@ try {
   for (const token of ['staff','admin']) {
     filters=[];
     assert.equal((await post('/sync',{session:id},token)).status,200);
-    assert.deepEqual(filters,[chatVisibility(id)]);
+    assert.ok(filters.includes(chatVisibility(id)));
     filters=[];
     assert.equal((await post('/history',{recipient},token)).status,200);
     assert.ok(filters.includes(`and(user_id.eq.${id},recipient_id.eq.${recipient}),and(user_id.eq.${recipient},recipient_id.eq.${id})`));
