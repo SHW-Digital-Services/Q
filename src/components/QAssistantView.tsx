@@ -372,7 +372,7 @@ export const QAssistantView: React.FC<QAssistantViewProps> = ({ onOpenReflection
         {aiProvider === 'local'
           ? (isWebLlmSupported() ? 'Real AI runs on this device without an API key. First use downloads the model (around 1.5 GB); keep this tab open. Later requests reuse it.' : 'On-device AI needs Chrome or Edge with WebGPU and graphics acceleration enabled. This browser cannot run the model.')
           : 'PII-masked prompt, recent chat context, selected profile context, and relevant opted-in memory are sent to Q’s server and OpenAI. Subscriber usage limits apply.'}
-        {aiProvider === 'local' && <span className="ml-1 font-semibold">On-device model: Qwen2.5.</span>}
+        {aiProvider === 'local' && <span className="ml-1 font-semibold">On-device model: Llama 3.2 1B.</span>}
         {!hostedAccessLoading && !hasHostedAccess && onOpenSubscription && (
           <button type="button" onClick={onOpenSubscription} className="ml-2 font-bold underline underline-offset-2">Subscribe for hosted AI</button>
         )}

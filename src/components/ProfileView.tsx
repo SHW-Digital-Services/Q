@@ -12,6 +12,7 @@ import {
   Shield,
   Sparkles,
   Gift,
+  X,
   Copy,
   UserCircle,
   Trash2
@@ -93,6 +94,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [referralEmail, setReferralEmail] = useState('');
   const [referralStatus, setReferralStatus] = useState<string | null>(null);
   const [privacyAction, setPrivacyAction] = useState<string | null>(null);
+  const [isFreeStuffOpen, setIsFreeStuffOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isFreeStuffOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsFreeStuffOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isFreeStuffOpen]);
 
   const authHeaders = async () => {
     const supabase = getSupabaseClient();
@@ -339,6 +350,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
             <button
               type="button"
+              onClick={() => setIsFreeStuffOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-bold text-purple-700 transition hover:bg-purple-100"
+            >
+              <Gift className="h-4 w-4" />
+              Free stuff
+            </button>
+            <button
+              type="button"
               onClick={onOpenAccount}
               className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
             >
@@ -347,6 +366,47 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </div>
       </div>
+
+      {isFreeStuffOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="free-stuff-title"
+          onClick={() => setIsFreeStuffOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <h2 id="free-stuff-title" className="text-lg font-black text-slate-950">Free stuff</h2>
+              <button
+                type="button"
+                onClick={() => setIsFreeStuffOpen(false)}
+                aria-label="Close free stuff"
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="grid max-h-[calc(100dvh-8rem)] gap-3 overflow-y-auto p-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }, (_, index) => {
+                const imageNumber = index + 1;
+                const imageUrl = `/free-stuff/Desktop%20Background%20${imageNumber}.jpg`;
+                return (
+                  <img
+                    key={imageNumber}
+                    src={imageUrl}
+                    alt={`Free background ${imageNumber}`}
+                    className="aspect-video w-full rounded-lg border border-slate-200 bg-slate-100 object-cover"
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-purple-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex items-start gap-3">
